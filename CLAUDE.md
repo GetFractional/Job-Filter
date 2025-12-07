@@ -155,13 +155,15 @@ Job-Hunter/
 - **Database**: PostgreSQL (for n8n's internal state)
 - **Cache**: Redis (for n8n performance)
 - **Workers**: 1 primary + 1 worker process
-- **API Credentials** (already configured in n8n):
+- **API/PAT Credentials** (already configured in n8n):
   - Gmail OAuth2: `ubmyBEz8Fz3RcfQb`
   - Apify API: `R6XM0ZmRkdcraQ1S`
   - Perplexity API: `shB99Fe6YGSspGem`
   - OpenAI API: `f2WDaLaE9MFhKRuc`
   - Google Service Account: `PtMjNZkPLZjldH25`
   - Anthropic API: `vOODFGWWTnJt1jkd`
+  - Airtable PAT: `o3CA4abzed6gPpQl`
+
 
 ### APIs & Services
 1. **Airtable API**
