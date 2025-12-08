@@ -428,13 +428,13 @@ function extractIndeedJobData() {
       '.icl-u-xs-mt--xs'
     ];
     const rawLocation = getTextFromSelectors(locationSelectors) || '';
-    const locationParts = rawLocation.split('•').map(p => p.trim()).filter(Boolean);
+    const locationParts = rawLocation
+      .split('•')
+      .map(p => p.trim())
+      .filter(Boolean)
+      .filter(p => !/^\(?remote\)?$/i.test(p)); // drop Remote token from location
     if (locationParts.length) {
       data.location = locationParts[0];
-      const trailing = locationParts.slice(1).join(' ');
-      if (/remote/i.test(trailing)) {
-        data.workplaceType = 'Remote';
-      }
     }
     if (/remote/i.test(rawLocation) && !data.workplaceType) {
       data.workplaceType = 'Remote';
@@ -458,6 +458,15 @@ function extractIndeedJobData() {
       '.jobsearch-jobDescriptionText'
     ];
     data.descriptionText = getTextFromSelectors(descriptionSelectors, true) || '';
+
+    // Salary fallback from description if primary fields are empty
+    if (data.salaryMin === null && data.salaryMax === null && data.descriptionText) {
+      const descSalary = findSalaryInText(data.descriptionText);
+      if (descSalary.min !== null && descSalary.max !== null) {
+        data.salaryMin = descSalary.min;
+        data.salaryMax = descSalary.max;
+      }
+    }
 
     // Employment type: often near salary info
     const employmentSelectors = [
