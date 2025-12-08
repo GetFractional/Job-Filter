@@ -772,10 +772,27 @@ async function handleCaptureClick(source, button) {
       throw new Error('Could not extract job title or company name');
     }
 
-    // Send to background script for Airtable submission
-    const response = await chrome.runtime.sendMessage({
-      action: 'jobHunter.createAirtableRecord',
-      job: jobData
+    // Send to background script for Airtable submission with explicit error handling + timeout
+    const response = await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Timed out talking to background script'));
+      }, 8000);
+
+      chrome.runtime.sendMessage(
+        {
+          action: 'jobHunter.createAirtableRecord',
+          job: jobData
+        },
+        resp => {
+          clearTimeout(timeout);
+          const lastErr = chrome.runtime.lastError;
+          if (lastErr) {
+            reject(new Error(lastErr.message || 'Message failed'));
+            return;
+          }
+          resolve(resp);
+        }
+      );
     });
 
     if (response && response.success) {
