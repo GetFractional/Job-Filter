@@ -198,6 +198,15 @@ function extractLinkedInJobData() {
     ];
     data.descriptionText = getTextFromSelectors(descriptionSelectors, true) || '';
 
+    // Fallback: parse salary from description when top-card insights are empty
+    if ((data.salaryMin === null || data.salaryMax === null) && data.descriptionText) {
+      const descSalary = findSalaryInText(data.descriptionText);
+      if (descSalary.min !== null && descSalary.max !== null) {
+        data.salaryMin = descSalary.min;
+        data.salaryMax = descSalary.max;
+      }
+    }
+
     // Extract workplace type / job type / salary hints from preference buttons
     const preferenceButtons = Array.from(document.querySelectorAll('.job-details-fit-level-preferences button'));
     for (const btn of preferenceButtons) {
@@ -416,6 +425,31 @@ function getTextFromSelectors(selectors, preserveWhitespace = false) {
     }
   }
   return null;
+}
+
+/**
+ * Find salary information in descriptive text, gated by salary-related keywords to avoid false positives
+ * @param {string} text - Full description text
+ * @returns {{min: number|null, max: number|null}}
+ */
+function findSalaryInText(text) {
+  const result = { min: null, max: null };
+  if (!text) return result;
+
+  const keywords = ['salary', 'compensation', 'pay', 'base', 'range'];
+  const paragraphs = text.split(/\n{1,}/).map(p => p.trim()).filter(Boolean);
+
+  for (const para of paragraphs) {
+    const lower = para.toLowerCase();
+    if (!keywords.some(k => lower.includes(k))) continue;
+
+    const parsed = parseSalaryRange(para);
+    if (parsed.min !== null && parsed.max !== null) {
+      return parsed;
+    }
+  }
+
+  return result;
 }
 
 /**
