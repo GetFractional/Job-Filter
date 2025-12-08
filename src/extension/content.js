@@ -331,12 +331,20 @@ function cleanCompanyUrl(url) {
  * Initialize Indeed job page handling
  */
 function handleIndeed() {
+  // Indeed often keeps you on the same page and swaps the job in-place.
+  // Use a URL-aware poller so we only inject on actual job detail URLs.
   let lastUrl = location.href;
 
   const checkAndInject = () => {
-    if (isIndeedJobPage()) {
-      injectOverlay('Indeed');
-    } else {
+    const isJob = isIndeedJobPage();
+    if (isJob && !document.getElementById('job-hunter-overlay')) {
+      // Small delay to let the right-rail job detail render
+      setTimeout(() => {
+        if (isIndeedJobPage() && !document.getElementById('job-hunter-overlay')) {
+          injectOverlay('Indeed');
+        }
+      }, 300);
+    } else if (!isJob) {
       removeOverlay();
     }
   };
@@ -344,15 +352,17 @@ function handleIndeed() {
   // Initial check
   checkAndInject();
 
-  // Watch for navigation changes (Indeed can update the URL client-side)
-  const observer = new MutationObserver(() => {
+  // Poll for URL changes that indicate a new job selection
+  setInterval(() => {
     if (location.href !== lastUrl) {
       lastUrl = location.href;
       removeOverlay();
       checkAndInject();
+    } else {
+      // Even without URL change, ensure overlay exists when on a job
+      checkAndInject();
     }
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
+  }, 1000);
 }
 
 /**
@@ -361,7 +371,7 @@ function handleIndeed() {
  */
 function isIndeedJobPage() {
   const url = window.location.href;
-  return url.includes('/viewjob') || url.includes('vjk=');
+  return /\/viewjob/i.test(url) || /[?&]vjk=/i.test(url);
 }
 
 /**
