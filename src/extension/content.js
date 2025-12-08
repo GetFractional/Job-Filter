@@ -118,6 +118,16 @@ function extractLinkedInJobData() {
       '.jobs-unified-top-card__subtitle-1 .app-aware-link'
     ];
     data.companyName = getTextFromSelectors(companySelectors) || '';
+    if (!data.companyName) {
+      // Wider fallbacks: any company link in the top card area
+      const topCard = document.querySelector('.job-details-jobs-unified-top-card, .jobs-unified-top-card, .job-details-jobs-unified-top-card__primary-description-container');
+      const companyLink = topCard?.querySelector(
+        'a[href*="/company/"], a[data-tracking-control-name*="org-name"], a[data-tracking-control-name*="company-name"]'
+      );
+      if (companyLink?.textContent?.trim()) {
+        data.companyName = companyLink.textContent.trim();
+      }
+    }
 
     // Location - try multiple possible selectors
     const locationSelectors = [
