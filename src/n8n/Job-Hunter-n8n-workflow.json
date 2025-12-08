@@ -1,0 +1,1769 @@
+
+{
+  "name": "Job Hunter",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// Description: Configures the workflow's execution mode and parameters.\n// Supports 'batch', 'test', and 'regenerate' modes.\n\nconst mode = \"test\"; // \"batch\", \"test\", \"regenerate\"\nconst testJobId = \"rec_YOUR_TEST_JOB_ID\"; // Airtable record ID for test mode\nconst jobId = \"rec_YOUR_REGENERATE_JOB_ID\"; // Airtable record ID for regenerate mode\nconst assetType = [\"Resume\", \"Cover Letter\"]; // for 'regenerate' mode\nconst maxJobs = 3; // Max jobs to process in 'batch' mode\nconst maxRetries = 1;\n\nreturn {\n  mode,\n  testJobId,\n  jobId,\n  assetType,\n  maxJobs,\n  maxRetries\n};"
+      },
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "table": "Jobs Pipeline",
+        "options": {
+          "view": "={{ $node.Config.json.mode === 'batch' ? 'Needs Research' : '' }}",
+          "filterByFormula": "={{ \n  $node.Config.json.mode === 'test' ? `{Job ID} = '${$node.Config.json.testJobId}'` : \n  ($node.Config.json.mode === 'regenerate' ? `{Job ID} = '${$node.Config.json.jobId}'` : '')\n}}",
+          "maxRecords": "={{ $node.Config.json.mode === 'batch' ? $node.Config.json.maxJobs : 1 }}"
+        }
+      },
+      "name": "Fetch Jobs To Process",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ],
+      "credentials": {
+        "airtableApi": {
+          "id": "Airtable (Job Hunter OS)",
+          "name": "Airtable (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Description: Extracts key job details from the Airtable record.\n\nconst job = $input.item.json.fields;\n\nreturn {\n  jobId: $input.item.json.id,\n  jobTitle: job['Job Title'],\n  companyName: job['Company Name'],\n  jobUrl: job['Job URL'],\n  jobDescription: job['Job Description'],\n  companyPage: job['Company Page'],\n  source: job['Source'],\n  status: job['Status']\n};"
+      },
+      "name": "Set Up Job Scope",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Description: Builds the research prompt using a template and job data.\n// GitHub Reference: /prompts/asset-generation/10-Research-Company.md\n\nconst jobData = $input.item.json;\nconst template = `\nPlease conduct a detailed research brief on the company and role provided. Structure your response into the following 5 sections:\n\n### 1. Company Overview\n- Mission, vision, product/service, and business model.\n- Recent news, funding rounds, strategic shifts (last 6-12 months).\n- Key metrics: Estimated revenue, headcount, growth trends.\n\n### 2. Role Analysis\n- Deconstruct the job description: what is the core problem this role is hired to solve?\n- Identify the top 3-5 required skills and experiences.\n- Infer the key performance indicators (KPIs) for success in this role.\n\n### 3. Market Context\n- Identify 2-3 key competitors and their positioning relative to the company.\n- What are the major industry trends or challenges affecting this company?\n\n### 4. Hiring Manager Intel (if possible)\n- Identify the likely hiring manager or team lead for this role.\n- Briefly summarize their background and recent activity (e.g., LinkedIn posts, articles).\n\n### 5. Strategic Positioning\n- Synthesize the above points into a strategic narrative.\n- What is the company's primary growth constraint or opportunity that this role addresses?\n- Formulate a hypothesis for why they are hiring for this role *now*.\n\n**Job Details:**\n- Company: ${jobData.companyName}\n- Job Title: ${jobData.jobTitle}\n- Job Description: ${jobData.jobDescription}\n- Company Page: ${jobData.companyPage || 'N/A'}\n- Job URL: ${jobData.jobUrl}\n`;\n\nreturn {\n  prompt: template\n};"
+      },
+      "name": "Build Research Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.perplexity.ai/chat/completions",
+        "options": {
+          "body": {
+            "model": "llama-3.1-sonar-large-128k-online",
+            "messages": [
+              {
+                "role": "user",
+                "content": "{{$node['Build Research Prompt'].json.prompt}}"
+              }
+            ],
+            "max_tokens": 2000,
+            "temperature": 0.7
+          }
+        }
+      },
+      "name": "Call Perplexity for Research",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        600,
+        300
+      ],
+      "credentials": {
+        "httpHeaders": {
+          "id": "Perplexity (Job Hunter OS)",
+          "name": "Perplexity (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Description: Scores the quality of the generated research based on a rubric.\n// GitHub References: /prompts/reference/Reference-Alen-Ascension-Specificity.md, /prompts/reference/Reference-Hormozi-Value-Equation.md\n\nconst content = $input.item.json.choices[0].message.content;\nlet score = 0;\nlet analysis = [];\n\n// Specificity (5+ unique details): +15\nconst details = (content.match(/\\$[0-9]+[mkb]?|headcount|[0-9]+%| funding/gi) || []).length;\nconst specificity_detected = details >= 5;\nif (specificity_detected) {\n  score += 15;\n  analysis.push(\"+15 for Specificity\");\n}\n\n// Diagnosis (identifies growth constraint): +15\nconst diagnosis_found = /problem is|constraint is|bottleneck is/i.test(content);\nif (diagnosis_found) {\n  score += 15;\n  analysis.push(\"+15 for Diagnosis\");\n}\n\n// Competitive (2+ competitors mentioned): +10\nconst competitors = (content.match(/competitor(s)?|vs\\.|rival(s)?/gi) || []).length;\nif (competitors >= 2) {\n  score += 10;\n  analysis.push(\"+10 for Competitive Analysis\");\n}\n\n// Quantified (revenue/funding/headcount): +10\nconst quantified = /revenue|funding|headcount/i.test(content);\nif (quantified) {\n  score += 10;\n  analysis.push(\"+10 for Quantification\");\n}\n\n// Recent (<6 months): +5\nconst recent = /last quarter|last 6 months|recent news/i.test(content);\nif (recent) {\n  score += 5;\n  analysis.push(\"+5 for Recency\");\n}\n\n// Strategic Angle (clear hiring need): +5\nconst angle = /hiring because|need for this role/i.test(content);\nif (angle) {\n  score += 5;\n  analysis.push(\"+5 for Strategic Angle\");\n}\n\nreturn { score, analysis: analysis.join(', '), content, specificity_detected, diagnosis_found };"
+      },
+      "name": "Score Research Quality",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        800,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "{{$node['Score Research Quality'].json.score}}",
+              "operation": "smaller",
+              "value2": 40
+            }
+          ]
+        }
+      },
+      "name": "Decide: Research Retry?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.perplexity.ai/chat/completions",
+        "options": {
+          "body": {
+            "model": "llama-3.1-sonar-large-128k-online",
+            "messages": [
+              {
+                "role": "user",
+                "content": "{{$node['Build Research Prompt'].json.prompt}}\\n\\n---\\n**Instruction:** The previous research attempt was not specific enough. Please regenerate with the following improvements: Make research more specific with company-unique details from recent news, funding announcements, and hiring patterns. Quantify metrics: actual revenue/funding/headcount if known, or reasonable estimates based on industry stage. Include 2+ specific competitors with positioning comparison. Reference recent news or events from last 6 months. Clearly diagnose the growth constraint this hire addresses. Follow the specificity ladder: move from Level 2 (stage) → Level 5 (their specific problem). Reference: /prompts/reference/Reference-Alen-Ascension-Specificity.md for examples."
+              }
+            ],
+            "max_tokens": 2000,
+            "temperature": 0.7
+          }
+        }
+      },
+      "name": "Call Perplexity for Research (Retry)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1200,
+        200
+      ],
+      "credentials": {
+        "httpHeaders": {
+          "id": "Perplexity (Job Hunter OS)",
+          "name": "Perplexity (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Description: Compares research scores and selects the best one.\n\nconst initialResult = $items(\"Score Research Quality\")[0].json;\nconst retryResult = $items(\"Call Perplexity for Research (Retry)\").length > 0 ? $items(\"Score Research Quality\", 1)[0].json : null;\n\nif (retryResult && retryResult.score > initialResult.score) {\n  return {\n    finalScore: retryResult.score,\n    finalContent: retryResult.content,\n    retried: true\n  };\n} else {\n  return {\n    finalScore: initialResult.score,\n    finalContent: initialResult.content,\n    retried: !!retryResult\n  };\n}"
+      },
+      "name": "Pick Best Research Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "table": "Research Briefs",
+        "fields": {
+          "Job": [
+            "{{$node['Set Up Job Scope'].json.jobId}}"
+          ],
+          "Company Overview": "={{$node['Pick Best Research Score'].json.finalContent.split('### 2.')[0].substring(0, 400)}}",
+          "Role Analysis": "={{$node['Pick Best Research Score'].json.finalContent.split('### 2.')[1].split('### 3.')[0].substring(0, 400)}}",
+          "Market Context": "={{$node['Pick Best Research Score'].json.finalContent.split('### 3.')[1].split('### 4.')[0].substring(0, 400)}}",
+          "Strategic Positioning": "={{$node['Pick Best Research Score'].json.finalContent.split('### 5.')[1].substring(0, 400)}}",
+          "Key Insights": "={{$node['Pick Best Research Score'].json.finalContent.split('### 5.')[1].substring(0, 400)}}",
+          "Research Sources": "={{($node['Pick Best Research Score'].json.finalContent.match(/https?:\\/\\/[^\\s)]+/g) || []).join('\\n')}}",
+          "Quality Score": "{{$node['Pick Best Research Score'].json.finalScore}}"
+        }
+      },
+      "name": "Create Research Brief Record",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        300
+      ],
+      "credentials": {
+        "airtableApi": {
+          "id": "Airtable (Job Hunter OS)",
+          "name": "Airtable (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "table": "Application Tracking",
+        "fields": {
+          "Job": [
+            "{{$node['Set Up Job Scope'].json.jobId}}"
+          ],
+          "Event Type": "Research Completed",
+          "Event Date": "{{$now.toFormat('yyyy-MM-dd')}}",
+          "Details": "Quality Score: {{$node['Pick Best Research Score'].json.finalScore}}. Key insights: ..."
+        }
+      },
+      "name": "Log: Research Completed Event",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [
+        1800,
+        300
+      ],
+      "credentials": {
+        "airtableApi": {
+          "id": "Airtable (Job Hunter OS)",
+          "name": "Airtable (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Description: Builds the 90-Day Plan prompt, integrating multiple sources.\n// GitHub References: /prompts/asset-generation/20-90-Day-Plan.md, /docs/Matt-Dimock-Professional-Profile.md, Hormozi/Alen frameworks\n\nconst jobData = $items(\"Set Up Job Scope\")[0].json;\nconst researchData = $items(\"Create Research Brief Record\")[0].json.fields;\nconst mattProfile = `... (abbreviated ~300 words from /docs/Matt-Dimock-Professional-Profile.md) ...`;\nconst planTemplate = `... (content of /prompts/asset-generation/20-90-Day-Plan.md) ...`;\n\nconst prompt = `Based on the research and job description, create a strategic 90-day plan for the role of ${jobData.jobTitle} at ${jobData.companyName}. \n\n**CRITICAL INSTRUCTIONS:**\n1.  **Lead with Diagnosis:** Start with a 150+ word analysis of the company's specific growth constraint this role solves. Use insights from the research brief.\n2.  **Reference My Wins:** Integrate my past achievements (from my profile below) as proof points. Example: 'Similar to my work at CompanyX where I reduced CAC by 30%...' \n3.  **Quantify Everything:** Use the Hormozi Value Equation for every initiative: (Expected Outcome - Current State) = Value. Be specific.\n4.  **Structure:** Follow this structure: Diagnose (Days 0-15) -> Design (Days 15-30) -> Execute (Days 30-60) -> Scale (Days 60-90).\n\n**Research Brief:**\n${researchData['Company Overview']}\n${researchData['Role Analysis']}\n\n**My Professional Profile:**\n${mattProfile}\n\n**Job Description:**\n${jobData.jobDescription}\n\n${planTemplate}`;\n\nreturn { prompt };"
+      },
+      "name": "Build 90-Day Plan Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4-turbo-preview",
+        "prompt": "{{$node['Build 90-Day Plan Prompt'].json.prompt}}",
+        "options": {
+          "maxTokens": 2000,
+          "temperature": 0.7
+        }
+      },
+      "name": "Call OpenAI for 90-Day Plan",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        2200,
+        300
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "OpenAI (Job Hunter OS)",
+          "name": "OpenAI (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Description: Scores the quality of the 90-Day Plan.\n\nconst content = $input.item.json.choices[0].message.content;\nlet score = 0;\nlet analysis = [];\n\n// Diagnosis (150+ words): +15\nconst diagnosisSection = content.split('Design')[0];\nif (diagnosisSection && diagnosisSection.split(' ').length > 150) {\n  score += 15;\n  analysis.push('+15 for Diagnosis');\n}\n\n// Quick Wins: +10\nif (/month 1|quick win/i.test(content) && /\\$[0-9]/.test(content)) {\n  score += 10;\n  analysis.push('+10 for Quick Wins');\n}\n\n// Quantified: +15\nif ((content.match(/=/g) || []).length >= 3 && (content.match(/\\$/g) || []).length >= 3) {\n    score += 15;\n    analysis.push('+15 for Quantification');\n}\n\n// Proof (2+ Matt achievements): +10\nif ((content.match(/my work at|previously I/gi) || []).length >= 2) {\n    score += 10;\n    analysis.push('+10 for Proof');\n}\n\n// Structure: +5\nif (/Diagnose|Design|Execute|Scale/i.test(content)) {\n  score += 5;\n  analysis.push('+5 for Structure');\n}\n\n// Specificity: +5\n// This is a proxy, would need company name from previous step\nconst companyName = $items(\"Set Up Job Scope\")[0].json.companyName;\nif (content.includes(companyName)) {\n    score += 5;\n    analysis.push('+5 for Specificity');\n}\n\nreturn { score, analysis: analysis.join(', '), content };"
+      },
+      "name": "Score 90-Day Plan Quality",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        2400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "{{$node['Score 90-Day Plan Quality'].json.score}}",
+              "operation": "smaller",
+              "value2": 45
+            }
+          ]
+        }
+      },
+      "name": "Decide: Plan Retry?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        2600,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4-turbo-preview",
+        "prompt": "{{$node['Build 90-Day Plan Prompt'].json.prompt}}\\n\\n---\\n**Instruction:** This plan scored {{$node['Score 90-Day Plan Quality'].json.score}} because it's missing specificity/quantification. Regenerate with these improvements: **DIAGNOSIS SECTION:** Lead with 200+ words articulating their specific growth constraint. **MONTHLY BREAKDOWN:** Include exact weekly activities + specific expected business outcomes ($ impact). **QUANTIFICATION:** Every initiative must use the Hormozi Value Equation. Example: 'CAC reduction from $650 -> $450 = $200 savings per customer'. **PROOF:** Reference 2+ of my achievements with exact numbers from my profile. **TERMINOLOGY:** Use their exact metrics/language from the research brief. **RISKS:** Acknowledge 3 risks with mitigations.",
+        "options": {
+          "maxTokens": 2000,
+          "temperature": 0.7
+        }
+      },
+      "name": "Call OpenAI for Plan (Retry)",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        2800,
+        200
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "OpenAI (Job Hunter OS)",
+          "name": "OpenAI (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Description: Compares plan scores and selects the best one.\n\nconst initialResult = $items(\"Score 90-Day Plan Quality\")[0].json;\nconst retryResult = $items(\"Call OpenAI for Plan (Retry)\").length > 0 ? $items(\"Score 90-Day Plan Quality\", 1)[0].json : null;\n\nif (retryResult && retryResult.score > initialResult.score) {\n  return {\n    finalScore: retryResult.score,\n    finalContent: retryResult.content,\n    retried: true,\n    planContent: retryResult.content\n  };\n} else {\n  return {\n    finalScore: initialResult.score,\n    finalContent: initialResult.content,\n    retried: !!retryResult,\n    planContent: initialResult.content\n  };\n}"
+      },
+      "name": "Pick Best Plan Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        3000,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "path": "=/Job Hunter Assets/{{$items('Set Up Job Scope')[0].json.companyName}}/{{$now.toFormat('yyyy-MM-dd')}}/",
+        "fileName": "02-90-Day-Plan.md",
+        "fileContent": "{{$node['Pick Best Plan Score'].json.finalContent}}",
+        "options": {
+          "createMissingFolders": true
+        }
+      },
+      "name": "Upload Plan to Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 1,
+      "position": [
+        3200,
+        300
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "Google Drive (Job Hunter OS)",
+          "name": "Google Drive (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Description: Stores the final plan content in the execution context for downstream use.\n\nconst planContent = $input.item.json.planContent;\n$workflow.set('planContent', planContent); // Storing globally for this execution\nreturn {\n  planContent: planContent,\n  stored: true\n};"
+      },
+      "name": "Store Plan in Memory",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        3400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "table": "Generated Assets",
+        "fields": {
+          "Job": [
+            "{{$items('Set Up Job Scope')[0].json.jobId}}"
+          ],
+          "Asset Type": "90-Day Plan",
+          "Google Drive Link": "{{$node['Upload Plan to Google Drive'].json.webViewLink}}",
+          "Content Preview": "={{$node['Pick Best Plan Score'].json.finalContent.substring(0, 400)}}",
+          "Quality Score": "{{$node['Pick Best Plan Score'].json.finalScore}}",
+          "Version Number": 1,
+          "Prompt Used": "20-90-Day-Plan.md"
+        }
+      },
+      "name": "Create Plan Asset Record",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [
+        3600,
+        300
+      ],
+      "credentials": {
+        "airtableApi": {
+          "id": "Airtable (Job Hunter OS)",
+          "name": "Airtable (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Branch A: Resume\n// GitHub Ref: /prompts/asset-generation/30-Resume-Tailor.md\nconst jobData = $items('Set Up Job Scope')[0].json;\nconst researchData = $items('Create Research Brief Record')[0].json.fields;\nconst planContent = $workflow.get('planContent');\nconst mattProfile = '...';\n\nconst prompt = `Generate 4-6 ATS-optimized resume bullet points for the role of ${jobData.jobTitle}. Bullets must:\n1. Be in 'Action Verb + Skill + Metric' format.\n2. Directly map to requirements in the job description.\n3. Incorporate my quantified achievements from my profile.\n4. Align with company terminology from the research brief.\n\nJob Desc: ${jobData.jobDescription}\nResearch: ${researchData['Role Analysis']}\nMy Profile: ${mattProfile}`;\n\nreturn { prompt };"
+      },
+      "name": "Build Resume Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        3800,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4-turbo-preview",
+        "prompt": "{{$node['Build Resume Prompt'].json.prompt}}",
+        "options": {
+          "maxTokens": 800
+        }
+      },
+      "name": "Call OpenAI for Resume",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        4000,
+        -100
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "OpenAI (Job Hunter OS)",
+          "name": "OpenAI (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let score = 0; const content = $input.item.json.choices[0].message.content;\nif ((content.match(/\\* /g) || []).length >= 4) score += 15; // ATS format\nif ((content.match(/\\b(Led|Managed|Drove|Increased|Reduced)\\b/gi) || []).length >= 4) score += 10; // Action verbs\nif ((content.match(/%|\\$/g) || []).length >= 4) score += 15; // Quantified\nif (content.includes($items('Set Up Job Scope')[0].json.companyName)) score += 10; // Job-specific\nreturn { score, content };"
+      },
+      "name": "Score Resume Quality",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        4200,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "{{$node['Score Resume Quality'].json.score}}",
+              "operation": "smaller",
+              "value2": 40
+            }
+          ]
+        }
+      },
+      "name": "Decide: Resume Retry?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        4400,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4-turbo-preview",
+        "prompt": "{{$node['Build Resume Prompt'].json.prompt}}\\n\\nRetry: The last attempt was not quantified enough. Ensure every bullet has a metric.",
+        "options": {
+          "maxTokens": 800
+        }
+      },
+      "name": "Call OpenAI for Resume (Retry)",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        4600,
+        -200
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "OpenAI (Job Hunter OS)",
+          "name": "OpenAI (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const r1 = $items('Score Resume Quality')[0].json; const r2 = $items('Call OpenAI for Resume (Retry)').length > 0 ? $items('Score Resume Quality', 1)[0].json : null; \nif (r2 && r2.score > r1.score) return { finalScore: r2.score, finalContent: r2.content, retried: true }; \nreturn { finalScore: r1.score, finalContent: r1.content, retried: !!r2 };"
+      },
+      "name": "Pick Best Resume Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        4800,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "path": "=/Job Hunter Assets/{{$items('Set Up Job Scope')[0].json.companyName}}/{{$now.toFormat('yyyy-MM-dd')}}/",
+        "fileName": "03-Resume-Tailored.md",
+        "fileContent": "{{$node['Pick Best Resume Score'].json.finalContent}}"
+      },
+      "name": "Upload Resume to Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 1,
+      "position": [
+        5000,
+        -100
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "Google Drive (Job Hunter OS)",
+          "name": "Google Drive (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "table": "Generated Assets",
+        "fields": {
+          "Job": [
+            "{{$items('Set Up Job Scope')[0].json.jobId}}"
+          ],
+          "Asset Type": "Resume",
+          "Google Drive Link": "{{$node['Upload Resume to Google Drive'].json.webViewLink}}",
+          "Quality Score": "{{$node['Pick Best Resume Score'].json.finalScore}}",
+          "Prompt Used": "30-Resume-Tailor.md"
+        }
+      },
+      "name": "Create Resume Asset Record",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [
+        5200,
+        -100
+      ],
+      "credentials": {
+        "airtableApi": {
+          "id": "Airtable (Job Hunter OS)",
+          "name": "Airtable (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Branch B: Cover Letter\n// GitHub Ref: /prompts/asset-generation/40-Cover-Letter.md, /prompts/reference/Reference-Rory-Psychologic.md\nconst jobData = $items('Set Up Job Scope')[0].json;\nconst researchData = $items('Create Research Brief Record')[0].json.fields;\nconst planContent = $workflow.get('planContent');\n\nconst prompt = `Generate a 300-400 word cover letter following the Problem -> Proof -> Solution arc.\n- **Problem:** Articulate THEIR growth constraint in 100+ words, using the research brief.\n- **Proof:** Cite one of my comparable wins with an exact metric.\n- **Solution:** Preview 1-2 initiatives from my 90-day plan.\n\nResearch: ${researchData['Strategic Positioning']}\n90-Day Plan Preview: ${planContent.substring(0, 500)}\nMy Profile: ...`\n\nreturn { prompt };"
+      },
+      "name": "Build Cover Letter Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        3800,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4-turbo-preview",
+        "prompt": "{{$node['Build Cover Letter Prompt'].json.prompt}}",
+        "options": {
+          "maxTokens": 600
+        }
+      },
+      "name": "Call OpenAI for Cover Letter",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        4000,
+        100
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "OpenAI (Job Hunter OS)",
+          "name": "OpenAI (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let score = 0; const content = $input.item.json.choices[0].message.content;\nif (content.split(' ')[0].length < 10) score += 10; // Hook specificity\nif (content.includes('problem')) score += 10; // Problem depth\nif (content.includes('previously')) score += 10; // Proof\nif (content.includes('plan')) score += 10; // Solution\nif (content.split(' ').length > 300 && content.split(' ').length < 400) score += 5; // Length\nreturn { score, content };"
+      },
+      "name": "Score Cover Letter Quality",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        4200,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "{{$node['Score Cover Letter Quality'].json.score}}",
+              "operation": "smaller",
+              "value2": 45
+            }
+          ]
+        }
+      },
+      "name": "Decide: Cover Letter Retry?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        4400,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4-turbo-preview",
+        "prompt": "{{$node['Build Cover Letter Prompt'].json.prompt}}\\n\\nRetry: The Problem section was weak. Deepen the diagnosis of their constraint.",
+        "options": {
+          "maxTokens": 600
+        }
+      },
+      "name": "Call OpenAI for Cover Letter (Retry)",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        4600,
+        0
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "OpenAI (Job Hunter OS)",
+          "name": "OpenAI (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const r1 = $items('Score Cover Letter Quality')[0].json; const r2 = $items('Call OpenAI for Cover Letter (Retry)').length > 0 ? $items('Score Cover Letter Quality', 1)[0].json : null; \nif (r2 && r2.score > r1.score) return { finalScore: r2.score, finalContent: r2.content, retried: true }; \nreturn { finalScore: r1.score, finalContent: r1.content, retried: !!r2 };"
+      },
+      "name": "Pick Best Cover Letter Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        4800,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "path": "=/Job Hunter Assets/{{$items('Set Up Job Scope')[0].json.companyName}}/{{$now.toFormat('yyyy-MM-dd')}}/",
+        "fileName": "04-Cover-Letter.md",
+        "fileContent": "{{$node['Pick Best Cover Letter Score'].json.finalContent}}"
+      },
+      "name": "Upload Cover Letter to Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 1,
+      "position": [
+        5000,
+        100
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "Google Drive (Job Hunter OS)",
+          "name": "Google Drive (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "table": "Generated Assets",
+        "fields": {
+          "Job": [
+            "{{$items('Set Up Job Scope')[0].json.jobId}}"
+          ],
+          "Asset Type": "Cover Letter",
+          "Google Drive Link": "{{$node['Upload Cover Letter to Google Drive'].json.webViewLink}}",
+          "Quality Score": "{{$node['Pick Best Cover Letter Score'].json.finalScore}}",
+          "Prompt Used": "40-Cover-Letter.md"
+        }
+      },
+      "name": "Create Cover Letter Asset Record",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [
+        5200,
+        100
+      ],
+      "credentials": {
+        "airtableApi": {
+          "id": "Airtable (Job Hunter OS)",
+          "name": "Airtable (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Branch C: Interview Prep\n// GitHub Ref: /prompts/asset-generation/50-Interview-Prep.md\nconst prompt = `Generate interview prep materials:\n- 3 STAR stories mirroring the company's challenges.\n- 3 potential objections and my responses.\n- 5 strategic questions for me to ask them.`;\nreturn { prompt };"
+      },
+      "name": "Build Interview Prep Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        3800,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4-turbo-preview",
+        "prompt": "{{$node['Build Interview Prep Prompt'].json.prompt}}",
+        "options": {
+          "maxTokens": 1500
+        }
+      },
+      "name": "Call OpenAI for Interview Prep",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        4000,
+        300
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "OpenAI (Job Hunter OS)",
+          "name": "OpenAI (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let score = 0; const content = $input.item.json.choices[0].message.content;\nif ((content.match(/Situation|Task|Action|Result/gi) || []).length >= 3) score += 15;\nif ((content.match(/Objection|Response/gi) || []).length >= 3) score += 15;\nif ((content.match(/\\?/g) || []).length >= 5) score += 10;\nif (content.includes('my experience')) score += 10;\nreturn { score, content };"
+      },
+      "name": "Score Interview Prep Quality",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        4200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "{{$node['Score Interview Prep Quality'].json.score}}",
+              "operation": "smaller",
+              "value2": 40
+            }
+          ]
+        }
+      },
+      "name": "Decide: Interview Prep Retry?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        4400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4-turbo-preview",
+        "prompt": "{{$node['Build Interview Prep Prompt'].json.prompt}}\\n\\nRetry: Make the STAR stories more specific to the company's diagnosed problem."
+      },
+      "name": "Call OpenAI for Interview Prep (Retry)",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        4600,
+        200
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "OpenAI (Job Hunter OS)",
+          "name": "OpenAI (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const r1 = $items('Score Interview Prep Quality')[0].json; const r2 = $items('Call OpenAI for Interview Prep (Retry)').length > 0 ? $items('Score Interview Prep Quality', 1)[0].json : null; \nif (r2 && r2.score > r1.score) return { finalScore: r2.score, finalContent: r2.content }; \nreturn { finalScore: r1.score, finalContent: r1.content };"
+      },
+      "name": "Pick Best Interview Prep Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        4800,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "path": "=/Job Hunter Assets/{{$items('Set Up Job Scope')[0].json.companyName}}/{{$now.toFormat('yyyy-MM-dd')}}/",
+        "fileName": "05-Interview-Prep.md",
+        "fileContent": "{{$node['Pick Best Interview Prep Score'].json.finalContent}}"
+      },
+      "name": "Upload Interview Prep to Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 1,
+      "position": [
+        5000,
+        300
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "Google Drive (Job Hunter OS)",
+          "name": "Google Drive (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "table": "Generated Assets",
+        "fields": {
+          "Job": [
+            "{{$items('Set Up Job Scope')[0].json.jobId}}"
+          ],
+          "Asset Type": "Interview Prep",
+          "Google Drive Link": "{{$node['Upload Interview Prep to Google Drive'].json.webViewLink}}",
+          "Quality Score": "{{$node['Pick Best Interview Prep Score'].json.finalScore}}",
+          "Prompt Used": "50-Interview-Prep.md"
+        }
+      },
+      "name": "Create Interview Prep Asset Record",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [
+        5200,
+        300
+      ],
+      "credentials": {
+        "airtableApi": {
+          "id": "Airtable (Job Hunter OS)",
+          "name": "Airtable (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Branch D: Outreach Message\n// GitHub Ref: /prompts/asset-generation/60-Outreach-Message.md\nconst prompt = `Generate a 3-sentence, 40-60 word outreach message:\n- **Hook:** Start with a specific insight about them.\n- **Proof:** Briefly state my credibility.\n- **CTA:** End with a question showing I've thought about their problem.`;\nreturn { prompt };"
+      },
+      "name": "Build Outreach Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        3800,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4-turbo-preview",
+        "prompt": "{{$node['Build Outreach Prompt'].json.prompt}}",
+        "options": {
+          "maxTokens": 150
+        }
+      },
+      "name": "Call OpenAI for Outreach",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        4000,
+        500
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "OpenAI (Job Hunter OS)",
+          "name": "OpenAI (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let score = 0; const content = $input.item.json.choices[0].message.content;\nif (content.split(' ')[0].length < 10) score += 15;\nif (content.includes('experience')) score += 15;\nif (content.includes('?')) score += 10;\nif (content.split(' ').length > 40 && content.split(' ').length < 60) score += 10;\nreturn { score, content };"
+      },
+      "name": "Score Outreach Quality",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        4200,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "{{$node['Score Outreach Quality'].json.score}}",
+              "operation": "smaller",
+              "value2": 35
+            }
+          ]
+        }
+      },
+      "name": "Decide: Outreach Retry?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        4400,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4-turbo-preview",
+        "prompt": "{{$node['Build Outreach Prompt'].json.prompt}}\\n\\nRetry: Make the hook more specific and the CTA more urgent."
+      },
+      "name": "Call OpenAI for Outreach (Retry)",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        4600,
+        400
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "OpenAI (Job Hunter OS)",
+          "name": "OpenAI (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const r1 = $items('Score Outreach Quality')[0].json; const r2 = $items('Call OpenAI for Outreach (Retry)').length > 0 ? $items('Score Outreach Quality', 1)[0].json : null; \nif (r2 && r2.score > r1.score) return { finalScore: r2.score, finalContent: r2.content }; \nreturn { finalScore: r1.score, finalContent: r1.content };"
+      },
+      "name": "Pick Best Outreach Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        4800,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "path": "=/Job Hunter Assets/{{$items('Set Up Job Scope')[0].json.companyName}}/{{$now.toFormat('yyyy-MM-dd')}}/",
+        "fileName": "06-Outreach-Message.md",
+        "fileContent": "{{$node['Pick Best Outreach Score'].json.finalContent}}"
+      },
+      "name": "Upload Outreach to Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 1,
+      "position": [
+        5000,
+        500
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "Google Drive (Job Hunter OS)",
+          "name": "Google Drive (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "table": "Generated Assets",
+        "fields": {
+          "Job": [
+            "{{$items('Set Up Job Scope')[0].json.jobId}}"
+          ],
+          "Asset Type": "Outreach Message",
+          "Google Drive Link": "{{$node['Upload Outreach to Google Drive'].json.webViewLink}}",
+          "Quality Score": "{{$node['Pick Best Outreach Score'].json.finalScore}}",
+          "Prompt Used": "60-Outreach-Message.md"
+        }
+      },
+      "name": "Create Outreach Asset Record",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [
+        5200,
+        500
+      ],
+      "credentials": {
+        "airtableApi": {
+          "id": "Airtable (Job Hunter OS)",
+          "name": "Airtable (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "{{$items('Config')[0].json.mode}}",
+              "operation": "equal",
+              "value2": "test"
+            }
+          ]
+        }
+      },
+      "name": "Check Execution Mode",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        5400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "message": "Test mode completed for {{$items('Set Up Job Scope')[0].json.companyName}} - {{$items('Set Up Job Scope')[0].json.jobTitle}}. Review assets. Click 'Approve' to save to Airtable."
+      },
+      "name": "Pause & Require Approval",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        5600,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "table": "Jobs Pipeline",
+        "recordId": "{{$items('Set Up Job Scope')[0].json.jobId}}",
+        "fields": {
+          "Status": "Ready to Apply",
+          "Generated Assets": "={{ $items('Create Resume Asset Record').map(item => item.json.id).concat($items('Create Cover Letter Asset Record').map(item => item.json.id), $items('Create Interview Prep Asset Record').map(item => item.json.id), $items('Create Outreach Asset Record').map(item => item.json.id), $items('Create Plan Asset Record').map(item => item.json.id)) }}"
+        }
+      },
+      "name": "Update Job Status",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [
+        5800,
+        300
+      ],
+      "credentials": {
+        "airtableApi": {
+          "id": "Airtable (Job Hunter OS)",
+          "name": "Airtable (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
+        "table": "Application Tracking",
+        "fields": {
+          "Job": [
+            "{{$items('Set Up Job Scope')[0].json.jobId}}"
+          ],
+          "Event Type": "Assets Generated",
+          "Details": "Generated 5 assets. Quality Scores - Plan: {{$items('Pick Best Plan Score')[0].json.finalScore}}, Resume: {{$items('Pick Best Resume Score')[0].json.finalScore}}, Cover: {{$items('Pick Best Cover Letter Score')[0].json.finalScore}}, Interview: {{$items('Pick Best Interview Prep Score')[0].json.finalScore}}, Outreach: {{$items('Pick Best Outreach Score')[0].json.finalScore}}"
+        }
+      },
+      "name": "Log: Assets Generated Event",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [
+        6000,
+        300
+      ],
+      "credentials": {
+        "airtableApi": {
+          "id": "Airtable (Job Hunter OS)",
+          "name": "Airtable (Job Hunter OS)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Description: Calculates and logs a summary of the workflow execution.\n\nconst jobsProcessed = $items(\"Set Up Job Scope\").length;\nconst totalAssetsCreated = $items(\"Create Plan Asset Record\").length + $items(\"Create Resume Asset Record\").length + $items(\"Create Cover Letter Asset Record\").length + $items(\"Create Interview Prep Asset Record\").length + $items(\"Create Outreach Asset Record\").length;\n// Simplified cost/quality for example\nconst estimatedCost = jobsProcessed * 2.25;\n\nreturn {\n  jobsProcessed,\n  totalAssetsCreated,\n  estimatedCost,\n  executionTime: (new Date() - new Date($workflow.start_time)) / 1000 + 's'\n};"
+      },
+      "name": "Calculate & Log Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        6200,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Fetch Jobs To Process",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Jobs To Process": {
+      "main": [
+        [
+          {
+            "node": "Set Up Job Scope",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Up Job Scope": {
+      "main": [
+        [
+          {
+            "node": "Build Research Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Research Prompt": {
+      "main": [
+        [
+          {
+            "node": "Call Perplexity for Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Perplexity for Research": {
+      "main": [
+        [
+          {
+            "node": "Score Research Quality",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Research Quality": {
+      "main": [
+        [
+          {
+            "node": "Decide: Research Retry?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decide: Research Retry?": {
+      "main": [
+        [
+          {
+            "node": "Call Perplexity for Research (Retry)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pick Best Research Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Perplexity for Research (Retry)": {
+      "main": [
+        [
+          {
+            "node": "Pick Best Research Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Best Research Score": {
+      "main": [
+        [
+          {
+            "node": "Create Research Brief Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Research Brief Record": {
+      "main": [
+        [
+          {
+            "node": "Log: Research Completed Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log: Research Completed Event": {
+      "main": [
+        [
+          {
+            "node": "Build 90-Day Plan Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build 90-Day Plan Prompt": {
+      "main": [
+        [
+          {
+            "node": "Call OpenAI for 90-Day Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call OpenAI for 90-Day Plan": {
+      "main": [
+        [
+          {
+            "node": "Score 90-Day Plan Quality",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score 90-Day Plan Quality": {
+      "main": [
+        [
+          {
+            "node": "Decide: Plan Retry?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decide: Plan Retry?": {
+      "main": [
+        [
+          {
+            "node": "Call OpenAI for Plan (Retry)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pick Best Plan Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call OpenAI for Plan (Retry)": {
+      "main": [
+        [
+          {
+            "node": "Pick Best Plan Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Best Plan Score": {
+      "main": [
+        [
+          {
+            "node": "Upload Plan to Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Plan to Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Store Plan in Memory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Plan in Memory": {
+      "main": [
+        [
+          {
+            "node": "Create Plan Asset Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Plan Asset Record": {
+      "main": [
+        [
+          {
+            "node": "Build Resume Prompt",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Cover Letter Prompt",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Interview Prep Prompt",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Outreach Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Resume Prompt": {
+      "main": [
+        [
+          {
+            "node": "Call OpenAI for Resume",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call OpenAI for Resume": {
+      "main": [
+        [
+          {
+            "node": "Score Resume Quality",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Resume Quality": {
+      "main": [
+        [
+          {
+            "node": "Decide: Resume Retry?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decide: Resume Retry?": {
+      "main": [
+        [
+          {
+            "node": "Call OpenAI for Resume (Retry)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pick Best Resume Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call OpenAI for Resume (Retry)": {
+      "main": [
+        [
+          {
+            "node": "Pick Best Resume Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Best Resume Score": {
+      "main": [
+        [
+          {
+            "node": "Upload Resume to Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Resume to Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Create Resume Asset Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Resume Asset Record": {
+      "main": [
+        [
+          {
+            "node": "Check Execution Mode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Cover Letter Prompt": {
+      "main": [
+        [
+          {
+            "node": "Call OpenAI for Cover Letter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call OpenAI for Cover Letter": {
+      "main": [
+        [
+          {
+            "node": "Score Cover Letter Quality",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Cover Letter Quality": {
+      "main": [
+        [
+          {
+            "node": "Decide: Cover Letter Retry?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decide: Cover Letter Retry?": {
+      "main": [
+        [
+          {
+            "node": "Call OpenAI for Cover Letter (Retry)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pick Best Cover Letter Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call OpenAI for Cover Letter (Retry)": {
+      "main": [
+        [
+          {
+            "node": "Pick Best Cover Letter Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Best Cover Letter Score": {
+      "main": [
+        [
+          {
+            "node": "Upload Cover Letter to Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Cover Letter to Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Create Cover Letter Asset Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Cover Letter Asset Record": {
+      "main": [
+        [
+          {
+            "node": "Check Execution Mode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Interview Prep Prompt": {
+      "main": [
+        [
+          {
+            "node": "Call OpenAI for Interview Prep",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call OpenAI for Interview Prep": {
+      "main": [
+        [
+          {
+            "node": "Score Interview Prep Quality",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Interview Prep Quality": {
+      "main": [
+        [
+          {
+            "node": "Decide: Interview Prep Retry?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decide: Interview Prep Retry?": {
+      "main": [
+        [
+          {
+            "node": "Call OpenAI for Interview Prep (Retry)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pick Best Interview Prep Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call OpenAI for Interview Prep (Retry)": {
+      "main": [
+        [
+          {
+            "node": "Pick Best Interview Prep Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Best Interview Prep Score": {
+      "main": [
+        [
+          {
+            "node": "Upload Interview Prep to Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Interview Prep to Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Create Interview Prep Asset Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Interview Prep Asset Record": {
+      "main": [
+        [
+          {
+            "node": "Check Execution Mode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Outreach Prompt": {
+      "main": [
+        [
+          {
+            "node": "Call OpenAI for Outreach",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call OpenAI for Outreach": {
+      "main": [
+        [
+          {
+            "node": "Score Outreach Quality",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Outreach Quality": {
+      "main": [
+        [
+          {
+            "node": "Decide: Outreach Retry?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decide: Outreach Retry?": {
+      "main": [
+        [
+          {
+            "node": "Call OpenAI for Outreach (Retry)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pick Best Outreach Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call OpenAI for Outreach (Retry)": {
+      "main": [
+        [
+          {
+            "node": "Pick Best Outreach Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Best Outreach Score": {
+      "main": [
+        [
+          {
+            "node": "Upload Outreach to Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Outreach to Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Create Outreach Asset Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Outreach Asset Record": {
+      "main": [
+        [
+          {
+            "node": "Check Execution Mode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Execution Mode": {
+      "main": [
+        [
+          {
+            "node": "Pause & Require Approval",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Job Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pause & Require Approval": {
+      "main": [
+        [
+          {
+            "node": "Update Job Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Job Status": {
+      "main": [
+        [
+          {
+            "node": "Log: Assets Generated Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log: Assets Generated Event": {
+      "main": [
+        [
+          {
+            "node": "Calculate & Log Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
