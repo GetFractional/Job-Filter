@@ -459,6 +459,7 @@ function findSalaryInText(text) {
     const block = [lines[i]];
     if (lines[i + 1]) block.push(lines[i + 1]);
     if (lines[i + 2]) block.push(lines[i + 2]);
+    if (lines[i + 3]) block.push(lines[i + 3]); // allow two lines after header in case of blank separators
     const parsed = tryParse(block.join(' '));
     if (parsed) return parsed;
   }
@@ -494,6 +495,8 @@ function parseSalaryRange(text) {
   const cleaned = text
     .replace(/\s+/g, ' ')
     .replace(/\/?yr\.?|per year|a year/gi, '')
+    .replace(/\b(usd|cad|gbp|eur|aud)\b/gi, '') // strip trailing currency words
+    .replace(/[()]/g, '')
     .trim();
 
   // Match patterns like "$150,000 - $200,000" or "$150K - $200K" or "$280.5K/yr - $330K/yr"
