@@ -428,16 +428,12 @@ function extractIndeedJobData() {
       '.icl-u-xs-mt--xs'
     ];
     const rawLocation = getTextFromSelectors(locationSelectors) || '';
-    const locationParts = rawLocation
-      .split('•')
-      .map(p => p.trim())
-      .filter(Boolean)
-      .filter(p => !/^\(?remote\)?$/i.test(p)); // drop Remote token from location
-    if (locationParts.length) {
-      data.location = locationParts[0];
+    const normalizedLocation = normalizeIndeedLocation(rawLocation);
+    if (normalizedLocation.location) {
+      data.location = normalizedLocation.location;
     }
-    if (/remote/i.test(rawLocation) && !data.workplaceType) {
-      data.workplaceType = 'Remote';
+    if (normalizedLocation.workplaceType && !data.workplaceType) {
+      data.workplaceType = normalizedLocation.workplaceType;
     }
 
     // Salary: data-testid salary first, then legacy metadata items
@@ -636,6 +632,53 @@ function parseSalaryRange(text) {
   return result;
 }
 
+/**
+ * Normalize Indeed location strings to "City, ST" and detect workplace type
+ * @param {string} rawLocation
+ * @returns {{ location: string, workplaceType: string }}
+ */
+function normalizeIndeedLocation(rawLocation) {
+  const result = { location: '', workplaceType: '' };
+  if (!rawLocation) return result;
+
+  let text = rawLocation
+    .replace(/\s+/g, ' ')
+    .replace(/•/g, ' ')
+    .trim();
+
+  // Detect workplace type from the location string
+  if (/remote/i.test(text)) result.workplaceType = 'Remote';
+  else if (/hybrid/i.test(text)) result.workplaceType = 'Hybrid';
+  else if (/on[-\s]?site|onsite/i.test(text)) result.workplaceType = 'On-site';
+
+  // Drop leading workplace phrases like "Remote in", "Hybrid in", "On-site in"
+  text = text.replace(/^(remote|hybrid|on[-\s]?site|onsite)\s+in\s+/i, '');
+
+  // Remove trailing country tokens commonly appended
+  text = text.replace(/,\s*United States( of America)?$/i, '');
+
+  // Remove ZIP codes (5-digit or ZIP+4)
+  text = text.replace(/\s+\d{5}(?:-\d{4})?$/, '');
+
+  // If the string still contains multiple tokens, take the first city, ST pair
+  const match = text.match(/([A-Za-z .'-]+,\s*[A-Z]{2})(?:\b|$)/);
+  if (match) {
+    result.location = match[1].trim();
+    return result;
+  }
+
+  // Fallback: if there is a comma-separated city/state without uppercase state
+  const parts = text.split(',').map(p => p.trim()).filter(Boolean);
+  if (parts.length >= 2) {
+    result.location = `${parts[0]}, ${parts[1]}`;
+    return result;
+  }
+
+  // Final fallback: return cleaned text
+  result.location = text;
+  return result;
+}
+
 // ============================================================================
 // OVERLAY UI
 // ============================================================================
@@ -796,6 +839,11 @@ async function handleCaptureClick(source, button) {
     });
 
     if (response && response.success) {
+      console.log('[Job Hunter] Airtable saved:', {
+        recordId: response.recordId,
+        baseId: response.baseId,
+        table: response.table
+      });
       // Show success state
       button.classList.remove('loading');
       button.classList.add('success');

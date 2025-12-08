@@ -100,7 +100,10 @@ async function handleCreateRecord(jobData) {
 
   // Make the API request
   try {
-    console.log('[Job Hunter BG] Sending request to Airtable...');
+    console.log('[Job Hunter BG] Sending request to Airtable...', {
+      baseId: credentials.baseId,
+      table: 'Jobs Pipeline'
+    });
     const response = await fetchWithRetry(
       `${AIRTABLE_API_BASE}/${credentials.baseId}/${TABLE_NAME}`,
       {
@@ -117,10 +120,16 @@ async function handleCreateRecord(jobData) {
 
     if (response.ok) {
       const data = await response.json();
-      console.log('[Job Hunter BG] Record created successfully:', data.id);
+      console.log('[Job Hunter BG] Record created successfully:', {
+        recordId: data.id,
+        baseId: credentials.baseId,
+        table: 'Jobs Pipeline'
+      });
       return {
         success: true,
-        recordId: data.id
+        recordId: data.id,
+        baseId: credentials.baseId,
+        table: 'Jobs Pipeline'
       };
     }
 
