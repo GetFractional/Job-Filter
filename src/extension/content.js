@@ -84,6 +84,7 @@ function extractLinkedInJobData() {
   const data = {
     jobTitle: '',
     companyName: '',
+    companyLinkedInUrl: '',
     location: '',
     salaryMin: null,
     salaryMax: null,
@@ -118,6 +119,16 @@ function extractLinkedInJobData() {
       '.jobs-unified-top-card__subtitle-1 .app-aware-link'
     ];
     data.companyName = getTextFromSelectors(companySelectors) || '';
+    const companyLinkSelectors = [
+      '.job-details-jobs-unified-top-card__company-name a[href*="/company/"]',
+      '.jobs-unified-top-card__company-name a[href*="/company/"]',
+      '.jobs-details-top-card__company-url a[href*="/company/"]',
+      'a[href*="linkedin.com/company/"]'
+    ];
+    const companyLinkEl = document.querySelector(companyLinkSelectors.join(','));
+    if (companyLinkEl?.href) {
+      data.companyLinkedInUrl = companyLinkEl.href;
+    }
     if (!data.companyName) {
       // Wider fallbacks: any company link in the top card area
       const topCard = document.querySelector('.job-details-jobs-unified-top-card, .jobs-unified-top-card, .job-details-jobs-unified-top-card__primary-description-container');
@@ -126,6 +137,9 @@ function extractLinkedInJobData() {
       );
       if (companyLink?.textContent?.trim()) {
         data.companyName = companyLink.textContent.trim();
+        if (!data.companyLinkedInUrl && companyLink.href) {
+          data.companyLinkedInUrl = companyLink.href;
+        }
       }
     }
     if (!data.companyName) {
@@ -136,10 +150,16 @@ function extractLinkedInJobData() {
         const aria = link.getAttribute('aria-label')?.replace(/ logo$/i, '').trim();
         if (text) {
           data.companyName = text;
+          if (!data.companyLinkedInUrl && link.href) {
+            data.companyLinkedInUrl = link.href;
+          }
           break;
         }
         if (!text && aria) {
           data.companyName = aria;
+          if (!data.companyLinkedInUrl && link.href) {
+            data.companyLinkedInUrl = link.href;
+          }
           break;
         }
       }
