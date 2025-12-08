@@ -128,6 +128,22 @@ function extractLinkedInJobData() {
         data.companyName = companyLink.textContent.trim();
       }
     }
+    if (!data.companyName) {
+      // Final fallback: scan all obvious company links (company URLs / app-aware links) and pick the first non-empty text/aria-label
+      const linkCandidates = Array.from(document.querySelectorAll('a[href*="linkedin.com/company/"], a[href*="/company/"][data-test-app-aware-link]'));
+      for (const link of linkCandidates) {
+        const text = link.textContent?.trim();
+        const aria = link.getAttribute('aria-label')?.replace(/ logo$/i, '').trim();
+        if (text) {
+          data.companyName = text;
+          break;
+        }
+        if (!text && aria) {
+          data.companyName = aria;
+          break;
+        }
+      }
+    }
 
     // Location - try multiple possible selectors
     const locationSelectors = [
