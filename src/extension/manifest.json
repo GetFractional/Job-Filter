@@ -12,7 +12,8 @@
 
   "host_permissions": [
     "*://*.linkedin.com/*",
-    "*://*.indeed.com/*"
+    "*://*.indeed.com/*",
+    "https://api.airtable.com/*"
   ],
 
   "action": {
