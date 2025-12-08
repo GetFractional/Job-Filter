@@ -778,7 +778,7 @@ async function handleCaptureClick(source, button) {
       job: jobData
     });
 
-    if (response.success) {
+    if (response && response.success) {
       // Show success state
       button.classList.remove('loading');
       button.classList.add('success');
@@ -791,7 +791,8 @@ async function handleCaptureClick(source, button) {
         button.disabled = false;
       }, 3000);
     } else {
-      throw new Error(response.error || 'Failed to save job');
+      const statusNote = response?.status ? ` (status ${response.status})` : '';
+      throw new Error((response && response.error ? `${response.error}${statusNote}` : 'Failed to save job'));
     }
 
   } catch (error) {

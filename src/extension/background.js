@@ -26,6 +26,7 @@ const TABLE_NAME = 'Jobs%20Pipeline';
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // Handle job capture requests
   if (request.action === 'jobHunter.createAirtableRecord') {
+    console.log('[Job Hunter BG] Received message:', request.action);
     handleCreateRecord(request.job)
       .then(result => sendResponse(result))
       .catch(error => sendResponse({ success: false, error: error.message }));
@@ -99,6 +100,7 @@ async function handleCreateRecord(jobData) {
 
   // Make the API request
   try {
+    console.log('[Job Hunter BG] Sending request to Airtable...');
     const response = await fetchWithRetry(
       `${AIRTABLE_API_BASE}/${credentials.baseId}/${TABLE_NAME}`,
       {
@@ -111,6 +113,8 @@ async function handleCreateRecord(jobData) {
       }
     );
 
+    console.log('[Job Hunter BG] Airtable response status:', response.status);
+
     if (response.ok) {
       const data = await response.json();
       console.log('[Job Hunter BG] Record created successfully:', data.id);
@@ -121,7 +125,20 @@ async function handleCreateRecord(jobData) {
     }
 
     // Handle specific error cases
-    const errorData = await response.json().catch(() => ({}));
+    let errorData = {};
+    try {
+      // Clone before reading to keep original response available if needed
+      const cloned = response.clone();
+      const text = await cloned.text();
+      try {
+        errorData = JSON.parse(text);
+      } catch {
+        errorData = { error: { message: text || 'No error message returned' } };
+      }
+    } catch (parseErr) {
+      console.warn('[Job Hunter BG] Could not parse Airtable error body:', parseErr);
+    }
+
     console.error('[Job Hunter BG] Airtable API error:', response.status, errorData);
 
     if (response.status === 401) {
@@ -141,7 +158,8 @@ async function handleCreateRecord(jobData) {
 
     return {
       success: false,
-      error: errorData.error?.message || `API error: ${response.status}`
+      error: errorData.error?.message || `API error: ${response.status}`,
+      status: response.status
     };
 
   } catch (error) {
