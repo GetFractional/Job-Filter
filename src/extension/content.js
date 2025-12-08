@@ -199,7 +199,7 @@ function extractLinkedInJobData() {
     data.descriptionText = getTextFromSelectors(descriptionSelectors, true) || '';
 
     // Fallback: parse salary from description when top-card insights are empty
-    if ((data.salaryMin === null || data.salaryMax === null) && data.descriptionText) {
+    if (data.salaryMin === null && data.salaryMax === null && data.descriptionText) {
       const descSalary = findSalaryInText(data.descriptionText);
       if (descSalary.min !== null && descSalary.max !== null) {
         data.salaryMin = descSalary.min;
@@ -436,17 +436,46 @@ function findSalaryInText(text) {
   const result = { min: null, max: null };
   if (!text) return result;
 
-  const keywords = ['salary', 'compensation', 'pay', 'base', 'range'];
-  const paragraphs = text.split(/\n{1,}/).map(p => p.trim()).filter(Boolean);
+  const keywordRegex = /(salary|compensation|pay|base|range|total rewards)/i;
+  const currencyRegex = /\$|usd/i;
 
-  for (const para of paragraphs) {
-    const lower = para.toLowerCase();
-    if (!keywords.some(k => lower.includes(k))) continue;
+  const lines = text
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean);
 
-    const parsed = parseSalaryRange(para);
+  const tryParse = raw => {
+    if (!raw || !currencyRegex.test(raw)) return null;
+    const parsed = parseSalaryRange(raw);
     if (parsed.min !== null && parsed.max !== null) {
       return parsed;
     }
+    return null;
+  };
+
+  // Pass 1: keyword line plus following context (handles multi-line labels + amounts)
+  for (let i = 0; i < lines.length; i++) {
+    if (!keywordRegex.test(lines[i])) continue;
+    const block = [lines[i]];
+    if (lines[i + 1]) block.push(lines[i + 1]);
+    if (lines[i + 2]) block.push(lines[i + 2]);
+    const parsed = tryParse(block.join(' '));
+    if (parsed) return parsed;
+  }
+
+  // Pass 2: bullet lines that include keyword + currency
+  for (const line of lines) {
+    if (!/^[-•*]/.test(line)) continue;
+    if (!keywordRegex.test(line)) continue;
+    const parsed = tryParse(line);
+    if (parsed) return parsed;
+  }
+
+  // Pass 3: any single line containing keyword + currency
+  for (const line of lines) {
+    if (!keywordRegex.test(line)) continue;
+    const parsed = tryParse(line);
+    if (parsed) return parsed;
   }
 
   return result;
