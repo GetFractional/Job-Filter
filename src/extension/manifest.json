@@ -28,8 +28,7 @@
     {
       "matches": [
         "*://*.linkedin.com/jobs/*",
-        "*://*.indeed.com/viewjob*",
-        "*://*.indeed.com/jobs*"
+        "*://*.indeed.com/*"
       ],
       "js": ["content.js"],
       "run_at": "document_idle"

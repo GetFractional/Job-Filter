@@ -331,10 +331,28 @@ function cleanCompanyUrl(url) {
  * Initialize Indeed job page handling
  */
 function handleIndeed() {
-  // Check if we're on a job detail page
-  if (isIndeedJobPage()) {
-    injectOverlay('Indeed');
-  }
+  let lastUrl = location.href;
+
+  const checkAndInject = () => {
+    if (isIndeedJobPage()) {
+      injectOverlay('Indeed');
+    } else {
+      removeOverlay();
+    }
+  };
+
+  // Initial check
+  checkAndInject();
+
+  // Watch for navigation changes (Indeed can update the URL client-side)
+  const observer = new MutationObserver(() => {
+    if (location.href !== lastUrl) {
+      lastUrl = location.href;
+      removeOverlay();
+      checkAndInject();
+    }
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
 }
 
 /**
@@ -363,32 +381,39 @@ function extractIndeedJobData() {
   };
 
   try {
-    // Job Title
+    // Job Title: prefer modern data-testid selectors, then legacy class fallbacks (Indeed DOM changes frequently)
     const titleSelectors = [
+      'h1[data-testid="jobDetailTitle"]',
+      'h1[data-testid="jobTitle"]',
       '.jobsearch-JobInfoHeader-title',
       'h1.icl-u-xs-mb--xs',
       '.jobsearch-JobInfoHeader h1'
     ];
     data.jobTitle = getTextFromSelectors(titleSelectors) || '';
 
-    // Company Name
+    // Company Name: data-testid first, then legacy company rating links
     const companySelectors = [
+      'div[data-testid="company-name"]',
+      'div[data-testid="inlineHeader-companyName"]',
       '[data-company-name="true"]',
       '.jobsearch-InlineCompanyRating-companyHeader a',
       '.icl-u-lg-mr--sm a'
     ];
     data.companyName = getTextFromSelectors(companySelectors) || '';
 
-    // Location
+    // Location: data-testid location first, then legacy subtitle items
     const locationSelectors = [
+      'div[data-testid="text-location"]',
+      'div[data-testid="inlineHeader-location"]',
       '[data-testid="job-location"]',
       '.jobsearch-JobInfoHeader-subtitle > div:nth-child(2)',
       '.icl-u-xs-mt--xs'
     ];
     data.location = getTextFromSelectors(locationSelectors) || '';
 
-    // Salary
+    // Salary: data-testid salary first, then legacy metadata items
     const salarySelectors = [
+      'div[data-testid="jobDetailSalary"]',
       '[data-testid="attribute_snippet_testid"]',
       '.jobsearch-JobMetadataHeader-item'
     ];
