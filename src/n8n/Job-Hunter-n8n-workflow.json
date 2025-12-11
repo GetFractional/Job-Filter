@@ -1,55 +1,68 @@
-
 {
   "name": "Job Hunter",
   "nodes": [
     {
-      "parameters": {
-        "jsCode": "// Description: Configures the workflow's execution mode and parameters.\n// Supports 'batch', 'test', and 'regenerate' modes.\n\nconst mode = \"test\"; // \"batch\", \"test\", \"regenerate\"\nconst testJobId = \"rec_YOUR_TEST_JOB_ID\"; // Airtable record ID for test mode\nconst jobId = \"rec_YOUR_REGENERATE_JOB_ID\"; // Airtable record ID for regenerate mode\nconst assetType = [\"Resume\", \"Cover Letter\"]; // for 'regenerate' mode\nconst maxJobs = 3; // Max jobs to process in 'batch' mode\nconst maxRetries = 1;\n\nreturn {\n  mode,\n  testJobId,\n  jobId,\n  assetType,\n  maxJobs,\n  maxRetries\n};"
-      },
-      "name": "Config",
-      "type": "n8n-nodes-base.code",
+      "parameters": {},
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        -200,
-        300
-      ]
+        -5000,
+        512
+      ],
+      "id": "f9c1be1e-4d5f-4b12-9b3d-2bd2a61f7f1e"
     },
     {
       "parameters": {
+        "authentication": "airtableTokenApi",
         "operation": "list",
-        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
-        "table": "Jobs Pipeline",
-        "options": {
-          "view": "={{ $node.Config.json.mode === 'batch' ? 'Needs Research' : '' }}",
-          "filterByFormula": "={{ \n  $node.Config.json.mode === 'test' ? `{Job ID} = '${$node.Config.json.testJobId}'` : \n  ($node.Config.json.mode === 'regenerate' ? `{Job ID} = '${$node.Config.json.jobId}'` : '')\n}}",
-          "maxRecords": "={{ $node.Config.json.mode === 'batch' ? $node.Config.json.maxJobs : 1 }}"
+        "application": {
+          "__rl": true,
+          "value": "appHFrk9vapCY39F1",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "https://airtable.com/appHFrk9vapCY39F1/tblcY5odzvocdPMc6/viw30RRl4XRp2ogXg?blocks=hide",
+          "mode": "url"
+        },
+        "additionalOptions": {
+          "filterByFormula": "Status='Captured'",
+          "sort": [
+            {
+              "field": "Created",
+              "direction": "asc"
+            }
+          ]
         }
       },
       "name": "Fetch Jobs To Process",
       "type": "n8n-nodes-base.airtable",
       "typeVersion": 1,
       "position": [
-        0,
-        300
+        -4608,
+        512
       ],
+      "id": "8042d907-857b-4794-baa7-024e66d1dfed",
       "credentials": {
-        "airtableApi": {
-          "id": "Airtable (Job Hunter OS)",
-          "name": "Airtable (Job Hunter OS)"
+        "airtableTokenApi": {
+          "id": "o3CA4abzed6gPpQl",
+          "name": "Airtable Personal Access Token account"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "// Description: Extracts key job details from the Airtable record.\n\nconst job = $input.item.json.fields;\n\nreturn {\n  jobId: $input.item.json.id,\n  jobTitle: job['Job Title'],\n  companyName: job['Company Name'],\n  jobUrl: job['Job URL'],\n  jobDescription: job['Job Description'],\n  companyPage: job['Company Page'],\n  source: job['Source'],\n  status: job['Status']\n};"
+        "jsCode": "// Description: Extracts key job details from the Airtable record.\n// Also stores jobId globally so downstream branches (after IFs) can access it.\n\nconst job = $input.item.json.fields;\nconst jobId = $input.item.json.id;\n\n// Store globally for later branches that don't have this node in-path\n$flow.set('jobId', jobId);\n$flow.set('jobCompany', job['Company Name']);\n$flow.set('jobTitle', job['Job Title']);\n\nreturn {\n  jobId,\n  jobTitle: job['Job Title'],\n  companyName: job['Company Name'],\n  jobUrl: job['Job URL'],\n  jobDescription: job['Job Description'],\n  companyPage: job['Company Page'],\n  source: job['Source'],\n  status: job['Status']\n};"
       },
       "name": "Set Up Job Scope",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        200,
-        300
-      ]
+        -4400,
+        512
+      ],
+      "id": "edc78263-d405-44d4-9718-3a3f831d6133"
     },
     {
       "parameters": {
@@ -59,40 +72,24 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        400,
-        300
-      ]
+        -4208,
+        512
+      ],
+      "id": "eb8a97f9-db78-46c0-a346-cc3f3cc8e36b"
     },
     {
       "parameters": {
         "url": "https://api.perplexity.ai/chat/completions",
-        "options": {
-          "body": {
-            "model": "llama-3.1-sonar-large-128k-online",
-            "messages": [
-              {
-                "role": "user",
-                "content": "{{$node['Build Research Prompt'].json.prompt}}"
-              }
-            ],
-            "max_tokens": 2000,
-            "temperature": 0.7
-          }
-        }
+        "options": {}
       },
       "name": "Call Perplexity for Research",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
       "position": [
-        600,
-        300
+        -4000,
+        512
       ],
-      "credentials": {
-        "httpHeaders": {
-          "id": "Perplexity (Job Hunter OS)",
-          "name": "Perplexity (Job Hunter OS)"
-        }
-      }
+      "id": "2719a71f-cc78-40e2-8650-99acdfe1577a"
     },
     {
       "parameters": {
@@ -102,17 +99,17 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        800,
-        300
-      ]
+        -3808,
+        512
+      ],
+      "id": "8acc011b-80ca-48f0-95a7-aac333a1ffa8"
     },
     {
       "parameters": {
         "conditions": {
           "number": [
             {
-              "value1": "{{$node['Score Research Quality'].json.score}}",
-              "operation": "smaller",
+              "value1": null,
               "value2": 40
             }
           ]
@@ -122,40 +119,24 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        1000,
-        300
-      ]
+        -3600,
+        512
+      ],
+      "id": "4cd60f8b-cb8f-4535-96eb-80887adc613d"
     },
     {
       "parameters": {
         "url": "https://api.perplexity.ai/chat/completions",
-        "options": {
-          "body": {
-            "model": "llama-3.1-sonar-large-128k-online",
-            "messages": [
-              {
-                "role": "user",
-                "content": "{{$node['Build Research Prompt'].json.prompt}}\\n\\n---\\n**Instruction:** The previous research attempt was not specific enough. Please regenerate with the following improvements: Make research more specific with company-unique details from recent news, funding announcements, and hiring patterns. Quantify metrics: actual revenue/funding/headcount if known, or reasonable estimates based on industry stage. Include 2+ specific competitors with positioning comparison. Reference recent news or events from last 6 months. Clearly diagnose the growth constraint this hire addresses. Follow the specificity ladder: move from Level 2 (stage) → Level 5 (their specific problem). Reference: /prompts/reference/Reference-Alen-Ascension-Specificity.md for examples."
-              }
-            ],
-            "max_tokens": 2000,
-            "temperature": 0.7
-          }
-        }
+        "options": {}
       },
       "name": "Call Perplexity for Research (Retry)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
       "position": [
-        1200,
-        200
+        -3408,
+        400
       ],
-      "credentials": {
-        "httpHeaders": {
-          "id": "Perplexity (Job Hunter OS)",
-          "name": "Perplexity (Job Hunter OS)"
-        }
-      }
+      "id": "9dce1253-8a94-4b36-a556-84f627fb43d4"
     },
     {
       "parameters": {
@@ -165,67 +146,70 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        1400,
-        300
-      ]
+        -3200,
+        512
+      ],
+      "id": "026d437c-637e-45ee-a867-48904fd64f7e"
     },
     {
       "parameters": {
-        "operation": "create",
-        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
-        "table": "Research Briefs",
-        "fields": {
-          "Job": [
-            "{{$node['Set Up Job Scope'].json.jobId}}"
-          ],
-          "Company Overview": "={{$node['Pick Best Research Score'].json.finalContent.split('### 2.')[0].substring(0, 400)}}",
-          "Role Analysis": "={{$node['Pick Best Research Score'].json.finalContent.split('### 2.')[1].split('### 3.')[0].substring(0, 400)}}",
-          "Market Context": "={{$node['Pick Best Research Score'].json.finalContent.split('### 3.')[1].split('### 4.')[0].substring(0, 400)}}",
-          "Strategic Positioning": "={{$node['Pick Best Research Score'].json.finalContent.split('### 5.')[1].substring(0, 400)}}",
-          "Key Insights": "={{$node['Pick Best Research Score'].json.finalContent.split('### 5.')[1].substring(0, 400)}}",
-          "Research Sources": "={{($node['Pick Best Research Score'].json.finalContent.match(/https?:\\/\\/[^\\s)]+/g) || []).join('\\n')}}",
-          "Quality Score": "{{$node['Pick Best Research Score'].json.finalScore}}"
-        }
+        "authentication": "airtableTokenApi",
+        "operation": "append",
+        "application": {
+          "__rl": true,
+          "value": "appHFrk9vapCY39F1",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "https://airtable.com/appHFrk9vapCY39F1/tbldzpMjDDpinj2rl/viwdGSvldCWDZRYN6?blocks=hide",
+          "mode": "url"
+        },
+        "options": {}
       },
       "name": "Create Research Brief Record",
       "type": "n8n-nodes-base.airtable",
       "typeVersion": 1,
       "position": [
-        1600,
-        300
+        -3008,
+        512
       ],
+      "id": "245964a6-5a79-4dd2-9709-f918c02cc97b",
       "credentials": {
-        "airtableApi": {
-          "id": "Airtable (Job Hunter OS)",
-          "name": "Airtable (Job Hunter OS)"
+        "airtableTokenApi": {
+          "id": "o3CA4abzed6gPpQl",
+          "name": "Airtable Personal Access Token account"
         }
       }
     },
     {
       "parameters": {
-        "operation": "create",
-        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
-        "table": "Application Tracking",
-        "fields": {
-          "Job": [
-            "{{$node['Set Up Job Scope'].json.jobId}}"
-          ],
-          "Event Type": "Research Completed",
-          "Event Date": "{{$now.toFormat('yyyy-MM-dd')}}",
-          "Details": "Quality Score: {{$node['Pick Best Research Score'].json.finalScore}}. Key insights: ..."
-        }
+        "authentication": "airtableTokenApi",
+        "operation": "append",
+        "application": {
+          "__rl": true,
+          "mode": "id",
+          "value": "appHFrk9vapCY39F1"
+        },
+        "table": {
+          "__rl": true,
+          "value": "https://airtable.com/appHFrk9vapCY39F1/tblArXJ9YS3P4DHsp/viwhMtM3pB8gia8iK?blocks=hide",
+          "mode": "url"
+        },
+        "options": {}
       },
       "name": "Log: Research Completed Event",
       "type": "n8n-nodes-base.airtable",
       "typeVersion": 1,
       "position": [
-        1800,
-        300
+        -2800,
+        512
       ],
+      "id": "ac5e0301-9338-4658-a0f7-1024209734c5",
       "credentials": {
-        "airtableApi": {
-          "id": "Airtable (Job Hunter OS)",
-          "name": "Airtable (Job Hunter OS)"
+        "airtableTokenApi": {
+          "id": "o3CA4abzed6gPpQl",
+          "name": "Airtable Personal Access Token account"
         }
       }
     },
@@ -237,30 +221,33 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        2000,
-        300
-      ]
+        -2608,
+        512
+      ],
+      "id": "4b51fe52-a344-454c-a002-5c029f2afd43"
     },
     {
       "parameters": {
-        "model": "gpt-4-turbo-preview",
+        "model": "o3-mini-2025-01-31",
         "prompt": "{{$node['Build 90-Day Plan Prompt'].json.prompt}}",
         "options": {
           "maxTokens": 2000,
           "temperature": 0.7
-        }
+        },
+        "requestOptions": {}
       },
       "name": "Call OpenAI for 90-Day Plan",
       "type": "n8n-nodes-base.openAi",
       "typeVersion": 1,
       "position": [
-        2200,
-        300
+        -2400,
+        512
       ],
+      "id": "a6905f0a-0fa8-40ec-b1d5-bf6d9b766701",
       "credentials": {
         "openAiApi": {
-          "id": "OpenAI (Job Hunter OS)",
-          "name": "OpenAI (Job Hunter OS)"
+          "id": "f2WDaLaE9MFhKRuc",
+          "name": "OpenAi account"
         }
       }
     },
@@ -272,9 +259,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        2400,
-        300
-      ]
+        -2208,
+        512
+      ],
+      "id": "448ea01b-31a4-4e72-be69-77fef286a4a3"
     },
     {
       "parameters": {
@@ -282,7 +270,6 @@
           "number": [
             {
               "value1": "{{$node['Score 90-Day Plan Quality'].json.score}}",
-              "operation": "smaller",
               "value2": 45
             }
           ]
@@ -292,30 +279,33 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        2600,
-        300
-      ]
+        -2000,
+        512
+      ],
+      "id": "9b2700cb-f913-4d17-840b-8c36c6095d94"
     },
     {
       "parameters": {
-        "model": "gpt-4-turbo-preview",
+        "model": "o3-mini-2025-01-31",
         "prompt": "{{$node['Build 90-Day Plan Prompt'].json.prompt}}\\n\\n---\\n**Instruction:** This plan scored {{$node['Score 90-Day Plan Quality'].json.score}} because it's missing specificity/quantification. Regenerate with these improvements: **DIAGNOSIS SECTION:** Lead with 200+ words articulating their specific growth constraint. **MONTHLY BREAKDOWN:** Include exact weekly activities + specific expected business outcomes ($ impact). **QUANTIFICATION:** Every initiative must use the Hormozi Value Equation. Example: 'CAC reduction from $650 -> $450 = $200 savings per customer'. **PROOF:** Reference 2+ of my achievements with exact numbers from my profile. **TERMINOLOGY:** Use their exact metrics/language from the research brief. **RISKS:** Acknowledge 3 risks with mitigations.",
         "options": {
           "maxTokens": 2000,
           "temperature": 0.7
-        }
+        },
+        "requestOptions": {}
       },
       "name": "Call OpenAI for Plan (Retry)",
       "type": "n8n-nodes-base.openAi",
       "typeVersion": 1,
       "position": [
-        2800,
-        200
+        -1808,
+        400
       ],
+      "id": "0ba261b0-742a-4806-92cb-50d600554edb",
       "credentials": {
         "openAiApi": {
-          "id": "OpenAI (Job Hunter OS)",
-          "name": "OpenAI (Job Hunter OS)"
+          "id": "f2WDaLaE9MFhKRuc",
+          "name": "OpenAi account"
         }
       }
     },
@@ -327,107 +317,110 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        3000,
-        300
-      ]
+        -1600,
+        512
+      ],
+      "id": "be735284-0c86-4388-898f-a9659497e34b"
     },
     {
       "parameters": {
-        "path": "=/Job Hunter Assets/{{$items('Set Up Job Scope')[0].json.companyName}}/{{$now.toFormat('yyyy-MM-dd')}}/",
-        "fileName": "02-90-Day-Plan.md",
         "fileContent": "{{$node['Pick Best Plan Score'].json.finalContent}}",
-        "options": {
-          "createMissingFolders": true
-        }
+        "name": "02 - {{companyName}} - {{jobTitle}} - 90-Day Plan.md",
+        "options": {}
       },
       "name": "Upload Plan to Google Drive",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 1,
       "position": [
-        3200,
-        300
+        -1408,
+        512
       ],
+      "id": "f92a6f94-ddd4-49a5-831c-dafe1a887ea4",
       "credentials": {
-        "googleDriveOAuth2Api": {
-          "id": "Google Drive (Job Hunter OS)",
-          "name": "Google Drive (Job Hunter OS)"
+        "googleApi": {
+          "id": "PtMjNZkPLZjldH25",
+          "name": "Google Service Account account"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "// Description: Stores the final plan content in the execution context for downstream use.\n\nconst planContent = $input.item.json.planContent;\n$workflow.set('planContent', planContent); // Storing globally for this execution\nreturn {\n  planContent: planContent,\n  stored: true\n};"
+        "jsCode": "// Description: Stores the final plan content in the execution context for downstream use.\n\nconst planContent = $input.item.json.planContent;\n$flow.set('planContent', planContent); // Storing globally for this execution\nreturn {\n  planContent: planContent,\n  stored: true\n};"
       },
       "name": "Store Plan in Memory",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        3400,
-        300
-      ]
+        -1200,
+        512
+      ],
+      "id": "cc0faeb5-99a1-481a-9799-a2f6c64da438"
     },
     {
       "parameters": {
-        "operation": "create",
-        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
-        "table": "Generated Assets",
-        "fields": {
-          "Job": [
-            "{{$items('Set Up Job Scope')[0].json.jobId}}"
-          ],
-          "Asset Type": "90-Day Plan",
-          "Google Drive Link": "{{$node['Upload Plan to Google Drive'].json.webViewLink}}",
-          "Content Preview": "={{$node['Pick Best Plan Score'].json.finalContent.substring(0, 400)}}",
-          "Quality Score": "{{$node['Pick Best Plan Score'].json.finalScore}}",
-          "Version Number": 1,
-          "Prompt Used": "20-90-Day-Plan.md"
-        }
+        "authentication": "airtableTokenApi",
+        "operation": "append",
+        "application": {
+          "__rl": true,
+          "value": "appHFrk9vapCY39F1",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "https://airtable.com/appHFrk9vapCY39F1/tblgx4gQNUOKuGEMV/viwabbeYSd2KCO8e4?blocks=hide",
+          "mode": "url"
+        },
+        "options": {}
       },
       "name": "Create Plan Asset Record",
       "type": "n8n-nodes-base.airtable",
       "typeVersion": 1,
       "position": [
-        3600,
-        300
+        -1008,
+        512
       ],
+      "id": "c66b2172-6673-4b81-a55c-1aae445f1830",
       "credentials": {
-        "airtableApi": {
-          "id": "Airtable (Job Hunter OS)",
-          "name": "Airtable (Job Hunter OS)"
+        "airtableTokenApi": {
+          "id": "o3CA4abzed6gPpQl",
+          "name": "Airtable Personal Access Token account"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "// Branch A: Resume\n// GitHub Ref: /prompts/asset-generation/30-Resume-Tailor.md\nconst jobData = $items('Set Up Job Scope')[0].json;\nconst researchData = $items('Create Research Brief Record')[0].json.fields;\nconst planContent = $workflow.get('planContent');\nconst mattProfile = '...';\n\nconst prompt = `Generate 4-6 ATS-optimized resume bullet points for the role of ${jobData.jobTitle}. Bullets must:\n1. Be in 'Action Verb + Skill + Metric' format.\n2. Directly map to requirements in the job description.\n3. Incorporate my quantified achievements from my profile.\n4. Align with company terminology from the research brief.\n\nJob Desc: ${jobData.jobDescription}\nResearch: ${researchData['Role Analysis']}\nMy Profile: ${mattProfile}`;\n\nreturn { prompt };"
+        "jsCode": "// Branch A: Resume\n// GitHub Ref: /prompts/asset-generation/30-Resume-Tailor.md\nconst jobData = $items('Set Up Job Scope')[0].json;\nconst researchData = $items('Create Research Brief Record')[0].json.fields;\nconst planContent = $flow.get('planContent');\nconst mattProfile = '...';\n\nconst prompt = `Generate 4-6 ATS-optimized resume bullet points for the role of ${jobData.jobTitle}. Bullets must:\n1. Be in 'Action Verb + Skill + Metric' format.\n2. Directly map to requirements in the job description.\n3. Incorporate my quantified achievements from my profile.\n4. Align with company terminology from the research brief.\n\nJob Desc: ${jobData.jobDescription}\nResearch: ${researchData['Role Analysis']}\nMy Profile: ${mattProfile}`;\n\nreturn { prompt };"
       },
       "name": "Build Resume Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        3800,
-        -100
-      ]
+        -800,
+        112
+      ],
+      "id": "366b0848-c7ee-41a3-a3d8-47bce5d1fc46"
     },
     {
       "parameters": {
-        "model": "gpt-4-turbo-preview",
+        "model": "o4-mini-2025-04-16",
         "prompt": "{{$node['Build Resume Prompt'].json.prompt}}",
         "options": {
           "maxTokens": 800
-        }
+        },
+        "requestOptions": {}
       },
       "name": "Call OpenAI for Resume",
       "type": "n8n-nodes-base.openAi",
       "typeVersion": 1,
       "position": [
-        4000,
-        -100
+        -608,
+        112
       ],
+      "id": "73ba179f-168f-43bc-8fce-761ba3192dba",
       "credentials": {
         "openAiApi": {
-          "id": "OpenAI (Job Hunter OS)",
-          "name": "OpenAI (Job Hunter OS)"
+          "id": "f2WDaLaE9MFhKRuc",
+          "name": "OpenAi account"
         }
       }
     },
@@ -439,9 +432,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        4200,
-        -100
-      ]
+        -400,
+        112
+      ],
+      "id": "483c8f48-678d-43a7-8385-43e17dc8b49b"
     },
     {
       "parameters": {
@@ -449,7 +443,6 @@
           "number": [
             {
               "value1": "{{$node['Score Resume Quality'].json.score}}",
-              "operation": "smaller",
               "value2": 40
             }
           ]
@@ -459,29 +452,32 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        4400,
-        -100
-      ]
+        -208,
+        112
+      ],
+      "id": "1fc1d89a-c0fb-4f79-825b-b7cf0f6e2a86"
     },
     {
       "parameters": {
-        "model": "gpt-4-turbo-preview",
+        "model": "o4-mini-2025-04-16",
         "prompt": "{{$node['Build Resume Prompt'].json.prompt}}\\n\\nRetry: The last attempt was not quantified enough. Ensure every bullet has a metric.",
         "options": {
           "maxTokens": 800
-        }
+        },
+        "requestOptions": {}
       },
       "name": "Call OpenAI for Resume (Retry)",
       "type": "n8n-nodes-base.openAi",
       "typeVersion": 1,
       "position": [
-        4600,
-        -200
+        0,
+        0
       ],
+      "id": "1f8031ab-2c00-446a-9eea-d4d84e929867",
       "credentials": {
         "openAiApi": {
-          "id": "OpenAI (Job Hunter OS)",
-          "name": "OpenAI (Job Hunter OS)"
+          "id": "f2WDaLaE9MFhKRuc",
+          "name": "OpenAi account"
         }
       }
     },
@@ -493,90 +489,97 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        4800,
-        -100
-      ]
+        208,
+        112
+      ],
+      "id": "5b428c4c-ce7f-405e-85b7-b775f1002f8f"
     },
     {
       "parameters": {
-        "path": "=/Job Hunter Assets/{{$items('Set Up Job Scope')[0].json.companyName}}/{{$now.toFormat('yyyy-MM-dd')}}/",
-        "fileName": "03-Resume-Tailored.md",
-        "fileContent": "{{$node['Pick Best Resume Score'].json.finalContent}}"
+        "fileContent": "{{$node['Pick Best Resume Score'].json.finalContent}}",
+        "name": "=03 - {{companyName}} - {{jobTitle}} - Resume Tailored.md",
+        "options": {}
       },
       "name": "Upload Resume to Google Drive",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 1,
       "position": [
-        5000,
-        -100
+        400,
+        112
       ],
+      "id": "0b179f0c-7e79-40ad-a0ca-827644ece59b",
       "credentials": {
-        "googleDriveOAuth2Api": {
-          "id": "Google Drive (Job Hunter OS)",
-          "name": "Google Drive (Job Hunter OS)"
+        "googleApi": {
+          "id": "PtMjNZkPLZjldH25",
+          "name": "Google Service Account account"
         }
       }
     },
     {
       "parameters": {
-        "operation": "create",
-        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
-        "table": "Generated Assets",
-        "fields": {
-          "Job": [
-            "{{$items('Set Up Job Scope')[0].json.jobId}}"
-          ],
-          "Asset Type": "Resume",
-          "Google Drive Link": "{{$node['Upload Resume to Google Drive'].json.webViewLink}}",
-          "Quality Score": "{{$node['Pick Best Resume Score'].json.finalScore}}",
-          "Prompt Used": "30-Resume-Tailor.md"
-        }
+        "authentication": "airtableTokenApi",
+        "operation": "append",
+        "application": {
+          "__rl": true,
+          "value": "appHFrk9vapCY39F1",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "https://airtable.com/appHFrk9vapCY39F1/tblgx4gQNUOKuGEMV/viwabbeYSd2KCO8e4?blocks=hide",
+          "mode": "url"
+        },
+        "options": {}
       },
       "name": "Create Resume Asset Record",
       "type": "n8n-nodes-base.airtable",
       "typeVersion": 1,
       "position": [
-        5200,
-        -100
+        608,
+        112
       ],
+      "id": "d2e33436-ad86-4820-9ed4-9bf3e70ecc29",
       "credentials": {
-        "airtableApi": {
-          "id": "Airtable (Job Hunter OS)",
-          "name": "Airtable (Job Hunter OS)"
+        "airtableTokenApi": {
+          "id": "o3CA4abzed6gPpQl",
+          "name": "Airtable Personal Access Token account"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "// Branch B: Cover Letter\n// GitHub Ref: /prompts/asset-generation/40-Cover-Letter.md, /prompts/reference/Reference-Rory-Psychologic.md\nconst jobData = $items('Set Up Job Scope')[0].json;\nconst researchData = $items('Create Research Brief Record')[0].json.fields;\nconst planContent = $workflow.get('planContent');\n\nconst prompt = `Generate a 300-400 word cover letter following the Problem -> Proof -> Solution arc.\n- **Problem:** Articulate THEIR growth constraint in 100+ words, using the research brief.\n- **Proof:** Cite one of my comparable wins with an exact metric.\n- **Solution:** Preview 1-2 initiatives from my 90-day plan.\n\nResearch: ${researchData['Strategic Positioning']}\n90-Day Plan Preview: ${planContent.substring(0, 500)}\nMy Profile: ...`\n\nreturn { prompt };"
+        "jsCode": "// Branch B: Cover Letter\n// GitHub Ref: /prompts/asset-generation/40-Cover-Letter.md, /prompts/reference/Reference-Rory-Psychologic.md\nconst jobData = $items('Set Up Job Scope')[0].json;\nconst researchData = $items('Create Research Brief Record')[0].json.fields;\nconst planContent = $flow.get('planContent');\n\nconst prompt = `Generate a 300-400 word cover letter following the Problem -> Proof -> Solution arc.\n- **Problem:** Articulate THEIR growth constraint in 100+ words, using the research brief.\n- **Proof:** Cite one of my comparable wins with an exact metric.\n- **Solution:** Preview 1-2 initiatives from my 90-day plan.\n\nResearch: ${researchData['Strategic Positioning']}\n90-Day Plan Preview: ${planContent.substring(0, 500)}\nMy Profile: ...`\n\nreturn { prompt };"
       },
       "name": "Build Cover Letter Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        3800,
-        100
-      ]
+        -800,
+        304
+      ],
+      "id": "a390e5a2-d1b9-4a23-9f75-3bd522b9622a"
     },
     {
       "parameters": {
-        "model": "gpt-4-turbo-preview",
+        "model": "o4-mini-2025-04-16",
         "prompt": "{{$node['Build Cover Letter Prompt'].json.prompt}}",
         "options": {
           "maxTokens": 600
-        }
+        },
+        "requestOptions": {}
       },
       "name": "Call OpenAI for Cover Letter",
       "type": "n8n-nodes-base.openAi",
       "typeVersion": 1,
       "position": [
-        4000,
-        100
+        -608,
+        304
       ],
+      "id": "d02a410d-0d22-407d-a06f-8d6f1a393759",
       "credentials": {
         "openAiApi": {
-          "id": "OpenAI (Job Hunter OS)",
-          "name": "OpenAI (Job Hunter OS)"
+          "id": "f2WDaLaE9MFhKRuc",
+          "name": "OpenAi account"
         }
       }
     },
@@ -588,9 +591,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        4200,
-        100
-      ]
+        -400,
+        304
+      ],
+      "id": "3f0b75dd-3686-4f9d-8eab-55f1fd96b58f"
     },
     {
       "parameters": {
@@ -598,7 +602,6 @@
           "number": [
             {
               "value1": "{{$node['Score Cover Letter Quality'].json.score}}",
-              "operation": "smaller",
               "value2": 45
             }
           ]
@@ -608,29 +611,32 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        4400,
-        100
-      ]
+        -208,
+        304
+      ],
+      "id": "3faf1652-9cc0-4eda-a95b-f58beadca296"
     },
     {
       "parameters": {
-        "model": "gpt-4-turbo-preview",
+        "model": "o4-mini-2025-04-16",
         "prompt": "{{$node['Build Cover Letter Prompt'].json.prompt}}\\n\\nRetry: The Problem section was weak. Deepen the diagnosis of their constraint.",
         "options": {
           "maxTokens": 600
-        }
+        },
+        "requestOptions": {}
       },
       "name": "Call OpenAI for Cover Letter (Retry)",
       "type": "n8n-nodes-base.openAi",
       "typeVersion": 1,
       "position": [
-        4600,
-        0
+        0,
+        208
       ],
+      "id": "9b889211-6d62-4979-806f-9d03ff0e3e40",
       "credentials": {
         "openAiApi": {
-          "id": "OpenAI (Job Hunter OS)",
-          "name": "OpenAI (Job Hunter OS)"
+          "id": "f2WDaLaE9MFhKRuc",
+          "name": "OpenAi account"
         }
       }
     },
@@ -642,56 +648,60 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        4800,
-        100
-      ]
+        208,
+        304
+      ],
+      "id": "4ceabc29-c5ee-4dca-925b-f18316f77aa7"
     },
     {
       "parameters": {
-        "path": "=/Job Hunter Assets/{{$items('Set Up Job Scope')[0].json.companyName}}/{{$now.toFormat('yyyy-MM-dd')}}/",
-        "fileName": "04-Cover-Letter.md",
-        "fileContent": "{{$node['Pick Best Cover Letter Score'].json.finalContent}}"
+        "fileContent": "{{$node['Pick Best Cover Letter Score'].json.finalContent}}",
+        "name": "=04 - {{companyName}} - {{jobTitle}} - Cover Letter.md",
+        "options": {}
       },
       "name": "Upload Cover Letter to Google Drive",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 1,
       "position": [
-        5000,
-        100
+        400,
+        304
       ],
+      "id": "10467154-1e13-400d-ac83-7907cf6a5b54",
       "credentials": {
-        "googleDriveOAuth2Api": {
-          "id": "Google Drive (Job Hunter OS)",
-          "name": "Google Drive (Job Hunter OS)"
+        "googleApi": {
+          "id": "PtMjNZkPLZjldH25",
+          "name": "Google Service Account account"
         }
       }
     },
     {
       "parameters": {
-        "operation": "create",
-        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
-        "table": "Generated Assets",
-        "fields": {
-          "Job": [
-            "{{$items('Set Up Job Scope')[0].json.jobId}}"
-          ],
-          "Asset Type": "Cover Letter",
-          "Google Drive Link": "{{$node['Upload Cover Letter to Google Drive'].json.webViewLink}}",
-          "Quality Score": "{{$node['Pick Best Cover Letter Score'].json.finalScore}}",
-          "Prompt Used": "40-Cover-Letter.md"
-        }
+        "authentication": "airtableTokenApi",
+        "operation": "append",
+        "application": {
+          "__rl": true,
+          "value": "appHFrk9vapCY39F1",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "https://airtable.com/appHFrk9vapCY39F1/tblgx4gQNUOKuGEMV/viwabbeYSd2KCO8e4?blocks=hide",
+          "mode": "url"
+        },
+        "options": {}
       },
       "name": "Create Cover Letter Asset Record",
       "type": "n8n-nodes-base.airtable",
       "typeVersion": 1,
       "position": [
-        5200,
-        100
+        608,
+        304
       ],
+      "id": "c66fb766-5ed3-491f-ae44-bd9c166633e3",
       "credentials": {
-        "airtableApi": {
-          "id": "Airtable (Job Hunter OS)",
-          "name": "Airtable (Job Hunter OS)"
+        "airtableTokenApi": {
+          "id": "o3CA4abzed6gPpQl",
+          "name": "Airtable Personal Access Token account"
         }
       }
     },
@@ -703,29 +713,32 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        3800,
-        300
-      ]
+        -800,
+        512
+      ],
+      "id": "6125fddf-f815-4a99-b93e-c9e2cc3b9323"
     },
     {
       "parameters": {
-        "model": "gpt-4-turbo-preview",
+        "model": "o4-mini-2025-04-16",
         "prompt": "{{$node['Build Interview Prep Prompt'].json.prompt}}",
         "options": {
           "maxTokens": 1500
-        }
+        },
+        "requestOptions": {}
       },
       "name": "Call OpenAI for Interview Prep",
       "type": "n8n-nodes-base.openAi",
       "typeVersion": 1,
       "position": [
-        4000,
-        300
+        -608,
+        512
       ],
+      "id": "6ee5af3d-00de-4992-ac91-a2b9aa1fd1db",
       "credentials": {
         "openAiApi": {
-          "id": "OpenAI (Job Hunter OS)",
-          "name": "OpenAI (Job Hunter OS)"
+          "id": "f2WDaLaE9MFhKRuc",
+          "name": "OpenAi account"
         }
       }
     },
@@ -737,9 +750,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        4200,
-        300
-      ]
+        -400,
+        512
+      ],
+      "id": "aa4a64c2-5569-4a5c-983a-4c960ab4edf9"
     },
     {
       "parameters": {
@@ -747,7 +761,6 @@
           "number": [
             {
               "value1": "{{$node['Score Interview Prep Quality'].json.score}}",
-              "operation": "smaller",
               "value2": 40
             }
           ]
@@ -757,26 +770,30 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        4400,
-        300
-      ]
+        -208,
+        512
+      ],
+      "id": "5b56110f-0371-4f09-8b6b-4184719fde36"
     },
     {
       "parameters": {
-        "model": "gpt-4-turbo-preview",
-        "prompt": "{{$node['Build Interview Prep Prompt'].json.prompt}}\\n\\nRetry: Make the STAR stories more specific to the company's diagnosed problem."
+        "model": "o4-mini-2025-04-16",
+        "prompt": "{{$node['Build Interview Prep Prompt'].json.prompt}}\\n\\nRetry: Make the STAR stories more specific to the company's diagnosed problem.",
+        "options": {},
+        "requestOptions": {}
       },
       "name": "Call OpenAI for Interview Prep (Retry)",
       "type": "n8n-nodes-base.openAi",
       "typeVersion": 1,
       "position": [
-        4600,
-        200
+        0,
+        400
       ],
+      "id": "ffe4b292-1237-422e-afe9-f49f9eb9dbeb",
       "credentials": {
         "openAiApi": {
-          "id": "OpenAI (Job Hunter OS)",
-          "name": "OpenAI (Job Hunter OS)"
+          "id": "f2WDaLaE9MFhKRuc",
+          "name": "OpenAi account"
         }
       }
     },
@@ -788,56 +805,59 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        4800,
-        300
-      ]
+        208,
+        512
+      ],
+      "id": "4fafca54-425c-4dec-9c49-830382bb52a2"
     },
     {
       "parameters": {
-        "path": "=/Job Hunter Assets/{{$items('Set Up Job Scope')[0].json.companyName}}/{{$now.toFormat('yyyy-MM-dd')}}/",
-        "fileName": "05-Interview-Prep.md",
-        "fileContent": "{{$node['Pick Best Interview Prep Score'].json.finalContent}}"
+        "fileContent": "{{$node['Pick Best Interview Prep Score'].json.finalContent}}",
+        "name": "=05 - {{companyName}} - {{jobTitle}} - Interview Prep.md",
+        "options": {}
       },
       "name": "Upload Interview Prep to Google Drive",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 1,
       "position": [
-        5000,
-        300
+        400,
+        512
       ],
+      "id": "0c363db5-0e32-4984-a713-80890b5f6d01",
       "credentials": {
-        "googleDriveOAuth2Api": {
-          "id": "Google Drive (Job Hunter OS)",
-          "name": "Google Drive (Job Hunter OS)"
+        "googleApi": {
+          "id": "PtMjNZkPLZjldH25",
+          "name": "Google Service Account account"
         }
       }
     },
     {
       "parameters": {
+        "authentication": "airtableTokenApi",
         "operation": "create",
-        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
-        "table": "Generated Assets",
-        "fields": {
-          "Job": [
-            "{{$items('Set Up Job Scope')[0].json.jobId}}"
-          ],
-          "Asset Type": "Interview Prep",
-          "Google Drive Link": "{{$node['Upload Interview Prep to Google Drive'].json.webViewLink}}",
-          "Quality Score": "{{$node['Pick Best Interview Prep Score'].json.finalScore}}",
-          "Prompt Used": "50-Interview-Prep.md"
+        "application": {
+          "__rl": true,
+          "value": "appHFrk9vapCY39F1",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "https://airtable.com/appHFrk9vapCY39F1/tblgx4gQNUOKuGEMV/viwabbeYSd2KCO8e4?blocks=hide",
+          "mode": "url"
         }
       },
       "name": "Create Interview Prep Asset Record",
       "type": "n8n-nodes-base.airtable",
       "typeVersion": 1,
       "position": [
-        5200,
-        300
+        608,
+        512
       ],
+      "id": "9b49c53d-d314-4d42-914b-db9604d8ac16",
       "credentials": {
-        "airtableApi": {
-          "id": "Airtable (Job Hunter OS)",
-          "name": "Airtable (Job Hunter OS)"
+        "airtableTokenApi": {
+          "id": "o3CA4abzed6gPpQl",
+          "name": "Airtable Personal Access Token account"
         }
       }
     },
@@ -849,29 +869,32 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        3800,
-        500
-      ]
+        -800,
+        704
+      ],
+      "id": "86cb9d39-886b-46cc-8073-55447245aa37"
     },
     {
       "parameters": {
-        "model": "gpt-4-turbo-preview",
+        "model": "o4-mini-2025-04-16",
         "prompt": "{{$node['Build Outreach Prompt'].json.prompt}}",
         "options": {
           "maxTokens": 150
-        }
+        },
+        "requestOptions": {}
       },
       "name": "Call OpenAI for Outreach",
       "type": "n8n-nodes-base.openAi",
       "typeVersion": 1,
       "position": [
-        4000,
-        500
+        -608,
+        704
       ],
+      "id": "27ee1e71-a0d5-4645-860c-17f3aa9d000d",
       "credentials": {
         "openAiApi": {
-          "id": "OpenAI (Job Hunter OS)",
-          "name": "OpenAI (Job Hunter OS)"
+          "id": "f2WDaLaE9MFhKRuc",
+          "name": "OpenAi account"
         }
       }
     },
@@ -883,9 +906,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        4200,
-        500
-      ]
+        -400,
+        704
+      ],
+      "id": "6f525f0e-4dca-4ea0-9d4a-b32cd023c665"
     },
     {
       "parameters": {
@@ -893,7 +917,6 @@
           "number": [
             {
               "value1": "{{$node['Score Outreach Quality'].json.score}}",
-              "operation": "smaller",
               "value2": 35
             }
           ]
@@ -903,26 +926,30 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        4400,
-        500
-      ]
+        -208,
+        704
+      ],
+      "id": "a2618c3c-5ea8-47b5-809a-31b13b4b2a66"
     },
     {
       "parameters": {
-        "model": "gpt-4-turbo-preview",
-        "prompt": "{{$node['Build Outreach Prompt'].json.prompt}}\\n\\nRetry: Make the hook more specific and the CTA more urgent."
+        "model": "o4-mini-2025-04-16",
+        "prompt": "{{$node['Build Outreach Prompt'].json.prompt}}\\n\\nRetry: Make the hook more specific and the CTA more urgent.",
+        "options": {},
+        "requestOptions": {}
       },
       "name": "Call OpenAI for Outreach (Retry)",
       "type": "n8n-nodes-base.openAi",
       "typeVersion": 1,
       "position": [
-        4600,
-        400
+        0,
+        608
       ],
+      "id": "23ac608f-5fcf-4b82-bd4b-21f37f27d4fa",
       "credentials": {
         "openAiApi": {
-          "id": "OpenAI (Job Hunter OS)",
-          "name": "OpenAI (Job Hunter OS)"
+          "id": "f2WDaLaE9MFhKRuc",
+          "name": "OpenAi account"
         }
       }
     },
@@ -934,140 +961,132 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        4800,
-        500
-      ]
+        208,
+        704
+      ],
+      "id": "f7ec1ae0-5dac-4122-b84e-41c66e072e54"
     },
     {
       "parameters": {
-        "path": "=/Job Hunter Assets/{{$items('Set Up Job Scope')[0].json.companyName}}/{{$now.toFormat('yyyy-MM-dd')}}/",
-        "fileName": "06-Outreach-Message.md",
-        "fileContent": "{{$node['Pick Best Outreach Score'].json.finalContent}}"
+        "fileContent": "{{$node['Pick Best Outreach Score'].json.finalContent}}",
+        "name": "=06 - {{companyName}} - {{jobTitle}} - Outreach Message.md",
+        "options": {}
       },
       "name": "Upload Outreach to Google Drive",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 1,
       "position": [
-        5000,
-        500
+        400,
+        704
       ],
+      "id": "4248672c-77ea-4c29-8538-8e1bb55b7407",
       "credentials": {
-        "googleDriveOAuth2Api": {
-          "id": "Google Drive (Job Hunter OS)",
-          "name": "Google Drive (Job Hunter OS)"
+        "googleApi": {
+          "id": "PtMjNZkPLZjldH25",
+          "name": "Google Service Account account"
         }
       }
     },
     {
       "parameters": {
-        "operation": "create",
-        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
-        "table": "Generated Assets",
-        "fields": {
-          "Job": [
-            "{{$items('Set Up Job Scope')[0].json.jobId}}"
-          ],
-          "Asset Type": "Outreach Message",
-          "Google Drive Link": "{{$node['Upload Outreach to Google Drive'].json.webViewLink}}",
-          "Quality Score": "{{$node['Pick Best Outreach Score'].json.finalScore}}",
-          "Prompt Used": "60-Outreach-Message.md"
-        }
+        "authentication": "airtableTokenApi",
+        "operation": "append",
+        "application": {
+          "__rl": true,
+          "value": "appHFrk9vapCY39F1",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "https://airtable.com/appHFrk9vapCY39F1/tblgx4gQNUOKuGEMV/viwabbeYSd2KCO8e4?blocks=hide",
+          "mode": "url"
+        },
+        "options": {}
       },
       "name": "Create Outreach Asset Record",
       "type": "n8n-nodes-base.airtable",
       "typeVersion": 1,
       "position": [
-        5200,
-        500
+        608,
+        704
       ],
+      "id": "2b8c758b-1743-4e67-b343-9a7d7503168e",
       "credentials": {
-        "airtableApi": {
-          "id": "Airtable (Job Hunter OS)",
-          "name": "Airtable (Job Hunter OS)"
+        "airtableTokenApi": {
+          "id": "o3CA4abzed6gPpQl",
+          "name": "Airtable Personal Access Token account"
         }
       }
     },
     {
       "parameters": {
-        "conditions": {
-          "string": [
+        "authentication": "airtableTokenApi",
+        "operation": "update",
+        "application": {
+          "__rl": true,
+          "value": "appHFrk9vapCY39F1",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "https://airtable.com/appHFrk9vapCY39F1/tblcY5odzvocdPMc6/viw30RRl4XRp2ogXg?blocks=hide",
+          "mode": "url"
+        },
+        "id": "={{ $flow.get('jobId') }}",
+        "updateAllFields": false,
+        "fieldsUi": {
+          "fieldValues": [
             {
-              "value1": "{{$items('Config')[0].json.mode}}",
-              "operation": "equal",
-              "value2": "test"
+              "fieldId": "Status",
+              "fieldValue": "Ready to Apply"
             }
           ]
-        }
-      },
-      "name": "Check Execution Mode",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [
-        5400,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "message": "Test mode completed for {{$items('Set Up Job Scope')[0].json.companyName}} - {{$items('Set Up Job Scope')[0].json.jobTitle}}. Review assets. Click 'Approve' to save to Airtable."
-      },
-      "name": "Pause & Require Approval",
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
-      "position": [
-        5600,
-        200
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
-        "table": "Jobs Pipeline",
-        "recordId": "{{$items('Set Up Job Scope')[0].json.jobId}}",
-        "fields": {
-          "Status": "Ready to Apply",
-          "Generated Assets": "={{ $items('Create Resume Asset Record').map(item => item.json.id).concat($items('Create Cover Letter Asset Record').map(item => item.json.id), $items('Create Interview Prep Asset Record').map(item => item.json.id), $items('Create Outreach Asset Record').map(item => item.json.id), $items('Create Plan Asset Record').map(item => item.json.id)) }}"
-        }
+        },
+        "options": {}
       },
       "name": "Update Job Status",
       "type": "n8n-nodes-base.airtable",
       "typeVersion": 1,
       "position": [
-        5800,
-        300
+        1200,
+        512
       ],
+      "id": "b85e1f2c-55ec-4d08-8e61-e70df83637cb",
       "credentials": {
-        "airtableApi": {
-          "id": "Airtable (Job Hunter OS)",
-          "name": "Airtable (Job Hunter OS)"
+        "airtableTokenApi": {
+          "id": "o3CA4abzed6gPpQl",
+          "name": "Airtable Personal Access Token account"
         }
       }
     },
     {
       "parameters": {
-        "operation": "create",
-        "baseId": "{{ $env.AIRTABLE_BASE_ID }}",
-        "table": "Application Tracking",
-        "fields": {
-          "Job": [
-            "{{$items('Set Up Job Scope')[0].json.jobId}}"
-          ],
-          "Event Type": "Assets Generated",
-          "Details": "Generated 5 assets. Quality Scores - Plan: {{$items('Pick Best Plan Score')[0].json.finalScore}}, Resume: {{$items('Pick Best Resume Score')[0].json.finalScore}}, Cover: {{$items('Pick Best Cover Letter Score')[0].json.finalScore}}, Interview: {{$items('Pick Best Interview Prep Score')[0].json.finalScore}}, Outreach: {{$items('Pick Best Outreach Score')[0].json.finalScore}}"
-        }
+        "authentication": "airtableTokenApi",
+        "operation": "append",
+        "application": {
+          "__rl": true,
+          "value": "appHFrk9vapCY39F1",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "https://airtable.com/appHFrk9vapCY39F1/tblArXJ9YS3P4DHsp/viwhMtM3pB8gia8iK?blocks=hide",
+          "mode": "url"
+        },
+        "options": {}
       },
       "name": "Log: Assets Generated Event",
       "type": "n8n-nodes-base.airtable",
       "typeVersion": 1,
       "position": [
-        6000,
-        300
+        1408,
+        512
       ],
+      "id": "1f085089-88e1-4da8-85d0-4a8fa060d51c",
       "credentials": {
-        "airtableApi": {
-          "id": "Airtable (Job Hunter OS)",
-          "name": "Airtable (Job Hunter OS)"
+        "airtableTokenApi": {
+          "id": "o3CA4abzed6gPpQl",
+          "name": "Airtable Personal Access Token account"
         }
       }
     },
@@ -1079,13 +1098,15 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        6200,
-        300
-      ]
+        1600,
+        512
+      ],
+      "id": "3fc3c9d0-a7e7-4d05-9816-1372e61c5920"
     }
   ],
+  "pinData": {},
   "connections": {
-    "Config": {
+    "Manual Trigger": {
       "main": [
         [
           {
@@ -1422,7 +1443,7 @@
       "main": [
         [
           {
-            "node": "Check Execution Mode",
+            "node": "Update Job Status",
             "type": "main",
             "index": 0
           }
@@ -1517,7 +1538,7 @@
       "main": [
         [
           {
-            "node": "Check Execution Mode",
+            "node": "Update Job Status",
             "type": "main",
             "index": 0
           }
@@ -1612,7 +1633,7 @@
       "main": [
         [
           {
-            "node": "Check Execution Mode",
+            "node": "Update Job Status",
             "type": "main",
             "index": 0
           }
@@ -1707,35 +1728,6 @@
       "main": [
         [
           {
-            "node": "Check Execution Mode",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check Execution Mode": {
-      "main": [
-        [
-          {
-            "node": "Pause & Require Approval",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Update Job Status",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Pause & Require Approval": {
-      "main": [
-        [
-          {
             "node": "Update Job Status",
             "type": "main",
             "index": 0
@@ -1765,5 +1757,16 @@
         ]
       ]
     }
-  }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "14b919da-c086-4f6e-a0c6-adfd6d718e1a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5948f9c81edbb36bbb89b4065c2b9c6c6d1d486f298ed64ef1ccc4bf6c1cbffb"
+  },
+  "id": "JG0NvdlSDTaeIySi",
+  "tags": []
 }
