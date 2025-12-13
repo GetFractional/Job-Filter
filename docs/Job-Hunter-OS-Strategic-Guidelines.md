@@ -90,7 +90,7 @@ To orchestrate the Job Hunter OS optimally, these roles are required. The system
 | **Data Engineer** | Job payload structure, API integration, information density | Chrome extension, n8n workflows | "Is this data rich and accurate?" |
 | **Researcher** (Perplexity) | Company/market intelligence, competitive analysis, role context | Job research module, copy input generation | "Does this represent the market reality?" |
 | **AI Systems Designer** | Prompt architecture, chain-of-thought flows, LLM instruction | All Perplexity & OpenAI prompts | "Is the prompt unambiguous and layered correctly?" |
-| **Copywriter** (Alen Sultanic principles) | Asset generation (resume, cover letter, 90-day plan) | Content generation module | "Does this follow the value equation and copy principles?" |
+| **Copywriter** (Alen Sultanic principles) | Asset generation (resume, cover letter, annual plan) | Content generation module | "Does this follow the value equation and copy principles?" |
 | **Analyst** (Hormozi principles) | Offer validation, value equation scoring, prioritization | Job filtering, outreach strategy | "Is the opportunity worth the time investment?" |
 | **QA/Iteration Lead** | Build-Measure-Learn cycle, result tracking, prompt refinement | Testing & feedback loops | "Are we learning and improving each cycle?" |
 
@@ -114,7 +114,7 @@ Below are ALL relevant thinking models, organized by use case and prioritized fo
   - Generic, non-personalized application
   - Slow response time
   - Lack of company knowledge in cover letter
-  - No 90-day plan
+  - No annual plan
   - Poor follow-up cadence
   
 - **How to use it:** Design OS to prevent each failure mode
@@ -165,13 +165,13 @@ Below are ALL relevant thinking models, organized by use case and prioritized fo
   1. **Empathize:** What is the hiring manager's job-to-be-done? (Find top talent fast, validate culture fit, manage risk)
   2. **Define:** What is the real problem we're solving? (Cutting through noise of generic applications)
   3. **Ideate:** How might we use data-driven, hyper-personalized assets to stand out?
-  4. **Prototype:** Build a minimal version (e.g., first version of 90-day plan template)
+  4. **Prototype:** Build a minimal version (e.g., first version of annual plan template)
   5. **Test:** Send to 3-5 roles, measure response rates, iterate
   
-- **Application:** Every time you redesign the 90-day plan or cover letter, go through this cycle
+- **Application:** Every time you redesign the annual plan or cover letter, go through this cycle
 
 #### **3.6 Bloom's Taxonomy (Learning & Capability Development)**
-- **When to use:** Structuring the 90-day plan and measuring candidate readiness for a role
+- **When to use:** Structuring the annual plan and measuring candidate readiness for a role
 - **Levels (from lowest to highest):**
   1. **Remember:** Can recall facts (e.g., company's GTM strategy)
   2. **Understand:** Can explain the concepts (e.g., why their GTM is struggling)
@@ -180,7 +180,7 @@ Below are ALL relevant thinking models, organized by use case and prioritized fo
   5. **Evaluate:** Can make judgments and justify decisions (e.g., recommend a prioritization)
   6. **Create:** Can generate new ideas and strategies (e.g., design a new campaign)
 
-- **In 90-day plan:** Progress from Analyze (diagnose the problem) → Evaluate (recommend solution) → Create (design new campaigns)
+- **In Annual plan:** Progress from Analyze (diagnose the problem) → Evaluate (recommend solution) → Create (design new campaigns)
 
 ---
 
@@ -209,7 +209,7 @@ Below are ALL relevant thinking models, organized by use case and prioritized fo
 #### **3.10 Blue Ocean Strategy**
 - **When to use:** Differentiating your candidacy in a crowded market
 - **Question:** How can you compete in an "uncontested market space" rather than fighting on resume bullets alone?
-  - **Answer:** By offering a 90-day plan, you're not competing on experience alone; you're competing on foresight and strategic clarity.
+  - **Answer:** By offering a annual plan, you're not competing on experience alone; you're competing on foresight and strategic clarity.
 
 #### **3.11 Value Chain Analysis**
 - **When to use:** Understanding where you can add the most value at a company
@@ -292,12 +292,12 @@ This section distills the **core, actionable principles** from each source mater
 1. **Automate Repetitive, Personalize Impactful** — The system handles data capture and tracking; you handle relationships and interviews
 2. **Data-First Architecture** — Every decision begins with rich, structured job payload (JSON)
 3. **Modularity & Orchestration** — Each component (Extension, n8n, OpenAI) is independent but coordinated
-4. **90-Day Plan as the Ultimate Offer** — This single artifact is the proof point that differentiates Matt's candidacy
+4. **Annual Plan as the Ultimate Offer** — This single artifact is the proof point that differentiates Matt's candidacy
 
 **Applied To:**
 - Data model design (job payload schema)
 - Workflow orchestration (n8n node sequencing)
-- Asset prioritization (focus on 90-day plan quality first, resumes second)
+- Asset prioritization (focus on annual plan quality first, resumes second)
 
 ---
 
@@ -305,8 +305,8 @@ This section distills the **core, actionable principles** from each source mater
 
 **Core Principles:**
 1. **Document, Don't Create** — The job hunt IS the content; each application is a data point
-2. **Pillar Content + Micro-Content** — Each job application is a pillar; resume, cover letter, 90-day plan are micro-content derivatives
-3. **Repurposing at Scale** — Once a 90-day plan is written, elements can be reshaped for cover letters, networking pitches, interviews
+2. **Pillar Content + Micro-Content** — Each job application is a pillar; resume, cover letter, annual plan are micro-content derivatives
+3. **Repurposing at Scale** — Once a annual plan is written, elements can be reshaped for cover letters, networking pitches, interviews
 4. **Consistency = Brand Building** — Every asset should reflect the same strategic depth and voice
 
 **Applied To:**
@@ -335,13 +335,13 @@ This section distills the **core, actionable principles** from each source mater
 
 **Core Principles:**
 1. **Psycho-Logic Over Logic** — A hiring manager's decision is emotional + rational; appeal to both
-2. **Value Through Signaling** — The 90-day plan signals "I think deeply about your problems"
+2. **Value Through Signaling** — The annual plan signals "I think deeply about your problems"
 3. **Perceived Value > Intrinsic Value** — How you frame your experience matters as much as the experience itself
-4. **Counterintuition Sells** — A custom 90-day plan is unexpected; it breaks pattern and captures attention
+4. **Counterintuition Sells** — A custom annual plan is unexpected; it breaks pattern and captures attention
 
 **Applied To:**
 - Copy tone and framing (appeal to emotions: "I've already diagnosed your problem")
-- 90-day plan positioning ("Here's proof I've thought beyond the interview")
+- Annual plan positioning ("Here's proof I've thought beyond the interview")
 - Cover letter hooks (use counterintuitive insights about the company)
 
 ---
@@ -356,7 +356,7 @@ This section distills the **core, actionable principles** from each source mater
 
 **Applied To:**
 - OS iteration cycle (send apps → measure → refine → repeat)
-- A/B testing copy and 90-day plan formats
+- A/B testing copy and annual plan formats
 - Feedback loop integration (track which asset types get best response)
 
 ---
@@ -386,8 +386,8 @@ This section goes DEEP on Alen's strategies and determines which are **directly 
 
 #### **Principle 1: Compete on Economics, Not Marketing**
 - **What it means:** Don't rely on pretty fonts or clever wording. Rely on the undeniable value and clarity of your offer.
-- **Application to Job Hunter OS:** Your 90-day plan + resume + cover letter stack MUST be so economically sound (ROI so clear) that the hiring manager can't ignore it.
-- **How:** Calculate clear metrics in the 90-day plan (e.g., "Expected pipeline growth: +$2.5M in year 1 through these specific campaigns")
+- **Application to Job Hunter OS:** Your annual plan + resume + cover letter stack MUST be so economically sound (ROI so clear) that the hiring manager can't ignore it.
+- **How:** Calculate clear metrics in the annual plan (e.g., "Expected pipeline growth: +$2.5M in year 1 through these specific campaigns")
 
 ---
 
@@ -395,16 +395,16 @@ This section goes DEEP on Alen's strategies and determines which are **directly 
 - **Stages:**
   1. **Awareness** — You see a job posting
   2. **Interest** — Your application stands out
-  3. **Consideration** — They read your 90-day plan
+  3. **Consideration** — They read your annual plan
   4. **Decision** — They offer you the role (or proceed to interview)
 
 - **Each stage has a corresponding asset:**
   - Awareness → Application email (hook)
   - Interest → Resume (proof of capability)
-  - Consideration → 90-day plan (proof of strategic thinking)
+  - Consideration → Annual plan (proof of strategic thinking)
   - Decision → Interview performance (proof of execution ability)
 
-- **Why it matters:** Missing ANY asset breaks the chain. A great resume without a 90-day plan leaves them unconvinced about strategy.
+- **Why it matters:** Missing ANY asset breaks the chain. A great resume without a annual plan leaves them unconvinced about strategy.
 
 ---
 
@@ -414,7 +414,7 @@ This section goes DEEP on Alen's strategies and determines which are **directly 
   
 - **Applied to Job Hunter OS:**
   - **The hiring manager's problem:** "Everyone wants to hire a high-performing growth leader but struggles to find one who has already thought through our specific growth challenges"
-  - **Your solution:** You've done that thinking (via the 90-day plan)
+  - **Your solution:** You've done that thinking (via the annual plan)
 
 ---
 
@@ -436,7 +436,7 @@ This section goes DEEP on Alen's strategies and determines which are **directly 
 - **Applied to Job Application:**
   - **Dream Outcome:** Hire a leader who can drive $50M → $100M revenue
   - **Likelihood of Achievement:** High (you've proven this track record)
-  - **Time Delay:** Low (your 90-day plan shows immediate action items)
+  - **Time Delay:** Low (your annual plan shows immediate action items)
   - **Effort & Sacrifice:** Low (you're providing the strategic thinking; they just execute)
   
   - **Result:** Very high value equation = hard to ignore
@@ -448,7 +448,7 @@ This section goes DEEP on Alen's strategies and determines which are **directly 
 - **Adapted for Job Hunt:**
   - **Tier 1 (Free/Low-Effort Entry):** Generic application (they always get this)
   - **Tier 2 (Medium Effort):** Personalized cover letter + tailored resume
-  - **Tier 3 (High Effort/Value):** Above + custom 90-day plan + market research
+  - **Tier 3 (High Effort/Value):** Above + custom annual plan + market research
   
   - **Strategy:** Only send Tier 3 to top-tier opportunities; use Tier 2 for secondary opportunities; Tier 1 only for exploratory/low-priority roles
 
@@ -463,7 +463,7 @@ This section goes DEEP on Alen's strategies and determines which are **directly 
   - **For fast-growth startups:** Lead with short-term wins (Month 1: stabilize pipeline, Month 2: launch new campaign)
   - **For mature companies:** Lead with long-term vision (Year 1: foundation, Year 2-3: scale)
   
-- **Copy implication:** Adjust your cover letter and 90-day plan language based on company stage
+- **Copy implication:** Adjust your cover letter and annual plan language based on company stage
 
 ---
 
@@ -481,7 +481,7 @@ This section goes DEEP on Alen's strategies and determines which are **directly 
 - **Applied to your messaging:**
   - **Stay in quadrant 1-2:**
     - REALISTIC: "I can grow your pipeline 40-60% in Year 1" (proven track record supports this)
-    - EASY WORK for THEM: "Here's my 90-day plan; you just execute" (they don't have to figure it out)
+    - EASY WORK for THEM: "Here's my annual plan; you just execute" (they don't have to figure it out)
 
 ---
 
@@ -515,9 +515,9 @@ This section goes DEEP on Alen's strategies and determines which are **directly 
   - "First 90 days: $2M pipeline impact"
   - "Within 6 weeks, you'll see..."
 
-- **Applied to your 90-day plan:**
+- **Applied to your annual plan:**
   - Front-load quick wins (Week 1-4)
-  - Then show progression (Month 2-3)
+  - Then show progression (Month 2-12)
   - This keeps hiring managers engaged because they see early proof points
 
 ---
@@ -529,7 +529,7 @@ This section goes DEEP on Alen's strategies and determines which are **directly 
 | Upsells & Downsells | You're not selling multiple products in a funnel; you're selling one outcome (the job) | Applies to SaaS, courses, membership models |
 | Free Trial Offers | Can't offer a "free trial" of employment | Applies to software, services |
 | CRM Automation at Scale | You're not managing 10,000 leads; you're targeting <50 high-quality roles | Applies to B2B sales teams, agencies |
-| Content Monetization | Your content (90-day plans) isn't monetized; it's a means to an end | Applies to course creators, publishers |
+| Content Monetization | Your content (annual plans) isn't monetized; it's a means to an end | Applies to course creators, publishers |
 | Multi-Channel Ad Spend Optimization | You don't have an ad budget; you're leveraging time and personalization | Applies to e-commerce, app launches |
 
 ---
@@ -568,7 +568,7 @@ Filtering jobs        │ MECE Analysis        │ SWOT, Inversion       │ Mar
 Job research &        │ Systems Thinking     │ Porter's Five Forces, │ Specificity (Alen)
 company analysis      │ + Value Chain        │ PESTLE                 │ + Psycho-logic (Rory)
 ─────────────────────┼────────────────────┼──────────────────────┼──────────────────
-Writing 90-day plan   │ Design Thinking      │ Bloom's Taxonomy      │ Value equation
+Writing annual plan   │ Design Thinking      │ Bloom's Taxonomy      │ Value equation
                       │ + Systems Thinking   │ + Blue Ocean          │ (Hormozi), Short-term
                       │                      │                       │ language (Alen)
 ─────────────────────┼────────────────────┼──────────────────────┼──────────────────
@@ -707,7 +707,7 @@ Use this checklist before implementing ANY change to the Job Hunter OS.
   - Logic: Specific achievements and plans
   - Emotion: Your passion for their specific challenges
 
-#### **90-Day Plan Quality Check**
+#### **Annual Plan Quality Check**
 - [ ] **Ascension Framework (Alen):** Does it walk them through discovery → planning → execution?
   - Week 1-2: Deep dive into existing performance (diagnosis)
   - Week 3-4: Recommend priority initiatives
@@ -740,12 +740,12 @@ Use this checklist before implementing ANY change to the Job Hunter OS.
   
 - [ ] **Learn:** What worked? What didn't?
   - Did personalized cover letters help? (compare A/B split)
-  - Did 90-day plans lead to more interviews? (compare with/without)
+  - Did annual plans lead to more interviews? (compare with/without)
   - Did short-term language drive more responses? (compare messaging variants)
 
 - [ ] **Hypothesize:** What will we change for the next batch?
   - Adjust messaging based on learnings
-  - Refine 90-day plan template
+  - Refine annual plan template
   - Shift job filtering criteria if needed
 
 - [ ] **Act:** Implement changes in next batch of applications
@@ -780,7 +780,7 @@ Use this checklist before implementing ANY change to the Job Hunter OS.
 
 **✅ ETHICAL:**
 - Personalizing your application with company-specific research
-- Creating a 90-day plan based on public information about the company
+- Creating an annual plan based on public information about the company
 - Showing genuine enthusiasm for their specific challenges
 - Offering real solutions based on your proven experience
 
@@ -791,7 +791,7 @@ Use this checklist before implementing ANY change to the Job Hunter OS.
 - Creating fake references or testimonials
 
 **✓ BEST PRACTICE:**
-- Every claim in your resume, cover letter, and 90-day plan must be truthful
+- Every claim in your resume, cover letter, and annual plan must be truthful
 - Every metric must be attributable and verifiable
 - If you can't prove something, don't claim it
 
@@ -815,7 +815,7 @@ Use this checklist before implementing ANY change to the Job Hunter OS.
 | Design Thinking | User experience, asset design | What does the hiring manager need? | Empathetic, user-centric solutions |
 | Lean Startup | Iteration, rapid learning | What can we test quickly? | Fast feedback loops, validated learning |
 | Hormozi Value Eq. | Opportunity prioritization, messaging | Is the opportunity worth the effort? | Clear ROI and decision signal |
-| Alen (Specificity) | Copy, cover letter, 90-day plan | Are we referencing company-specific details? | Trustworthiness, resonance |
+| Alen (Specificity) | Copy, cover letter, annual plan | Are we referencing company-specific details? | Trustworthiness, resonance |
 | Alen (Ad Efficacy) | Messaging tone, claims | Is our promise realistic but compelling? | High-conversion messaging |
 | Alen (Ascension) | Application funnel | Are we guiding them through a journey? | Progressive engagement → decision |
 | Gary Vee | Content strategy | What's our pillar and micro-content? | Consistent, repurposable assets |

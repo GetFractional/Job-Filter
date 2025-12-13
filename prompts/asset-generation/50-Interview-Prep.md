@@ -252,7 +252,7 @@ Use objection handling framework → Acknowledge → Reframe → Prove
 
 **24 Hours Before:**
 - [ ] Re-read research brief
-- [ ] Review 90-day plan
+- [ ] Review annual plan
 - [ ] Rehearse 3 STAR stories aloud
 - [ ] Prepare questions based on interviewer (CEO vs hiring manager)
 - [ ] Research interviewer on LinkedIn

@@ -5,8 +5,8 @@
 ## 📌 PURPOSE
 Generate a compelling cover letter (300-400 words) that follows the Problem → Proof → Solution arc to demonstrate Matt has already diagnosed their challenge and knows how to fix it.
 
-**When Used**: After research brief and 90-day plan are complete  
-**Input**: Research brief + 90-day plan + Matt's profile + job description  
+**When Used**: After research brief and annual plan are complete  
+**Input**: Research brief + annual plan + Matt's profile + job description  
 **Output**: 300-400 word cover letter (4-5 paragraphs)  
 **Success Metric**: Hiring manager thinks "This person gets our business" after reading
 
@@ -38,13 +38,13 @@ Generate a compelling cover letter (300-400 words) that follows the Problem → 
 - **Anti-Pattern**: Generic "I have experience in growth marketing" without specific parallel
 - **Source**: Matt-Dimock-Professional-Profile.md
 
-### Principle 4: Reference the 90-Day Plan (Without Quoting)
-- **Definition**: Paint picture of what Matt would do, informed by 90-day plan
+### Principle 4: Reference the Annual Plan (Without Quoting)
+- **Definition**: Paint picture of what Matt would do, informed by annual plan
 - **Why**: Shows you've already done the thinking (not winging it)
 - **How**: Mention 1-2 key initiatives from plan in conversational language
 - **Example**: "First 30 days, I'd diagnose your full acquisition funnel to pinpoint where sales cycle is stalling..."
-- **Anti-Pattern**: Copy-pasting sections from 90-day plan into letter
-- **Source**: 20-90-Day-Plan.md output
+- **Anti-Pattern**: Copy-pasting sections from annual plan into letter
+- **Source**: 20-Annual-Plan.md output
 
 ---
 
@@ -122,7 +122,7 @@ Cover Letter Quality Scorecard (50 points):
 - [ ] **Hook** (10 pts): Opens with specific company insight (not generic enthusiasm)
 - [ ] **Problem** (10 pts): Articulates THEIR constraint clearly (100+ words)
 - [ ] **Proof** (10 pts): References Matt's parallel win with exact metrics
-- [ ] **Solution** (10 pts): Previews 90-day approach (specific to them)
+- [ ] **Solution** (10 pts): Previews annual approach (specific to them)
 - [ ] **CTA** (5 pts): Clear, specific ask for next step
 - [ ] **Length** (5 pts): 300-400 words (not 500+)
 
@@ -136,7 +136,7 @@ Cover Letter Quality Scorecard (50 points):
 ✅ Open with specific insight about their business  
 ✅ Diagnose problem before offering solution  
 ✅ Reference Matt's past win with exact numbers  
-✅ Preview 90-day plan in conversational language  
+✅ Preview annual plan in conversational language  
 ✅ End with clear CTA (time-bound if possible)  
 ✅ Match their formality level and terminology  
 
@@ -144,7 +144,7 @@ Cover Letter Quality Scorecard (50 points):
 ❌ Start with "I'm excited to apply..."  
 ❌ Jump to solution without acknowledging problem  
 ❌ Use generic "I have experience in..." language  
-❌ Copy-paste from 90-day plan  
+❌ Copy-paste from annual plan  
 ❌ Exceed 400 words (recruiters won't read)  
 ❌ Use forbidden fluff words  
 
@@ -169,7 +169,7 @@ Cover Letter Quality Scorecard (50 points):
 
 ## 🔗 CROSS-REFERENCES
 
-- **Depends on**: 10-Research-Company.md, 20-90-Day-Plan.md
+- **Depends on**: 10-Research-Company.md, 20-Annual-Plan.md
 - **Complements**: Matt-Dimock-Professional-Profile.md (for proof points)
 - **Used by**: Application submission (sent with resume)
 - **Triggers**: n8n workflow 05-Cover-Letter

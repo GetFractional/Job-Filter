@@ -3,7 +3,7 @@
 ## 📌 PURPOSE
 This reference guide translates **Alex Hormozi's Value Equation** from business/SaaS context into **Job Hunter OS application**. It answers: How do hiring managers evaluate whether to hire you?
 
-**When Used**: Designing 90-day plans, resumes, cover letters, interview narratives
+**When Used**: Designing annual plans, resumes, cover letters, interview narratives
 **Input**: Job posting + company research + your track record
 **Output**: Messaging that maximizes value perception
 **Success Metric**: Hiring manager thinks "This person is already half-hired"
@@ -62,7 +62,7 @@ Effort/Sacrifice:
 | Asset | How to Maximize Dream Outcome |
 |-------|-------------------------------|
 | **Research** | Identify their specific bottleneck (sales cycle, CAC payback, churn rate) |
-| **90-Day Plan** | Start with "Your core problem is X. Here's how I'd solve it." |
+| **Annual Plan** | Start with "Your core problem is X. Here's how I'd solve it." |
 | **Resume** | Lead with achievement that DIRECTLY matches their stated problem |
 | **Cover Letter** | "I see you're struggling with X. Here's proof I've solved it twice." |
 | **Outreach** | Hook: "I've grown pipeline 40% faster at similar-stage companies" |
@@ -107,7 +107,7 @@ while reducing customer acquisition cost by 35%"
 | Asset | Proof Method | Execution |
 |-------|-------------|-----------|
 | **Research** | Show you understand their specific dynamics | Reference recent funding, market shifts, competitor moves |
-| **90-Day Plan** | Show your methodology + previous wins | "I used this playbook at X, Y, Z with these results" |
+| **Annual Plan** | Show your methodology + previous wins | "I used this playbook at X, Y, Z with these results" |
 | **Resume** | Organize by transferable frameworks | "Built GTM playbooks that scaled across D2C, B2B SaaS, Insurance" |
 | **Cover Letter** | Specificity signals depth | "Your biggest bottleneck is likely X because of Y signals I found in your LinkedIn, Crunchbase, recent hiring" |
 | **Interview Prep** | STAR stories proving execution | "When I faced similar situation at Company, here's exactly what I did..." |
@@ -136,7 +136,7 @@ and got THESE results"
 | Tactic | Why It Works | Example |
 |--------|-------------|---------|
 | **Front-load Quick Wins** | Proves you're moving fast | "Week 1: Full audit. Week 2: ID top 3 levers. Week 3: Launch first experiment" |
-| **Show Immediate Thinking** | Prove you understand the problem now | Your 90-day plan IS the proof (shows you've already diagnosed) |
+| **Show Immediate Thinking** | Prove you understand the problem now | Your annual plan IS the proof (shows you've already diagnosed) |
 | **Emphasize Your Ramp Speed** | Previous roles show how fast you ramped | "Shipped first campaign in 10 days at previous company" |
 | **De-risk with Systems** | They don't have to wait for you to learn | "I'll plug into your existing stacks, no learning curve" |
 | **Prove Day 1 Impact** | You walk in and create value immediately | "First action: Build real-time metrics dashboard so you see progress daily" |
@@ -219,7 +219,7 @@ EFFORT/SACRIFICE (What they do)
 - Proves you know their specific challenge deeply
 - Shows thought leadership
 
-**90-Day Plan** → "Here's exactly how we'll achieve it"
+**Annual Plan** → "Here's exactly how we'll achieve it"
 - Maximizes PERCEIVED LIKELIHOOD (framework + proof)
 - Minimizes TIME DELAY (clear, sequenced wins)
 - Minimizes EFFORT/SACRIFICE (you lead, they support)
@@ -364,6 +364,6 @@ Before sending any application, verify:
 
 ## 🔗 CROSS-REFERENCES
 - **Source**: Alex Hormozi - $100M Offers
-- **Applied in**: Prompt 20 (90-Day Plan), Prompt 40 (Cover Letter), Prompt 60 (Outreach)
+- **Applied in**: Prompt 20 (Annual Plan), Prompt 40 (Cover Letter), Prompt 60 (Outreach)
 - **Thinking Model**: Systems Thinking (all parts working together) + Design Thinking (hiring manager's perspective)
 - **Used by**: Hormozi, Alen Sultanic (applies to every offer), Rory Sutherland (perception)

@@ -8,7 +8,7 @@ Generate a hyper-specific, research-validated annual growth plan that demonstrat
 
 **When Used**: After research brief is complete  
 **Input**: Research brief + Matt's profile + job description  
-**Output**: 2,500-3,500 word annual plan with Year 1 quarterly breakdowns + Years 2-3 strategic themes  
+**Output**: 2,500-3,500 word annual plan with Year 1 quarterly breakdowns (breakdown quarters by month) + Years 2-3 strategic themes  
 **Success Metric**: Hiring manager says "This person thinks strategically AND can execute" + Finance/CEO see clear ROI path
 
 ---

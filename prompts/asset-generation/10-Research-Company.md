@@ -3,7 +3,7 @@
 > **Reference**: This prompt follows `/docs/Asset-Generation-Template.md` structure.
 
 ## 📌 PURPOSE
-Generate comprehensive company intelligence to inform all downstream assets (90-day plan, resume, cover letter, interview prep, outreach).
+Generate comprehensive company intelligence to inform all downstream assets (annual plan, resume, cover letter, interview prep, outreach).
 
 **When Used**: First step after job is captured  
 **Input**: Job posting + company name + LinkedIn URL  
@@ -26,7 +26,7 @@ Generate comprehensive company intelligence to inform all downstream assets (90-
 
 ### Principle 2: Diagnose Their Inflection Point
 - **Definition**: Identify the specific growth constraint they're facing RIGHT NOW
-- **Why It Matters**: The 90-day plan must solve their current problem, not a generic one
+- **Why It Matters**: The annual plan must solve their current problem, not a generic one
 - **How To Apply**: Look for signals: funding round + hiring spike = scaling challenge; layoffs + restructure = efficiency focus
 - **Example**: "They raised $30M in Q2 but revenue grew only 20% (below SaaS median 40%). Likely issue: CAC too high or sales cycle too long. Hiring a VP Growth signals they know it."
 - **Anti-Pattern**: Describing what they do, not what problem they face
@@ -166,6 +166,6 @@ Research quality scorecard (50 points):
 
 - **Depends on**: Job posting data (from extension)
 - **Complements**: Matt-Dimock-Professional-Profile.md (to identify relevant proof points)
-- **Used by**: All downstream assets (90-day plan, cover letter, interview prep, outreach)
-- **Triggers**: 20-90-Day-Plan.md (uses this research as foundation)
+- **Used by**: All downstream assets (annual plan, cover letter, interview prep, outreach)
+- **Triggers**: 20-Annual-Plan.md (uses this research as foundation)
 - **Source Frameworks**: Alen Specificity, Porter's Five Forces, Design Thinking

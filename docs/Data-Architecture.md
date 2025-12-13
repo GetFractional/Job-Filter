@@ -119,7 +119,7 @@
 
 
 **Asset Type Options:**
-- 90-Day Plan
+- Annual Growth Plan
 - Resume (Tailored)
 - Cover Letter
 - Interview Prep
@@ -272,7 +272,7 @@ console.log("n8n triggered:", response.status);
 ### Automation 3: Update Status After Assets Generated
 
 **Trigger:** When 6th asset is created for a job  
-**Condition:** All 6 asset types present (90-Day Plan, Resume, Cover Letter, Interview, Outreach, Research)  
+**Condition:** All 6 asset types present (Annual Growth Plan, Resume, Cover Letter, Interview, Outreach, Research)  
 **Actions:**
 1. Update Jobs Pipeline Status to "Ready to Apply"
 2. Create record in Application Tracking: "Assets Generated" event
@@ -339,7 +339,7 @@ console.log("n8n triggered:", response.status);
 7. **Airtable Automation**: Detects new research, updates Jobs Pipeline Status → "Researched"
 
 8. **n8n Asset Generation Workflows**: (triggered by Status change)
-   - Generate 90-Day Plan → Upload to Drive → Create record in Generated Assets
+   - Generate Annual Growth Plan → Upload to Drive → Create record in Generated Assets
    - Generate Resume → Upload to Drive → Create record in Generated Assets
    - Generate Cover Letter → Upload to Drive → Create record in Generated Assets
    - Generate Interview Prep → Upload to Drive → Create record in Generated Assets

@@ -7,7 +7,7 @@
 > **SYSTEM DIRECTIVE FOR AI AGENTS:**
 > This document is the **canonical Source of Truth** for all AI-driven outputs on behalf of Matt Dimock.
 > 
-> **When generating resumes, cover letters, 90-day plans, positioning statements, or strategic outputs:**
+> **When generating resumes, cover letters, annual plans, positioning statements, or strategic outputs:**
 > 1. Align **strictly** with the persona, achievements, and criteria defined below
 > 2. Use the brand voice guidelines with precision (no exceptions)
 > 3. Apply the strategic frameworks to position solutions, not just features
@@ -462,7 +462,7 @@ This experience crystallized the difference between "growth at all costs" and "s
 
 ## SECTION 5: STRATEGIC FRAMEWORK ALIGNMENT (How I Position & Sell)
 
-*When generating cover letters, positioning statements, or 90-day plans, reference these frameworks to show intellectual rigor and alignment with expert thinking.*
+*When generating cover letters, positioning statements, or annual plans, reference these frameworks to show intellectual rigor and alignment with expert thinking.*
 
 ### 5.1 Alen Sultanic: Economics Over Marketing
 
@@ -683,7 +683,7 @@ When describing growth work:
 
 ### 6.5 Common Scenarios & How to Write Them
 
-**Scenario 1: The 90-Day Plan (Realistic, Data-Driven)**
+**Scenario 1: The Annual Plan (Realistic, Data-Driven)**
 ```
 OVERLY AGGRESSIVE:
 "In 90 days, I will:

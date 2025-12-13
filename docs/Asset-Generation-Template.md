@@ -1,7 +1,7 @@
 # Asset Generation Template (Common Structure)
 
 ## PURPOSE
-This template defines the common structure used across all asset-generation prompts (Research, 90-Day Plan, Resume, Cover Letter, Interview Prep, Outreach). Each asset file references this template to reduce redundancy.
+This template defines the common structure used across all asset-generation prompts (Research, Annual Plan, Resume, Cover Letter, Interview Prep, Outreach). Each asset file references this template to reduce redundancy.
 
 ---
 

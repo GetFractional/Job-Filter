@@ -3,7 +3,7 @@
 ## 📌 PURPOSE
 This reference guide applies **Rory Sutherland's Psycho-Logic principles** (perception > reality, emotion > logic, irrationality as design) to **Job Hunter OS messaging**. It answers: How do you make hiring managers FEEL like you're the right choice, not just think it?
 
-**When Used**: Cover letters, 90-day plans, interview narratives, outreach messages
+**When Used**: Cover letters, annual plans, interview narratives, outreach messages
 **Input**: Your achievements + hiring manager psychology
 **Output**: Messaging that appeals to emotion + logic simultaneously
 **Success Metric**: Hiring manager feels understood and emotionally invested BEFORE rationally evaluating
@@ -97,7 +97,7 @@ Here's how I'd fix it [specific methodology].
 Here's proof I've done this [examples + metrics]"
 ```
 
-**90-Day Plan**:
+**Annual Plan**:
 ```
 Emotional:
 "The hidden burden at Series C is that everyone's busy executing the old model.
@@ -176,7 +176,7 @@ Touchpoint 2: Cover Letter (Addresses their specific problem)
 → Hiring manager thinks: "They understand our exact challenge"
 → Halo: "Probably understands our industry deeply"
 
-Touchpoint 3: 90-Day Plan (Shows clear methodology + previous wins)
+Touchpoint 3: Annual Plan (Shows clear methodology + previous wins)
 → Hiring manager thinks: "They've solved this before"
 → Halo: "Probably solves most things reliably"
 
@@ -222,7 +222,7 @@ Why: Preserves their status (they did great) while justifying change (but need m
 
 Why: Removes emotional fear of "what if this person is wrong?"
 
-### 90-Day Plan: The Logical Justification
+### Annual Plan: The Logical Justification
 
 **Technique 1: De-risk Through Process**
 ```

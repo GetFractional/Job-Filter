@@ -3,7 +3,7 @@
 ## 📌 PURPOSE
 This reference guide applies **Alen Sultanic's core frameworks** (Specificity, Ascension, Value Stack) to **Job Hunter OS asset creation**. It answers: How do you make hiring managers believe you're THE candidate?
 
-**When Used**: All assets (research, 90-day plan, resume, cover letter, outreach, interview prep)
+**When Used**: All assets (research, annual plan, resume, cover letter, outreach, interview prep)
 **Input**: Job posting + company research
 **Output**: Messaging that converts specificity into trust and ascension into interviews
 **Success Metric**: Hiring manager thinks "How do I not hire this person?"
@@ -52,7 +52,7 @@ Your sales team is 40-person, suggesting a structured sales org.
 Likely bottleneck: Sales cycle efficiency or lead quality, not top-of-funnel volume."
 ```
 
-#### Asset 2: 90-Day Plan (Specificity = Everything)
+#### Asset 2: Annual Plan (Specificity = Everything)
 **Specificity Architecture**:
 ```
 Week 1-2 Diagnosis:
@@ -152,11 +152,11 @@ STAGE 1: AWARENESS (They see your application)
 ↓ Goal: Stand out from 500 other applications
 ├─ Asset: Cover letter + outreach message
 ├─ Proof: Specificity (show you researched them)
-└─ CTA: "Read my full plan" (link to 90-day plan)
+└─ CTA: "Read my full plan" (link to annual plan)
 
 STAGE 2: CONSIDERATION (They evaluate your thinking)
 ↓ Goal: Prove you've already done half the work
-├─ Asset: 90-day plan (strategic proof)
+├─ Asset: Annual plan (strategic proof)
 ├─ Proof: Methodology + track record
 └─ CTA: "Let's discuss" (schedule interview)
 
@@ -189,7 +189,7 @@ Over 40 reps, that's a $6M revenue gap annually just from cycle length."
 
 **Example**:
 ```
-90-Day Plan:
+Annual Plan:
 "If you don't compress cycle length:
 - Competitors will outpace you (they're 2x faster)
 - Your CAC payback extends 18→24 months (cash burn accelerates)
@@ -218,7 +218,7 @@ Let's execute together."
 | Stage | Asset | Effort Required | Commitment Level | Win Rate |
 |-------|-------|-----------------|------------------|----------|
 | **Awareness** | Outreach message (3 sent) | 15 min | Low (they just read) | 15% response |
-| **Consideration** | 90-day plan review (sent if interested) | 45 min | Medium (they read + think) | 30% of responders |
+| **Consideration** | Annual plan review (sent if interested) | 45 min | Medium (they read + think) | 30% of responders |
 | **Decision** | Interview 1 (1 hour) | 60 min | High (real conversation) | 40% of interviewers |
 | **Final** | Interview 2 + negotiation | 90 min | Very High (proving execution) | 60% of final rounds |
 
@@ -347,7 +347,7 @@ For Each Application:
 - [ ] Creates sense of "this person gets us"?
 
 **Stage 2 (Consideration)**:
-- [ ] 90-day plan shows your methodology?
+- [ ] Annual plan shows your methodology?
 - [ ] Proves you've done this before (2+ examples)?
 - [ ] Shows economic ROI clearly?
 - [ ] Feels doable (low effort for them)?
@@ -377,7 +377,7 @@ For Each Application:
 When in doubt:
 - Cite the source: "Inspired by Alen Sultanic's specificity framework"
 - Transform the idea: Use the principle, adapt to your context
-- Create original: Your 90-day plan is YOUR original work, informed by these principles
+- Create original: Your annual plan is YOUR original work, informed by these principles
 
 ---
 
