@@ -92,20 +92,21 @@ Based on the **Wealth Dynamics Mechanic Profile**, I operate fundamentally diffe
 
 **The Solution:**
 - **Acquisition Funnel Architecture:** Designed and launched custom ACP → LifeLine enrollment funnels; integrated device upsells to improve monetization per user.
-- **Lifecycle Engagement System:** Built enterprise-scale lifecycle infrastructure using Braze; orchestrated monthly Prosper Sweepstakes and Sliide activations to drive incremental revenue and engagement.
+- **Lifecycle Engagement System:** Architected lifecycle engagement infrastructure (Braze) managing 600K+ customer base, reducing churn and increasing LTV through automated nurture 
+sequences and multi-channel campaigns
 - **Retention Program:** Created "Prosper Perks"—rewards program boosting engagement and billing eligibility simultaneously.
 - **Partnership Infrastructure:** Negotiated contracts with major carriers (Spectrum, Frontier, Comcast) at CPA rates up to $300/order. Built affiliate infrastructure (TUNE, Impact); onboarded 20+ offer partners. Founded Prosper Network to expand field sales into new verticals.
-- **Training & Enablement:** Deployed LearnDash/WordPress training system automating ~50% of agent onboarding process.
+- **Training & Enablement:** Reduced agent onboarding operational burden 50% by deploying automated training system (LearnDash/WordPress), enabling faster sales team scaling
 - **Analytics & Intelligence:** Co-developed Metabase dashboards for full-funnel KPI reporting and leadership visibility.
 
 **The Result:**
-- ✅ Scaled revenue from **$45M to $120M** in 12 months (167% growth)
+- ✅ Enabled revenue scale from **$45M to $120M** in 12 months (167% growth) through sales enablement, lifecycle infrastructure, partnership development
 - ✅ Activated **600,000+ low-income households** (fastest growing ACP provider 2023)
 - ✅ Reduced agent onboarding operational burden by ~50%
 - ✅ Built repeatable partnership framework securing $300/order CPA
 - ✅ Established data-driven decisioning infrastructure
 
-### 2.3 CMO / COO
+### 2.3 Chief Marketing Officer
 
 **Affordable Insurance Quotes.com™** | *June 2020 – Dec 2021 (Nashville, TN; 1 year 7 months)*
 
@@ -177,7 +178,7 @@ Based on the **Wealth Dynamics Mechanic Profile**, I operate fundamentally diffe
 - ✅ SQLs for purchasing team increased **35%**
 - ✅ Maintained **31% gross margin** throughout growth phase
 
-### 2.6 Head of Growth
+### 2.6 Chief Marketing Officer
 
 **SkyFineUSA** | *Jan 2019 – Aug 2019 (Sandy, UT; 8 months)*
 
