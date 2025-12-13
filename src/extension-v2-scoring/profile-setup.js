@@ -56,6 +56,9 @@ let skillTags = [];
 let industryTags = [];
 let roleTags = [];
 
+// Limits
+const MAX_TAGS_PER_FIELD = 30;
+
 // DOM element cache
 let elements = {};
 
@@ -217,6 +220,10 @@ function setupTagInput(input, container, tags, updateTags) {
       e.preventDefault();
       const value = input.value.trim();
       if (value && !tags.includes(value)) {
+        if (tags.length >= MAX_TAGS_PER_FIELD) {
+          showStatus(`You can add up to ${MAX_TAGS_PER_FIELD} entries here.`, 'error');
+          return;
+        }
         const newTags = [...tags, value];
         updateTags(newTags);
         renderTags(container, newTags, updateTags);
@@ -238,11 +245,15 @@ function setupTagInput(input, container, tags, updateTags) {
     if (value.includes(',')) {
       const parts = value.split(',').map(p => p.trim()).filter(Boolean);
       const newTags = [...tags];
-      parts.forEach(part => {
+      for (const part of parts) {
         if (part && !newTags.includes(part)) {
+          if (newTags.length >= MAX_TAGS_PER_FIELD) {
+            showStatus(`You can add up to ${MAX_TAGS_PER_FIELD} entries here.`, 'error');
+            break;
+          }
           newTags.push(part);
         }
-      });
+      }
       updateTags(newTags);
       renderTags(container, newTags, updateTags);
       input.value = '';
@@ -310,6 +321,10 @@ function setupSuggestedTags() {
     btn.addEventListener('click', () => {
       const skill = btn.dataset.skill;
       if (!skillTags.includes(skill)) {
+        if (skillTags.length >= MAX_TAGS_PER_FIELD) {
+          showStatus(`You can add up to ${MAX_TAGS_PER_FIELD} core skills.`, 'error');
+          return;
+        }
         skillTags.push(skill);
         renderTags(elements.skillsTags, skillTags, (tags) => { skillTags = tags; });
         btn.classList.add('used');
@@ -322,6 +337,10 @@ function setupSuggestedTags() {
     btn.addEventListener('click', () => {
       const industry = btn.dataset.industry;
       if (!industryTags.includes(industry)) {
+        if (industryTags.length >= MAX_TAGS_PER_FIELD) {
+          showStatus(`You can add up to ${MAX_TAGS_PER_FIELD} industries.`, 'error');
+          return;
+        }
         industryTags.push(industry);
         renderTags(elements.industriesTags, industryTags, (tags) => { industryTags = tags; });
         btn.classList.add('used');
@@ -334,6 +353,10 @@ function setupSuggestedTags() {
     btn.addEventListener('click', () => {
       const role = btn.dataset.role;
       if (!roleTags.includes(role)) {
+        if (roleTags.length >= MAX_TAGS_PER_FIELD) {
+          showStatus(`You can add up to ${MAX_TAGS_PER_FIELD} target roles.`, 'error');
+          return;
+        }
         roleTags.push(role);
         renderTags(elements.rolesTags, roleTags, (tags) => { roleTags = tags; });
         btn.classList.add('used');
