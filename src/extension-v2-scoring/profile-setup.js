@@ -214,49 +214,37 @@ function setupTagInputs() {
 function setupTagInput(input, container, tags, updateTags) {
   if (!input || !container) return;
 
-  // Handle Enter key to add tag
+  // Handle Enter key to add tag (supports comma-delimited bulk on Enter)
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       const value = input.value.trim();
-      if (value && !tags.includes(value)) {
-        if (tags.length >= MAX_TAGS_PER_FIELD) {
-          showStatus(`You can add up to ${MAX_TAGS_PER_FIELD} entries here.`, 'error');
-          return;
+      if (!value) return;
+
+      // Split on commas to allow bulk add in one go
+      const parts = value.split(',').map(p => p.trim()).filter(Boolean);
+      let newTags = [...tags];
+      for (const part of parts) {
+        if (!newTags.includes(part)) {
+          if (newTags.length >= MAX_TAGS_PER_FIELD) {
+            showStatus(`You can add up to ${MAX_TAGS_PER_FIELD} entries here.`, 'error');
+            break;
+          }
+          newTags = [...newTags, part];
         }
-        const newTags = [...tags, value];
-        updateTags(newTags);
-        renderTags(container, newTags, updateTags);
-        input.value = '';
       }
+      updateTags(newTags);
+      tags = newTags;
+      renderTags(container, newTags, updateTags);
+      input.value = '';
     }
 
     // Handle Backspace to remove last tag
     if (e.key === 'Backspace' && input.value === '' && tags.length > 0) {
       const newTags = tags.slice(0, -1);
       updateTags(newTags);
+      tags = newTags;
       renderTags(container, newTags, updateTags);
-    }
-  });
-
-  // Handle comma as delimiter
-  input.addEventListener('input', (e) => {
-    const value = input.value;
-    if (value.includes(',')) {
-      const parts = value.split(',').map(p => p.trim()).filter(Boolean);
-      const newTags = [...tags];
-      for (const part of parts) {
-        if (part && !newTags.includes(part)) {
-          if (newTags.length >= MAX_TAGS_PER_FIELD) {
-            showStatus(`You can add up to ${MAX_TAGS_PER_FIELD} entries here.`, 'error');
-            break;
-          }
-          newTags.push(part);
-        }
-      }
-      updateTags(newTags);
-      renderTags(container, newTags, updateTags);
-      input.value = '';
     }
   });
 }
@@ -319,7 +307,7 @@ function setupSuggestedTags() {
   // Skill suggestions
   document.querySelectorAll('.suggested-tag[data-skill]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const skill = btn.dataset.skill;
+      const skill = btn.textContent.trim();
       if (!skillTags.includes(skill)) {
         if (skillTags.length >= MAX_TAGS_PER_FIELD) {
           showStatus(`You can add up to ${MAX_TAGS_PER_FIELD} core skills.`, 'error');
@@ -335,7 +323,7 @@ function setupSuggestedTags() {
   // Industry suggestions
   document.querySelectorAll('.suggested-tag[data-industry]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const industry = btn.dataset.industry;
+      const industry = btn.textContent.trim();
       if (!industryTags.includes(industry)) {
         if (industryTags.length >= MAX_TAGS_PER_FIELD) {
           showStatus(`You can add up to ${MAX_TAGS_PER_FIELD} industries.`, 'error');
@@ -351,7 +339,7 @@ function setupSuggestedTags() {
   // Role suggestions
   document.querySelectorAll('.suggested-tag[data-role]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const role = btn.dataset.role;
+      const role = btn.textContent.trim();
       if (!roleTags.includes(role)) {
         if (roleTags.length >= MAX_TAGS_PER_FIELD) {
           showStatus(`You can add up to ${MAX_TAGS_PER_FIELD} target roles.`, 'error');
