@@ -24,14 +24,25 @@ const TABLE_NAME = 'Jobs%20Pipeline';
  * Listen for messages from content scripts
  */
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  // Handle job capture requests
+  // Handle job capture requests (with optional score data)
   if (request.action === 'jobHunter.createAirtableRecord') {
     console.log('[Job Hunter BG] Received message:', request.action);
-    handleCreateRecord(request.job)
+    handleCreateRecord(request.job, request.score)
       .then(result => sendResponse(result))
       .catch(error => sendResponse({ success: false, error: error.message }));
 
     // Return true to indicate we'll send response asynchronously
+    return true;
+  }
+
+  // Handle profile check requests
+  if (request.action === 'jobHunter.checkProfile') {
+    chrome.storage.local.get(['jh_user_profile'], (result) => {
+      sendResponse({
+        hasProfile: !!result.jh_user_profile,
+        profile: result.jh_user_profile || null
+      });
+    });
     return true;
   }
 });
@@ -39,10 +50,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 /**
  * Create a new record in Airtable Jobs Pipeline table
  * @param {Object} jobData - Job data extracted from the page
+ * @param {Object} scoreData - Optional score data from scoring engine
  * @returns {Promise<Object>} Result with success status and record ID or error
  */
-async function handleCreateRecord(jobData) {
+async function handleCreateRecord(jobData, scoreData = null) {
   console.log('[Job Hunter BG] Creating Airtable record:', jobData);
+  if (scoreData) {
+    console.log('[Job Hunter BG] Including score data:', scoreData.overall_score, scoreData.overall_label);
+  }
 
   // Get credentials from storage
   const credentials = await getCredentials();
@@ -96,6 +111,38 @@ async function handleCreateRecord(jobData) {
   }
   if (jobData.companyPageUrl) {
     airtablePayload.fields['Company Page'] = jobData.companyPageUrl;
+  }
+
+  // Add score data if available
+  // These fields should be created in Airtable:
+  // - "Fit Score" (Number): Overall 0-100 score
+  // - "Fit Label" (Single Select): STRONG FIT, GOOD FIT, MODERATE FIT, WEAK FIT, POOR FIT, HARD NO
+  // - "Job-to-User Score" (Number): 0-50 score
+  // - "User-to-Job Score" (Number): 0-50 score
+  // - "Score Summary" (Long Text): Interpretation summary
+  if (scoreData) {
+    if (scoreData.overall_score !== undefined) {
+      airtablePayload.fields['Fit Score'] = scoreData.overall_score;
+    }
+    if (scoreData.overall_label) {
+      airtablePayload.fields['Fit Label'] = scoreData.overall_label;
+    }
+    if (scoreData.job_to_user_fit?.score !== undefined) {
+      airtablePayload.fields['Job-to-User Score'] = scoreData.job_to_user_fit.score;
+    }
+    if (scoreData.user_to_job_fit?.score !== undefined) {
+      airtablePayload.fields['User-to-Job Score'] = scoreData.user_to_job_fit.score;
+    }
+    if (scoreData.interpretation?.summary) {
+      airtablePayload.fields['Score Summary'] = scoreData.interpretation.summary;
+    }
+    if (scoreData.interpretation?.action) {
+      airtablePayload.fields['Recommended Action'] = scoreData.interpretation.action;
+    }
+    // Store deal-breaker reason if triggered
+    if (scoreData.deal_breaker_triggered) {
+      airtablePayload.fields['Deal Breaker'] = scoreData.deal_breaker_triggered;
+    }
   }
 
   // Make the API request

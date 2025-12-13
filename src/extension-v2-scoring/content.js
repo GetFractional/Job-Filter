@@ -4,9 +4,14 @@
  * Runs on LinkedIn and Indeed job detail pages to:
  * - Detect when user is viewing a job posting
  * - Extract job data from the page DOM
- * - Inject a "Send to Job Hunter" overlay button
+ * - Inject "Send to Job Hunter" and "Score This Job" overlay buttons
+ * - Calculate job fit scores using the scoring engine
+ * - Display results in a modal overlay
  * - Send extracted data to background script for Airtable submission
  */
+
+// Storage key for user profile (must match profile-setup.js)
+const PROFILE_STORAGE_KEY = 'jh_user_profile';
 
 // Prevent multiple injections
 if (window.jobHunterInjected) {
@@ -684,7 +689,7 @@ function normalizeIndeedLocation(rawLocation) {
 // ============================================================================
 
 /**
- * Inject the "Send to Job Hunter" overlay button
+ * Inject the "Send to Job Hunter" and "Score This Job" overlay buttons
  * @param {string} source - 'LinkedIn' or 'Indeed'
  */
 function injectOverlay(source) {
@@ -693,7 +698,7 @@ function injectOverlay(source) {
     return;
   }
 
-  // Create overlay container
+  // Create overlay container with both buttons
   const overlay = document.createElement('div');
   overlay.id = 'job-hunter-overlay';
   overlay.innerHTML = `
@@ -704,9 +709,13 @@ function injectOverlay(source) {
         right: 24px;
         z-index: 999999;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-end;
       }
 
-      #job-hunter-btn {
+      .jh-overlay-btn {
         display: flex;
         align-items: center;
         gap: 8px;
@@ -714,54 +723,80 @@ function injectOverlay(source) {
         font-size: 14px;
         font-weight: 600;
         color: #fff;
-        background: linear-gradient(135deg, #4361ee 0%, #3a56d4 100%);
         border: none;
         border-radius: 50px;
         cursor: pointer;
-        box-shadow: 0 4px 12px rgba(67, 97, 238, 0.4);
         transition: all 0.2s ease;
       }
 
-      #job-hunter-btn:hover {
+      .jh-overlay-btn:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(67, 97, 238, 0.5);
       }
 
-      #job-hunter-btn:active {
+      .jh-overlay-btn:active {
         transform: translateY(0);
       }
 
-      #job-hunter-btn:disabled {
-        background: #6c757d;
+      .jh-overlay-btn:disabled {
+        background: #6c757d !important;
         cursor: not-allowed;
         transform: none;
-        box-shadow: none;
+        box-shadow: none !important;
       }
 
-      #job-hunter-btn.success {
-        background: linear-gradient(135deg, #2b8a3e 0%, #228b22 100%);
-      }
-
-      #job-hunter-btn.error {
-        background: linear-gradient(135deg, #c92a2a 0%, #a51d1d 100%);
-      }
-
-      #job-hunter-btn svg {
+      .jh-overlay-btn svg {
         width: 18px;
         height: 18px;
         fill: currentColor;
+      }
+
+      /* Score button - primary action */
+      #job-hunter-score-btn {
+        background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+      }
+
+      #job-hunter-score-btn:hover {
+        box-shadow: 0 6px 20px rgba(124, 58, 237, 0.5);
+      }
+
+      /* Send button - secondary action */
+      #job-hunter-btn {
+        background: linear-gradient(135deg, #4361ee 0%, #3a56d4 100%);
+        box-shadow: 0 4px 12px rgba(67, 97, 238, 0.4);
+      }
+
+      #job-hunter-btn:hover {
+        box-shadow: 0 6px 20px rgba(67, 97, 238, 0.5);
+      }
+
+      .jh-overlay-btn.success {
+        background: linear-gradient(135deg, #2b8a3e 0%, #228b22 100%) !important;
+      }
+
+      .jh-overlay-btn.error {
+        background: linear-gradient(135deg, #c92a2a 0%, #a51d1d 100%) !important;
       }
 
       @keyframes jh-spin {
         to { transform: rotate(360deg); }
       }
 
-      #job-hunter-btn.loading svg {
+      .jh-overlay-btn.loading svg {
         animation: jh-spin 1s linear infinite;
       }
     </style>
 
-    <button id="job-hunter-btn" title="Send this job to Job Hunter OS">
+    <!-- Score This Job button (primary) -->
+    <button id="job-hunter-score-btn" class="jh-overlay-btn" title="Score this job against your profile">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+      </svg>
+      <span>Score This Job</span>
+    </button>
+
+    <!-- Send to Job Hunter button (secondary) -->
+    <button id="job-hunter-btn" class="jh-overlay-btn" title="Send this job to Job Hunter OS">
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
       </svg>
@@ -771,11 +806,236 @@ function injectOverlay(source) {
 
   document.body.appendChild(overlay);
 
-  // Add click handler
-  const button = document.getElementById('job-hunter-btn');
-  button.addEventListener('click', () => handleCaptureClick(source, button));
+  // Add click handlers
+  const sendButton = document.getElementById('job-hunter-btn');
+  sendButton.addEventListener('click', () => handleCaptureClick(source, sendButton));
 
-  console.log('[Job Hunter] Overlay injected');
+  const scoreButton = document.getElementById('job-hunter-score-btn');
+  scoreButton.addEventListener('click', () => handleScoreClick(source, scoreButton));
+
+  console.log('[Job Hunter] Overlay injected with Score and Send buttons');
+}
+
+// ============================================================================
+// SCORING INTEGRATION
+// ============================================================================
+
+/**
+ * Handle click on the "Score This Job" button
+ * @param {string} source - 'LinkedIn' or 'Indeed'
+ * @param {HTMLButtonElement} button - The button element
+ */
+async function handleScoreClick(source, button) {
+  // Prevent double-clicks
+  if (button.disabled) return;
+
+  // Show loading state
+  button.disabled = true;
+  button.classList.add('loading');
+  button.querySelector('span').textContent = 'Scoring...';
+
+  try {
+    // Extract job data based on source
+    const jobData = source === 'LinkedIn'
+      ? extractLinkedInJobData()
+      : extractIndeedJobData();
+
+    console.log('[Job Hunter] Extracted job data for scoring:', jobData);
+
+    // Validate we got essential data
+    if (!jobData.jobTitle || !jobData.companyName) {
+      throw new Error('Could not extract job title or company name');
+    }
+
+    // Get user profile from storage
+    const userProfile = await getUserProfile();
+
+    // Check if profile exists
+    if (!userProfile || !userProfile.preferences) {
+      // Prompt user to set up profile
+      showProfileSetupPrompt();
+      button.classList.remove('loading');
+      button.querySelector('span').textContent = 'Score This Job';
+      button.disabled = false;
+      return;
+    }
+
+    // Calculate score using the scoring engine
+    // The scoring engine is loaded as a content script (scoring-engine.js)
+    if (typeof window.JobHunterScoring === 'undefined') {
+      throw new Error('Scoring engine not loaded');
+    }
+
+    const scoreResult = window.JobHunterScoring.calculateJobFitScore(jobData, userProfile);
+    console.log('[Job Hunter] Score result:', scoreResult);
+
+    // Reset button state
+    button.classList.remove('loading');
+    button.querySelector('span').textContent = 'Score This Job';
+    button.disabled = false;
+
+    // Display results modal
+    if (typeof window.JobHunterResults !== 'undefined') {
+      window.JobHunterResults.showResultsModal(
+        scoreResult,
+        jobData,
+        // onSendToAirtable callback
+        async (job, score) => {
+          return sendJobToAirtable(job, score);
+        },
+        // onEditProfile callback
+        () => {
+          openProfileSetup();
+        }
+      );
+    } else {
+      // Fallback: show basic alert with score
+      alert(`Job Fit Score: ${scoreResult.overall_score}/100 (${scoreResult.overall_label})`);
+    }
+
+  } catch (error) {
+    console.error('[Job Hunter] Scoring error:', error);
+
+    // Show error state
+    button.classList.remove('loading');
+    button.classList.add('error');
+    button.querySelector('span').textContent = error.message || 'Error - Try Again';
+
+    // Reset button after 3 seconds
+    setTimeout(() => {
+      button.classList.remove('error');
+      button.querySelector('span').textContent = 'Score This Job';
+      button.disabled = false;
+    }, 3000);
+  }
+}
+
+/**
+ * Get user profile from Chrome storage
+ * @returns {Promise<Object|null>} User profile or null
+ */
+async function getUserProfile() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get([PROFILE_STORAGE_KEY], (result) => {
+      resolve(result[PROFILE_STORAGE_KEY] || null);
+    });
+  });
+}
+
+/**
+ * Show prompt to set up profile
+ */
+function showProfileSetupPrompt() {
+  // Create a simple modal prompt
+  const promptHtml = `
+    <div id="jh-profile-prompt" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000000;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    ">
+      <div style="
+        background: white;
+        padding: 24px;
+        border-radius: 12px;
+        max-width: 400px;
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      ">
+        <h3 style="margin: 0 0 12px 0; font-size: 18px; color: #1a1a2e;">Set Up Your Profile</h3>
+        <p style="margin: 0 0 20px 0; font-size: 14px; color: #6c757d;">
+          To score jobs against your preferences, please set up your Job Hunter profile first. It only takes 3 minutes!
+        </p>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+          <button id="jh-prompt-cancel" style="
+            padding: 10px 20px;
+            font-size: 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #e9ecef;
+            color: #495057;
+          ">Cancel</button>
+          <button id="jh-prompt-setup" style="
+            padding: 10px 20px;
+            font-size: 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #4361ee;
+            color: white;
+          ">Set Up Profile</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const promptContainer = document.createElement('div');
+  promptContainer.innerHTML = promptHtml;
+  document.body.appendChild(promptContainer);
+
+  // Add event handlers
+  document.getElementById('jh-prompt-cancel').addEventListener('click', () => {
+    document.getElementById('jh-profile-prompt').remove();
+  });
+
+  document.getElementById('jh-prompt-setup').addEventListener('click', () => {
+    document.getElementById('jh-profile-prompt').remove();
+    openProfileSetup();
+  });
+}
+
+/**
+ * Open the profile setup page
+ */
+function openProfileSetup() {
+  const profileUrl = chrome.runtime.getURL('profile-setup.html');
+  window.open(profileUrl, '_blank');
+}
+
+/**
+ * Send job data to Airtable (used by both direct send and from results modal)
+ * @param {Object} jobData - Extracted job data
+ * @param {Object} scoreResult - Optional score result to include
+ * @returns {Promise<Object>} Response from background script
+ */
+async function sendJobToAirtable(jobData, scoreResult = null) {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error('Timed out talking to background script'));
+    }, 8000);
+
+    // Include score data if available
+    const payload = {
+      action: 'jobHunter.createAirtableRecord',
+      job: jobData
+    };
+
+    if (scoreResult) {
+      payload.score = scoreResult;
+    }
+
+    chrome.runtime.sendMessage(payload, resp => {
+      clearTimeout(timeout);
+      const lastErr = chrome.runtime.lastError;
+      if (lastErr) {
+        reject(new Error(lastErr.message || 'Message failed'));
+        return;
+      }
+      if (resp && resp.success) {
+        resolve(resp);
+      } else {
+        reject(new Error(resp?.error || 'Failed to save job'));
+      }
+    });
+  });
 }
 
 /**
