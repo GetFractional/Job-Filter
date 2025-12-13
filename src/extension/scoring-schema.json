@@ -1,0 +1,329 @@
+{
+  "_comment": "Job Hunter OS - Scoring Schema Reference Documentation",
+  "_version": "1.0",
+  "_description": "This file documents all scoring criteria, weights, and thresholds used by scoring-engine.js. Modify values here as a reference, but actual algorithm changes must be made in scoring-engine.js.",
+
+  "score_ranges": {
+    "overall": {
+      "min": 0,
+      "max": 100,
+      "description": "Combined score from Job-to-User (0-50) + User-to-Job (0-50)"
+    },
+    "category": {
+      "min": 0,
+      "max": 50,
+      "description": "Each category (Job-to-User, User-to-Job) scores 0-50"
+    },
+    "criterion": {
+      "min": 0,
+      "max": 50,
+      "description": "Individual criteria within each category score 0-50"
+    }
+  },
+
+  "overall_score_labels": {
+    "STRONG_FIT": {
+      "threshold": 80,
+      "range": "80-100",
+      "color": "#2b8a3e",
+      "color_name": "green",
+      "action": "Apply immediately - strong alignment"
+    },
+    "GOOD_FIT": {
+      "threshold": 70,
+      "range": "70-79",
+      "color": "#5c940d",
+      "color_name": "light_green",
+      "action": "Worth pursuing with tailored materials"
+    },
+    "MODERATE_FIT": {
+      "threshold": 50,
+      "range": "50-69",
+      "color": "#e67700",
+      "color_name": "yellow",
+      "action": "Research further before applying"
+    },
+    "WEAK_FIT": {
+      "threshold": 30,
+      "range": "30-49",
+      "color": "#d9480f",
+      "color_name": "orange",
+      "action": "Low priority - only if other criteria compelling"
+    },
+    "POOR_FIT": {
+      "threshold": 0,
+      "range": "0-29",
+      "color": "#c92a2a",
+      "color_name": "red",
+      "action": "Skip - focus on better-aligned opportunities"
+    },
+    "HARD_NO": {
+      "threshold": -1,
+      "range": "N/A",
+      "color": "#495057",
+      "color_name": "gray",
+      "action": "Deal-breaker triggered - automatically rejected"
+    }
+  },
+
+  "category_score_labels": {
+    "GOOD": {
+      "threshold": 40,
+      "description": "Strong alignment (40-50 out of 50)"
+    },
+    "MODERATE": {
+      "threshold": 25,
+      "description": "Acceptable alignment (25-39 out of 50)"
+    },
+    "WEAK": {
+      "threshold": 0,
+      "description": "Poor alignment (0-24 out of 50)"
+    }
+  },
+
+  "job_to_user_fit": {
+    "_description": "Measures how well the JOB meets the USER'S preferences and needs",
+    "_total_weight": 1.0,
+
+    "criteria": {
+      "salary": {
+        "weight": 0.25,
+        "description": "How well the salary meets user's floor and target",
+        "scoring_logic": {
+          "at_or_above_target": {"score": 50, "rationale": "Exceeds salary target"},
+          "between_floor_and_target": {"score": "35-50", "rationale": "Interpolated based on position in range"},
+          "below_floor": {"score": "0-35", "rationale": "Decreases quickly below floor"},
+          "not_specified": {"score": 25, "rationale": "Default when salary unknown"}
+        },
+        "inputs": ["salary_min", "salary_max", "salary_floor", "salary_target"]
+      },
+
+      "workplace_type": {
+        "weight": 0.25,
+        "description": "Remote/Hybrid/On-site alignment with preferences",
+        "scoring_logic": {
+          "exact_match_remote": {"score": 50, "rationale": "100% remote matches preference"},
+          "acceptable_hybrid": {"score": 35, "rationale": "Hybrid acceptable but not preferred"},
+          "unacceptable_type": {"score": 0, "rationale": "In unacceptable list"},
+          "not_specified": {"score": 25, "rationale": "Default when unknown"}
+        },
+        "inputs": ["workplace_type", "remote_requirement", "workplace_types_acceptable"]
+      },
+
+      "equity_bonus": {
+        "weight": 0.20,
+        "description": "Whether equity and/or bonus is present",
+        "scoring_logic": {
+          "both_present": {"score": 50, "rationale": "Both equity and bonus mentioned"},
+          "one_present": {"score": 35, "rationale": "Either equity or bonus"},
+          "neither_present": {"score": "0-15", "rationale": "Depends on if required by user"}
+        },
+        "inputs": ["equity_mentioned", "bonus_mentioned", "bonus_and_equity_preference"]
+      },
+
+      "company_stage": {
+        "weight": 0.15,
+        "description": "Company maturity level (Series B+ preferred)",
+        "scoring_logic": {
+          "late_stage_or_enterprise": {"score": 50, "rationale": "Mature company"},
+          "series_c_plus": {"score": 45, "rationale": "Growth stage"},
+          "series_b": {"score": 40, "rationale": "Meets minimum threshold"},
+          "series_a": {"score": "20-30", "rationale": "Below preference"},
+          "early_stage": {"score": "5-15", "rationale": "High risk"}
+        },
+        "inputs": ["company_stage", "company_headcount", "company_revenue"],
+        "fallbacks": {
+          "headcount_500_plus": {"score": 45, "proxy": "Large company"},
+          "headcount_200_500": {"score": 40, "proxy": "Mid-size company"},
+          "headcount_50_200": {"score": 30, "proxy": "Growth company"},
+          "headcount_under_50": {"score": 15, "proxy": "Early stage"}
+        }
+      },
+
+      "hiring_urgency": {
+        "weight": 0.15,
+        "description": "Signals of hiring urgency (higher = more motivated company)",
+        "scoring_logic": {
+          "high_urgency": {"score": 50, "rationale": "Urgent need, motivated to hire"},
+          "moderate_urgency": {"score": 35, "rationale": "Standard timeline"},
+          "low_urgency": {"score": 15, "rationale": "Exploratory hire"},
+          "not_specified": {"score": 25, "rationale": "Default assumption"}
+        },
+        "keywords_that_indicate_urgency": [
+          "immediately", "urgent", "asap", "right away",
+          "fast-growing", "rapid growth", "scaling quickly",
+          "new role", "newly created", "backfill"
+        ]
+      }
+    }
+  },
+
+  "user_to_job_fit": {
+    "_description": "Measures how well the USER matches the JOB'S requirements",
+    "_total_weight": 1.0,
+
+    "criteria": {
+      "role_type": {
+        "weight": 0.25,
+        "description": "Title/seniority alignment with user's target roles",
+        "scoring_logic": {
+          "vp_or_c_level": {"score": 50, "rationale": "Highest seniority"},
+          "head_level": {"score": 45, "rationale": "Strong match"},
+          "senior_director": {"score": 40, "rationale": "Good match"},
+          "director": {"score": 35, "rationale": "May be lateral move"},
+          "manager": {"score": 20, "rationale": "Below target seniority"}
+        },
+        "keywords": {
+          "vp_level": ["vp", "vice president", "cro", "cmo", "cgo", "chief"],
+          "head_level": ["head of", "head,"],
+          "director_level": ["director", "senior director"],
+          "growth_focus": ["growth", "revenue", "revops", "gtm"]
+        }
+      },
+
+      "revops_component": {
+        "weight": 0.20,
+        "description": "Percentage of JD focused on RevOps/infrastructure",
+        "scoring_logic": {
+          "high_30_plus": {"score": 50, "rationale": "Strong RevOps focus"},
+          "good_20_30": {"score": 40, "rationale": "Good component"},
+          "moderate_10_20": {"score": 30, "rationale": "Present but not primary"},
+          "low_under_10": {"score": "15-20", "rationale": "Limited focus"},
+          "none": {"score": "10-15", "rationale": "No clear component"}
+        },
+        "detection_keywords": [
+          "revops", "revenue operations", "sales operations",
+          "marketing operations", "crm", "salesforce", "hubspot",
+          "data infrastructure", "automation", "workflow",
+          "analytics infrastructure", "tech stack", "integration"
+        ]
+      },
+
+      "skill_match": {
+        "weight": 0.20,
+        "description": "Keyword overlap with user's core skills",
+        "scoring_logic": {
+          "strong_5_plus_or_50_percent": {"score": 50, "rationale": "Excellent match"},
+          "good_3_4_or_30_percent": {"score": 40, "rationale": "Good overlap"},
+          "limited_1_2": {"score": 25, "rationale": "Some relevant skills"},
+          "none": {"score": 10, "rationale": "No clear overlap"}
+        },
+        "inputs": ["job_description_text", "role_requirements", "core_skills"]
+      },
+
+      "industry_alignment": {
+        "weight": 0.15,
+        "description": "Industry match (exact/adjacent/new)",
+        "scoring_logic": {
+          "exact_match": {"score": 50, "rationale": "Same industry"},
+          "adjacent_match": {"score": 35, "rationale": "Transferable experience"},
+          "new_industry": {"score": 20, "rationale": "Requires adaptation"}
+        },
+        "adjacent_industry_pairs": [
+          ["saas", "b2b software", "enterprise"],
+          ["d2c_ecommerce", "retail", "cpg"],
+          ["fintech", "insurance", "banking"],
+          ["healthtech", "wellness", "medical"]
+        ]
+      },
+
+      "org_complexity": {
+        "weight": 0.20,
+        "description": "Organizational stability (lower complexity preferred)",
+        "scoring_logic": {
+          "stable": {"score": 50, "rationale": "Clear structure, established"},
+          "mostly_stable": {"score": 40, "rationale": "Generally stable"},
+          "mixed": {"score": 30, "rationale": "Some growth dynamics"},
+          "complex": {"score": 20, "rationale": "Rapid growth or transition"},
+          "high_complexity": {"score": 10, "rationale": "Potential chaos"}
+        },
+        "complexity_keywords": [
+          "fast-paced", "rapidly growing", "hypergrowth", "startup",
+          "early-stage", "founder-led", "scrappy", "wear many hats",
+          "ambiguity", "build from scratch", "newly created role"
+        ],
+        "stability_keywords": [
+          "established", "mature", "profitable", "enterprise",
+          "fortune 500", "large", "global", "well-defined",
+          "clear processes", "documented", "structured"
+        ]
+      }
+    }
+  },
+
+  "deal_breakers": {
+    "_description": "Hard constraints that result in automatic score of 0",
+
+    "on_site": {
+      "condition": "workplace_type === 'on_site' AND user requires remote",
+      "override_allowed": false,
+      "message": "Position is on-site only (deal-breaker)"
+    },
+
+    "less_than_150k_base": {
+      "condition": "salary_max < salary_floor",
+      "override_allowed": true,
+      "message": "Maximum salary is below your floor"
+    },
+
+    "no_equity": {
+      "condition": "!equity_mentioned AND user requires equity",
+      "override_allowed": true,
+      "message": "No equity mentioned (you require equity)"
+    },
+
+    "pre_revenue": {
+      "condition": "company_revenue === 0",
+      "override_allowed": true,
+      "message": "Pre-revenue company (deal-breaker)"
+    },
+
+    "declining_company": {
+      "condition": "company_growth_rate < 0",
+      "override_allowed": true,
+      "message": "Company is declining (negative growth rate)"
+    }
+  },
+
+  "default_user_profile": {
+    "_description": "Default values if user hasn't configured profile",
+    "preferences": {
+      "salary_floor": 150000,
+      "salary_target": 200000,
+      "bonus_and_equity_preference": "preferred",
+      "remote_requirement": "remote_first",
+      "workplace_types_acceptable": ["remote", "hybrid_4plus_days"],
+      "workplace_types_unacceptable": ["on_site"],
+      "employment_type_preferred": "full_time",
+      "deal_breakers": [
+        "on_site",
+        "less_than_150k_base"
+      ],
+      "must_haves": []
+    },
+    "background": {
+      "current_title": "",
+      "years_experience": 0,
+      "core_skills": [],
+      "industries": [],
+      "target_roles": []
+    }
+  },
+
+  "ui_display": {
+    "star_ratings": {
+      "_description": "Convert 0-50 score to 0-5 star display",
+      "5_stars": {"min": 45, "max": 50},
+      "4_stars": {"min": 35, "max": 44},
+      "3_stars": {"min": 25, "max": 34},
+      "2_stars": {"min": 15, "max": 24},
+      "1_star": {"min": 5, "max": 14},
+      "0_stars": {"min": 0, "max": 4}
+    },
+    "color_coding": {
+      "green": {"min": 70, "description": "Strong/Good fit"},
+      "yellow": {"min": 50, "max": 69, "description": "Moderate fit"},
+      "red": {"min": 0, "max": 49, "description": "Weak/Poor fit"}
+    }
+  }
+}

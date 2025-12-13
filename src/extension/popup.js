@@ -2,15 +2,18 @@
  * Job Hunter OS - Popup Script
  *
  * Handles the settings popup UI:
+ * - Tab navigation between Airtable and Profile settings
  * - Load/save Airtable credentials from Chrome local storage
  * - Test connection to Airtable API
+ * - Display and manage user profile status
  * - Display success/error feedback to user
  */
 
-// Storage keys for Airtable credentials
+// Storage keys for Airtable credentials and user profile
 const STORAGE_KEYS = {
   BASE_ID: 'jh_airtable_base_id',
-  PAT: 'jh_airtable_pat'
+  PAT: 'jh_airtable_pat',
+  PROFILE: 'jh_user_profile'
 };
 
 // DOM element references (populated on DOMContentLoaded)
@@ -22,21 +25,182 @@ let elements = {};
 document.addEventListener('DOMContentLoaded', () => {
   // Cache DOM element references
   elements = {
+    // Airtable tab elements
     form: document.getElementById('settings-form'),
     baseIdInput: document.getElementById('base-id'),
     apiTokenInput: document.getElementById('api-token'),
     statusMessage: document.getElementById('status-message'),
     saveBtn: document.getElementById('save-btn'),
-    testBtn: document.getElementById('test-btn')
+    testBtn: document.getElementById('test-btn'),
+    // Tab elements
+    tabs: document.querySelectorAll('.popup-tab'),
+    tabPanels: document.querySelectorAll('.tab-panel'),
+    // Profile tab elements
+    profileStatusText: document.getElementById('profile-status-text'),
+    profileDetails: document.getElementById('profile-details'),
+    profileSalary: document.getElementById('profile-salary'),
+    profileWorkplace: document.getElementById('profile-workplace'),
+    profileSkills: document.getElementById('profile-skills'),
+    profileUpdated: document.getElementById('profile-updated'),
+    setupProfileBtn: document.getElementById('setup-profile-btn'),
+    editProfileBtn: document.getElementById('edit-profile-btn')
   };
+
+  // Set up tab navigation
+  setupTabNavigation();
 
   // Load saved settings from storage
   loadSettings();
 
+  // Load profile status
+  loadProfileStatus();
+
   // Attach event listeners
   elements.form.addEventListener('submit', handleSave);
   elements.testBtn.addEventListener('click', handleTestConnection);
+
+  // Profile button handlers
+  if (elements.setupProfileBtn) {
+    elements.setupProfileBtn.addEventListener('click', openProfileSetup);
+  }
+  if (elements.editProfileBtn) {
+    elements.editProfileBtn.addEventListener('click', openProfileSetup);
+  }
 });
+
+// ============================================================================
+// TAB NAVIGATION
+// ============================================================================
+
+/**
+ * Set up tab navigation click handlers
+ */
+function setupTabNavigation() {
+  elements.tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const targetTab = tab.dataset.tab;
+      switchTab(targetTab);
+    });
+  });
+}
+
+/**
+ * Switch to a specific tab
+ * @param {string} tabId - The tab ID to switch to
+ */
+function switchTab(tabId) {
+  // Update tab buttons
+  elements.tabs.forEach(tab => {
+    if (tab.dataset.tab === tabId) {
+      tab.classList.add('active');
+    } else {
+      tab.classList.remove('active');
+    }
+  });
+
+  // Update tab panels
+  elements.tabPanels.forEach(panel => {
+    if (panel.id === `tab-${tabId}`) {
+      panel.classList.add('active');
+    } else {
+      panel.classList.remove('active');
+    }
+  });
+}
+
+// ============================================================================
+// PROFILE MANAGEMENT
+// ============================================================================
+
+/**
+ * Load and display profile status
+ */
+async function loadProfileStatus() {
+  try {
+    const result = await chrome.storage.local.get([STORAGE_KEYS.PROFILE]);
+    const profile = result[STORAGE_KEYS.PROFILE];
+
+    if (profile && profile.preferences) {
+      // Profile exists - show details
+      elements.profileStatusText.textContent = 'Configured';
+      elements.profileStatusText.style.color = '#2b8a3e';
+
+      // Show details section
+      elements.profileDetails.classList.remove('hidden');
+
+      // Populate profile details
+      const floor = profile.preferences.salary_floor || 0;
+      const target = profile.preferences.salary_target || 0;
+      elements.profileSalary.textContent = `$${formatNumber(floor)} - $${formatNumber(target)}`;
+
+      const workplace = profile.preferences.remote_requirement || 'Not set';
+      elements.profileWorkplace.textContent = formatWorkplaceType(workplace);
+
+      const skills = profile.background?.core_skills || [];
+      elements.profileSkills.textContent = skills.length > 0
+        ? `${skills.length} skills configured`
+        : 'No skills set';
+
+      if (profile.last_updated) {
+        const date = new Date(profile.last_updated);
+        elements.profileUpdated.textContent = date.toLocaleDateString();
+      } else {
+        elements.profileUpdated.textContent = 'Unknown';
+      }
+
+      // Show Edit button, hide Setup button
+      elements.setupProfileBtn.classList.add('hidden');
+      elements.editProfileBtn.classList.remove('hidden');
+
+    } else {
+      // No profile - show setup prompt
+      elements.profileStatusText.textContent = 'Not configured';
+      elements.profileStatusText.style.color = '#e67700';
+
+      // Hide details, show setup button
+      elements.profileDetails.classList.add('hidden');
+      elements.setupProfileBtn.classList.remove('hidden');
+      elements.editProfileBtn.classList.add('hidden');
+    }
+  } catch (error) {
+    console.error('Error loading profile status:', error);
+    elements.profileStatusText.textContent = 'Error loading';
+    elements.profileStatusText.style.color = '#c92a2a';
+  }
+}
+
+/**
+ * Open the profile setup page
+ */
+function openProfileSetup() {
+  const profileUrl = chrome.runtime.getURL('profile-setup.html');
+  chrome.tabs.create({ url: profileUrl });
+}
+
+/**
+ * Format a number with commas (e.g., 150000 -> "150,000")
+ * @param {number} num - Number to format
+ * @returns {string} Formatted number
+ */
+function formatNumber(num) {
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+/**
+ * Format workplace type for display
+ * @param {string} type - Raw workplace type
+ * @returns {string} Formatted type
+ */
+function formatWorkplaceType(type) {
+  const formats = {
+    'remote_only': 'Remote Only',
+    'remote_first': 'Remote First',
+    'flexible': 'Flexible',
+    'hybrid': 'Hybrid',
+    'on_site': 'On-site'
+  };
+  return formats[type] || type;
+}
 
 /**
  * Load saved credentials from Chrome local storage

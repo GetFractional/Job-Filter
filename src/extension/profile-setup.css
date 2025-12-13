@@ -1,0 +1,594 @@
+/**
+ * Job Hunter OS - Profile Setup Styles
+ *
+ * Styles for the user profile onboarding flow.
+ * Target: Complete setup in under 3 minutes with clean, intuitive UI.
+ */
+
+/* ============================================================================
+   RESET & BASE STYLES
+============================================================================ */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #1a1a2e;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* ============================================================================
+   HEADER & TABS
+============================================================================ */
+
+header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+header h1 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin-bottom: 4px;
+}
+
+header .subtitle {
+  font-size: 14px;
+  color: #6c757d;
+  margin-bottom: 24px;
+}
+
+/* Tab navigation */
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 13px;
+}
+
+.tab:hover {
+  border-color: #4361ee;
+}
+
+.tab.active {
+  background: #4361ee;
+  border-color: #4361ee;
+  color: #fff;
+}
+
+.tab.completed {
+  background: #d3f9d8;
+  border-color: #8ce99a;
+}
+
+.tab-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: #e9ecef;
+  border-radius: 50%;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.tab.active .tab-number {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.tab.completed .tab-number {
+  background: #2b8a3e;
+  color: #fff;
+}
+
+.tab-label {
+  font-weight: 500;
+}
+
+/* ============================================================================
+   MAIN CONTENT & FORM
+============================================================================ */
+
+main {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 24px;
+}
+
+/* Tab content visibility */
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* Section headers */
+.tab-content h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin-bottom: 8px;
+}
+
+.section-description {
+  font-size: 13px;
+  color: #6c757d;
+  margin-bottom: 24px;
+}
+
+/* ============================================================================
+   FORM ELEMENTS
+============================================================================ */
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 6px;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  background-color: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #4361ee;
+  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+}
+
+.form-group input::placeholder {
+  color: #adb5bd;
+}
+
+.form-group small {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #868e96;
+}
+
+.helper-text {
+  font-size: 12px;
+  color: #868e96;
+  margin-bottom: 12px;
+}
+
+/* Input with prefix (for currency) */
+.input-with-prefix {
+  display: flex;
+  align-items: stretch;
+}
+
+.input-with-prefix .prefix {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  background: #e9ecef;
+  border: 1px solid #ced4da;
+  border-right: none;
+  border-radius: 8px 0 0 8px;
+  color: #495057;
+  font-weight: 500;
+}
+
+.input-with-prefix input {
+  border-radius: 0 8px 8px 0;
+  flex: 1;
+}
+
+/* ============================================================================
+   CHECKBOX & RADIO GROUPS
+============================================================================ */
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.checkbox-label:hover {
+  border-color: #4361ee;
+  background: #fff;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: #4361ee;
+  cursor: pointer;
+}
+
+.checkbox-label span {
+  font-size: 13px;
+  color: #495057;
+}
+
+/* Deal-breaker and must-have styles */
+.deal-breaker,
+.must-have {
+  padding: 12px;
+}
+
+.checkbox-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.checkbox-content strong {
+  font-size: 13px;
+  color: #1a1a2e;
+}
+
+.checkbox-content small {
+  font-size: 11px;
+  color: #868e96;
+}
+
+.deal-breakers-list .checkbox-label input:checked + .checkbox-content strong {
+  color: #c92a2a;
+}
+
+.must-haves-list .checkbox-label input:checked + .checkbox-content strong {
+  color: #1971c2;
+}
+
+/* ============================================================================
+   TAG INPUT COMPONENT
+============================================================================ */
+
+.tag-input-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  background: #fff;
+  min-height: 44px;
+  align-items: center;
+}
+
+.tag-input-container:focus-within {
+  border-color: #4361ee;
+  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #e7f5ff;
+  border: 1px solid #74c0fc;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #1971c2;
+}
+
+.tag .remove-tag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: transparent;
+  color: #1971c2;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+}
+
+.tag .remove-tag:hover {
+  color: #c92a2a;
+}
+
+.tag-input-container input {
+  flex: 1;
+  min-width: 120px;
+  border: none;
+  outline: none;
+  padding: 4px;
+  font-size: 13px;
+}
+
+/* Suggested tags */
+.suggested-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  align-items: center;
+}
+
+.suggested-label {
+  font-size: 11px;
+  color: #868e96;
+}
+
+.suggested-tag {
+  padding: 4px 8px;
+  font-size: 11px;
+  background: #f1f3f5;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.suggested-tag:hover {
+  background: #e7f5ff;
+  border-color: #74c0fc;
+  color: #1971c2;
+}
+
+.suggested-tag.used {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ============================================================================
+   BUTTONS & ACTIONS
+============================================================================ */
+
+.tab-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e9ecef;
+}
+
+.btn {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: #4361ee;
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #3a56d4;
+}
+
+.btn-secondary {
+  background-color: #e9ecef;
+  color: #495057;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #dee2e6;
+}
+
+.btn-save {
+  min-width: 140px;
+}
+
+/* Loading state */
+.btn.loading {
+  position: relative;
+  color: transparent;
+}
+
+.btn.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.btn-primary.loading::after {
+  border-top-color: #fff;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================================================
+   STATUS MESSAGE
+============================================================================ */
+
+.status-message {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-top: 16px;
+  text-align: center;
+}
+
+.status-message.hidden {
+  display: none;
+}
+
+.status-message.success {
+  background-color: #d3f9d8;
+  color: #2b8a3e;
+  border: 1px solid #8ce99a;
+}
+
+.status-message.error {
+  background-color: #ffe3e3;
+  color: #c92a2a;
+  border: 1px solid #ffa8a8;
+}
+
+.status-message.info {
+  background-color: #e7f5ff;
+  color: #1971c2;
+  border: 1px solid #74c0fc;
+}
+
+/* ============================================================================
+   FOOTER
+============================================================================ */
+
+footer {
+  margin-top: 24px;
+  text-align: center;
+}
+
+footer p {
+  font-size: 11px;
+  color: #868e96;
+}
+
+/* ============================================================================
+   RESPONSIVE ADJUSTMENTS
+============================================================================ */
+
+@media (max-width: 480px) {
+  .container {
+    padding: 16px;
+  }
+
+  .tabs {
+    flex-direction: column;
+  }
+
+  .tab {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .tab-actions {
+    flex-direction: column;
+  }
+
+  .btn {
+    width: 100%;
+  }
+
+  .suggested-tags {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ============================================================================
+   POPUP MODE (smaller viewport)
+============================================================================ */
+
+body.popup-mode {
+  min-height: auto;
+}
+
+body.popup-mode .container {
+  max-width: 100%;
+  padding: 12px;
+}
+
+body.popup-mode main {
+  padding: 16px;
+}
+
+body.popup-mode .tabs {
+  flex-wrap: wrap;
+}
+
+body.popup-mode .tab {
+  flex: 1;
+  min-width: 80px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+body.popup-mode .tab-label {
+  display: none;
+}
+
+@media (min-width: 400px) {
+  body.popup-mode .tab-label {
+    display: inline;
+  }
+}

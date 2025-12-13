@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Job Hunter OS",
-  "version": "1.0.0",
-  "description": "Capture job listings from LinkedIn and Indeed to your Airtable pipeline",
+  "version": "1.1.0",
+  "description": "Capture job listings from LinkedIn and Indeed to your Airtable pipeline with intelligent job fit scoring",
 
   "permissions": [
     "storage",
@@ -31,8 +31,26 @@
         "*://*.linkedin.com/jobs/*",
         "*://*.indeed.com/*"
       ],
-      "js": ["content.js"],
+      "js": [
+        "scoring-engine.js",
+        "results-dashboard.js",
+        "content.js"
+      ],
       "run_at": "document_idle"
+    }
+  ],
+
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "profile-setup.html",
+        "profile-setup.css",
+        "profile-setup.js",
+        "results-dashboard.html",
+        "results-dashboard.css",
+        "scoring-schema.json"
+      ],
+      "matches": ["<all_urls>"]
     }
   ]
 }

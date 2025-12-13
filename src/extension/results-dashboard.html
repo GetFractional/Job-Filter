@@ -1,0 +1,113 @@
+<!--
+  Job Hunter OS - Results Dashboard
+
+  This HTML template is injected as a modal overlay by content.js
+  after the scoring engine calculates a job fit score.
+
+  The template is populated by results-dashboard.js with score data.
+-->
+
+<div id="jh-results-modal" class="jh-modal">
+  <div class="jh-modal-backdrop"></div>
+  <div class="jh-modal-content">
+    <!-- Close button -->
+    <button type="button" class="jh-modal-close" title="Close">&times;</button>
+
+    <!-- ================================================================
+         HEADER: Overall Score Card
+    ================================================================ -->
+    <header class="jh-score-header">
+      <div class="jh-score-ring" id="jh-score-ring">
+        <svg viewBox="0 0 120 120" class="jh-score-svg">
+          <!-- Background circle -->
+          <circle cx="60" cy="60" r="54" fill="none" stroke="#e9ecef" stroke-width="8"/>
+          <!-- Score progress circle -->
+          <circle
+            cx="60" cy="60" r="54"
+            fill="none"
+            stroke="#4361ee"
+            stroke-width="8"
+            stroke-linecap="round"
+            stroke-dasharray="339.292"
+            stroke-dashoffset="339.292"
+            transform="rotate(-90 60 60)"
+            class="jh-score-progress"
+            id="jh-score-progress"
+          />
+        </svg>
+        <div class="jh-score-value">
+          <span class="jh-score-number" id="jh-score-number">--</span>
+          <span class="jh-score-max">/100</span>
+        </div>
+      </div>
+
+      <div class="jh-score-info">
+        <span class="jh-score-label" id="jh-score-label">Calculating...</span>
+        <p class="jh-score-summary" id="jh-score-summary">
+          Analyzing job fit...
+        </p>
+      </div>
+    </header>
+
+    <!-- ================================================================
+         SECTION: Job → User Fit
+    ================================================================ -->
+    <section class="jh-fit-section">
+      <div class="jh-section-header">
+        <h3>Job Meets Your Needs</h3>
+        <span class="jh-section-score" id="jh-j2u-score">--/50</span>
+      </div>
+
+      <div class="jh-criteria-list" id="jh-j2u-criteria">
+        <!-- Populated by JavaScript -->
+        <div class="jh-loading">Loading criteria...</div>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         SECTION: User → Job Fit
+    ================================================================ -->
+    <section class="jh-fit-section">
+      <div class="jh-section-header">
+        <h3>You Match This Role</h3>
+        <span class="jh-section-score" id="jh-u2j-score">--/50</span>
+      </div>
+
+      <div class="jh-criteria-list" id="jh-u2j-criteria">
+        <!-- Populated by JavaScript -->
+        <div class="jh-loading">Loading criteria...</div>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         SECTION: Interpretation & Next Steps
+    ================================================================ -->
+    <section class="jh-interpretation-section">
+      <h3>Next Steps</h3>
+
+      <div class="jh-action-badge" id="jh-action-badge">
+        <span class="jh-action-icon"></span>
+        <span class="jh-action-text" id="jh-action-text">Analyzing...</span>
+      </div>
+
+      <div class="jh-conversation-starters" id="jh-conversation-starters">
+        <!-- Populated by JavaScript -->
+      </div>
+    </section>
+
+    <!-- ================================================================
+         FOOTER: Action Buttons
+    ================================================================ -->
+    <footer class="jh-modal-footer">
+      <button type="button" class="jh-btn jh-btn-secondary" id="jh-btn-edit-profile">
+        Edit Profile
+      </button>
+      <button type="button" class="jh-btn jh-btn-secondary" id="jh-btn-close">
+        Close
+      </button>
+      <button type="button" class="jh-btn jh-btn-primary" id="jh-btn-send">
+        Send to Job Hunter
+      </button>
+    </footer>
+  </div>
+</div>
