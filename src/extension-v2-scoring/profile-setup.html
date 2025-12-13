@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Hunter OS - Profile Setup</title>
+  <link rel="stylesheet" href="profile-setup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header with progress indicator -->
+    <header>
+      <h1>Job Hunter OS</h1>
+      <p class="subtitle">Set up your job fit profile in under 3 minutes</p>
+
+      <!-- Tab navigation for multi-step setup -->
+      <nav class="tabs">
+        <button type="button" class="tab active" data-tab="preferences">
+          <span class="tab-number">1</span>
+          <span class="tab-label">Preferences</span>
+        </button>
+        <button type="button" class="tab" data-tab="background">
+          <span class="tab-number">2</span>
+          <span class="tab-label">Background</span>
+        </button>
+        <button type="button" class="tab" data-tab="dealbreakers">
+          <span class="tab-number">3</span>
+          <span class="tab-label">Deal-Breakers</span>
+        </button>
+      </nav>
+    </header>
+
+    <main>
+      <form id="profile-form">
+        <!-- ================================================================
+             TAB 1: PREFERENCES
+             User's job requirements and preferences
+        ================================================================ -->
+        <section id="tab-preferences" class="tab-content active">
+          <h2>Your Job Preferences</h2>
+          <p class="section-description">Tell us what you're looking for in your next role</p>
+
+          <!-- Salary preferences -->
+          <div class="form-group">
+            <label for="salary-floor">Minimum Base Salary (Floor)</label>
+            <div class="input-with-prefix">
+              <span class="prefix">$</span>
+              <input
+                type="number"
+                id="salary-floor"
+                name="salary_floor"
+                placeholder="150000"
+                min="0"
+                step="5000"
+              >
+            </div>
+            <small>Jobs below this will be flagged as potential deal-breakers</small>
+          </div>
+
+          <div class="form-group">
+            <label for="salary-target">Target Base Salary</label>
+            <div class="input-with-prefix">
+              <span class="prefix">$</span>
+              <input
+                type="number"
+                id="salary-target"
+                name="salary_target"
+                placeholder="200000"
+                min="0"
+                step="5000"
+              >
+            </div>
+            <small>Your ideal salary - jobs at or above this score highest</small>
+          </div>
+
+          <!-- Equity & Bonus preference -->
+          <div class="form-group">
+            <label for="equity-preference">Equity & Bonus Requirement</label>
+            <select id="equity-preference" name="bonus_and_equity_preference">
+              <option value="required">Required - Must have both</option>
+              <option value="preferred" selected>Preferred - Nice to have</option>
+              <option value="optional">Optional - Not important</option>
+            </select>
+            <small>How important is equity and bonus to you?</small>
+          </div>
+
+          <!-- Workplace type -->
+          <div class="form-group">
+            <label for="remote-requirement">Remote Work Preference</label>
+            <select id="remote-requirement" name="remote_requirement">
+              <option value="remote_only">Remote Only - No exceptions</option>
+              <option value="remote_first" selected>Remote First - Prefer remote</option>
+              <option value="flexible">Flexible - Open to hybrid</option>
+            </select>
+          </div>
+
+          <!-- Acceptable workplace types (multi-select) -->
+          <div class="form-group">
+            <label>Acceptable Workplace Types</label>
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" name="workplace_types_acceptable" value="remote" checked>
+                <span>Remote</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" name="workplace_types_acceptable" value="hybrid_4plus_days" checked>
+                <span>Hybrid (4+ remote days)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" name="workplace_types_acceptable" value="hybrid">
+                <span>Hybrid (any)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" name="workplace_types_acceptable" value="on_site">
+                <span>On-site</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Employment type -->
+          <div class="form-group">
+            <label for="employment-type">Preferred Employment Type</label>
+            <select id="employment-type" name="employment_type_preferred">
+              <option value="full_time" selected>Full-time</option>
+              <option value="contract">Contract</option>
+              <option value="either">Either</option>
+            </select>
+          </div>
+
+          <div class="tab-actions">
+            <button type="button" class="btn btn-primary" data-next="background">
+              Next: Background
+            </button>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             TAB 2: BACKGROUND
+             User's professional experience and skills
+        ================================================================ -->
+        <section id="tab-background" class="tab-content">
+          <h2>Your Background</h2>
+          <p class="section-description">Help us match your experience to job requirements</p>
+
+          <!-- Current title -->
+          <div class="form-group">
+            <label for="current-title">Current/Most Recent Title</label>
+            <input
+              type="text"
+              id="current-title"
+              name="current_title"
+              placeholder="e.g., Director of Growth & RevOps"
+            >
+          </div>
+
+          <!-- Years of experience -->
+          <div class="form-group">
+            <label for="years-experience">Years of Experience</label>
+            <input
+              type="number"
+              id="years-experience"
+              name="years_experience"
+              placeholder="10"
+              min="0"
+              max="50"
+            >
+          </div>
+
+          <!-- Core skills (tag input) -->
+          <div class="form-group">
+            <label for="core-skills">Core Skills</label>
+            <div class="tag-input-container" id="skills-container">
+              <div class="tags" id="skills-tags"></div>
+              <input
+                type="text"
+                id="core-skills"
+                placeholder="Type a skill and press Enter"
+              >
+            </div>
+            <small>Add your key skills (e.g., growth strategy, RevOps, Braze, SQL)</small>
+            <div class="suggested-tags">
+              <span class="suggested-label">Suggested:</span>
+              <button type="button" class="suggested-tag" data-skill="growth_strategy">Growth Strategy</button>
+              <button type="button" class="suggested-tag" data-skill="revops_infrastructure">RevOps</button>
+              <button type="button" class="suggested-tag" data-skill="lifecycle_marketing">Lifecycle Marketing</button>
+              <button type="button" class="suggested-tag" data-skill="ecommerce_gtm">E-commerce GTM</button>
+              <button type="button" class="suggested-tag" data-skill="data_driven_decisioning">Data-Driven</button>
+              <button type="button" class="suggested-tag" data-skill="team_building">Team Building</button>
+              <button type="button" class="suggested-tag" data-skill="crm_ops">CRM Ops</button>
+              <button type="button" class="suggested-tag" data-skill="braze_expertise">Braze</button>
+            </div>
+          </div>
+
+          <!-- Industries (tag input) -->
+          <div class="form-group">
+            <label for="industries">Industry Experience</label>
+            <div class="tag-input-container" id="industries-container">
+              <div class="tags" id="industries-tags"></div>
+              <input
+                type="text"
+                id="industries"
+                placeholder="Type an industry and press Enter"
+              >
+            </div>
+            <small>Add industries you've worked in</small>
+            <div class="suggested-tags">
+              <span class="suggested-label">Suggested:</span>
+              <button type="button" class="suggested-tag" data-industry="saas">SaaS</button>
+              <button type="button" class="suggested-tag" data-industry="d2c_ecommerce">D2C/E-commerce</button>
+              <button type="button" class="suggested-tag" data-industry="fintech">Fintech</button>
+              <button type="button" class="suggested-tag" data-industry="healthtech">Healthtech</button>
+              <button type="button" class="suggested-tag" data-industry="telecom">Telecom</button>
+              <button type="button" class="suggested-tag" data-industry="insurance">Insurance</button>
+            </div>
+          </div>
+
+          <!-- Target roles (tag input) -->
+          <div class="form-group">
+            <label for="target-roles">Target Roles</label>
+            <div class="tag-input-container" id="roles-container">
+              <div class="tags" id="roles-tags"></div>
+              <input
+                type="text"
+                id="target-roles"
+                placeholder="Type a role and press Enter"
+              >
+            </div>
+            <small>What roles are you targeting?</small>
+            <div class="suggested-tags">
+              <span class="suggested-label">Suggested:</span>
+              <button type="button" class="suggested-tag" data-role="VP of Growth">VP of Growth</button>
+              <button type="button" class="suggested-tag" data-role="Head of RevOps">Head of RevOps</button>
+              <button type="button" class="suggested-tag" data-role="Director of Growth">Director of Growth</button>
+              <button type="button" class="suggested-tag" data-role="CRO">CRO</button>
+              <button type="button" class="suggested-tag" data-role="CMO">CMO</button>
+            </div>
+          </div>
+
+          <div class="tab-actions">
+            <button type="button" class="btn btn-secondary" data-prev="preferences">
+              Back
+            </button>
+            <button type="button" class="btn btn-primary" data-next="dealbreakers">
+              Next: Deal-Breakers
+            </button>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             TAB 3: DEAL-BREAKERS
+             Hard constraints that auto-reject jobs
+        ================================================================ -->
+        <section id="tab-dealbreakers" class="tab-content">
+          <h2>Deal-Breakers</h2>
+          <p class="section-description">Select conditions that automatically disqualify a job</p>
+
+          <div class="form-group">
+            <label>Automatic Rejections</label>
+            <p class="helper-text">Jobs matching these criteria will score 0 and be flagged as "HARD NO"</p>
+
+            <div class="checkbox-group deal-breakers-list">
+              <label class="checkbox-label deal-breaker">
+                <input type="checkbox" name="deal_breakers" value="on_site" checked>
+                <span class="checkbox-content">
+                  <strong>On-site Only</strong>
+                  <small>Reject positions that require full-time office presence</small>
+                </span>
+              </label>
+
+              <label class="checkbox-label deal-breaker">
+                <input type="checkbox" name="deal_breakers" value="less_than_150k_base" checked>
+                <span class="checkbox-content">
+                  <strong>Below Salary Floor</strong>
+                  <small>Reject if max salary is below your minimum</small>
+                </span>
+              </label>
+
+              <label class="checkbox-label deal-breaker">
+                <input type="checkbox" name="deal_breakers" value="no_equity">
+                <span class="checkbox-content">
+                  <strong>No Equity</strong>
+                  <small>Reject positions that don't mention equity</small>
+                </span>
+              </label>
+
+              <label class="checkbox-label deal-breaker">
+                <input type="checkbox" name="deal_breakers" value="pre_revenue">
+                <span class="checkbox-content">
+                  <strong>Pre-Revenue Company</strong>
+                  <small>Reject companies with zero revenue</small>
+                </span>
+              </label>
+
+              <label class="checkbox-label deal-breaker">
+                <input type="checkbox" name="deal_breakers" value="declining_company">
+                <span class="checkbox-content">
+                  <strong>Declining Company</strong>
+                  <small>Reject companies with negative growth</small>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Must-Haves (Strong Preferences)</label>
+            <p class="helper-text">These won't auto-reject but will significantly impact scores</p>
+
+            <div class="checkbox-group must-haves-list">
+              <label class="checkbox-label must-have">
+                <input type="checkbox" name="must_haves" value="growth_revops_lifecycle_focus">
+                <span class="checkbox-content">
+                  <strong>Growth/RevOps/Lifecycle Focus</strong>
+                  <small>Role should emphasize these areas</small>
+                </span>
+              </label>
+
+              <label class="checkbox-label must-have">
+                <input type="checkbox" name="must_haves" value="series_b_or_later">
+                <span class="checkbox-content">
+                  <strong>Series B or Later</strong>
+                  <small>Company should be past early stage</small>
+                </span>
+              </label>
+
+              <label class="checkbox-label must-have">
+                <input type="checkbox" name="must_haves" value="data_driven_culture">
+                <span class="checkbox-content">
+                  <strong>Data-Driven Culture</strong>
+                  <small>Organization values metrics and analytics</small>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div class="tab-actions">
+            <button type="button" class="btn btn-secondary" data-prev="background">
+              Back
+            </button>
+            <button type="submit" class="btn btn-primary btn-save">
+              Save Profile
+            </button>
+          </div>
+        </section>
+      </form>
+    </main>
+
+    <!-- Status message -->
+    <div id="status-message" class="status-message hidden"></div>
+
+    <footer>
+      <p>Your profile is stored locally and never sent to external servers.</p>
+    </footer>
+  </div>
+
+  <script src="profile-setup.js"></script>
+</body>
+</html>

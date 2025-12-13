@@ -1,0 +1,555 @@
+/**
+ * Job Hunter OS - Results Dashboard Styles
+ *
+ * Styles for the score results modal overlay.
+ * Injected into LinkedIn/Indeed pages by content.js
+ *
+ * IMPORTANT: All selectors are prefixed with "jh-" to avoid
+ * conflicts with host page styles.
+ */
+
+/* ============================================================================
+   MODAL CONTAINER & BACKDROP
+============================================================================ */
+
+.jh-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #1a1a2e;
+  /* Reset inherited styles */
+  box-sizing: border-box;
+}
+
+.jh-modal * {
+  box-sizing: border-box;
+}
+
+.jh-modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+.jh-modal-content {
+  position: relative;
+  width: 90%;
+  max-width: 520px;
+  max-height: 90vh;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow-y: auto;
+  animation: jh-modal-appear 0.3s ease;
+}
+
+@keyframes jh-modal-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Close button */
+.jh-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f3f5;
+  border: none;
+  border-radius: 8px;
+  font-size: 20px;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  z-index: 10;
+}
+
+.jh-modal-close:hover {
+  background: #e9ecef;
+  color: #1a1a2e;
+}
+
+/* ============================================================================
+   SCORE HEADER
+============================================================================ */
+
+.jh-score-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 16px 16px 0 0;
+}
+
+/* Score ring */
+.jh-score-ring {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  flex-shrink: 0;
+}
+
+.jh-score-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.jh-score-progress {
+  transition: stroke-dashoffset 1s ease, stroke 0.3s ease;
+}
+
+.jh-score-value {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.jh-score-number {
+  display: block;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a2e;
+  line-height: 1;
+}
+
+.jh-score-max {
+  font-size: 12px;
+  color: #868e96;
+}
+
+/* Score info */
+.jh-score-info {
+  flex: 1;
+}
+
+.jh-score-label {
+  display: inline-block;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 20px;
+  margin-bottom: 8px;
+}
+
+/* Score label colors */
+.jh-score-label.jh-strong-fit {
+  background: #d3f9d8;
+  color: #2b8a3e;
+}
+
+.jh-score-label.jh-good-fit {
+  background: #c3fae8;
+  color: #087f5b;
+}
+
+.jh-score-label.jh-moderate-fit {
+  background: #fff3bf;
+  color: #e67700;
+}
+
+.jh-score-label.jh-weak-fit {
+  background: #ffe8cc;
+  color: #d9480f;
+}
+
+.jh-score-label.jh-poor-fit {
+  background: #ffe3e3;
+  color: #c92a2a;
+}
+
+.jh-score-label.jh-hard-no {
+  background: #495057;
+  color: #fff;
+}
+
+.jh-score-summary {
+  font-size: 13px;
+  color: #495057;
+  margin: 0;
+}
+
+/* ============================================================================
+   FIT SECTIONS
+============================================================================ */
+
+.jh-fit-section {
+  padding: 16px 24px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.jh-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.jh-section-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin: 0;
+}
+
+.jh-section-score {
+  font-size: 13px;
+  font-weight: 600;
+  color: #495057;
+  background: #f1f3f5;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+/* Criteria list */
+.jh-criteria-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.jh-loading {
+  text-align: center;
+  color: #868e96;
+  padding: 16px;
+  font-size: 13px;
+}
+
+/* Criterion item */
+.jh-criterion {
+  display: flex;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.jh-criterion-stars {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.jh-star {
+  width: 14px;
+  height: 14px;
+  fill: #dee2e6;
+}
+
+.jh-star.jh-filled {
+  fill: #fab005;
+}
+
+.jh-criterion-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.jh-criterion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.jh-criterion-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #1a1a2e;
+}
+
+.jh-criterion-value {
+  font-size: 11px;
+  color: #495057;
+  background: #e9ecef;
+  padding: 1px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.jh-criterion-rationale {
+  font-size: 11px;
+  color: #868e96;
+  margin: 0;
+}
+
+/* Criterion score colors */
+.jh-criterion.jh-score-high .jh-criterion-name {
+  color: #2b8a3e;
+}
+
+.jh-criterion.jh-score-low .jh-criterion-name {
+  color: #c92a2a;
+}
+
+/* ============================================================================
+   INTERPRETATION SECTION
+============================================================================ */
+
+.jh-interpretation-section {
+  padding: 16px 24px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.jh-interpretation-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin: 0 0 12px 0;
+}
+
+/* Action badge */
+.jh-action-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+
+.jh-action-badge.jh-pursue {
+  background: #d3f9d8;
+  color: #2b8a3e;
+}
+
+.jh-action-badge.jh-consider {
+  background: #fff3bf;
+  color: #e67700;
+}
+
+.jh-action-badge.jh-skip {
+  background: #ffe3e3;
+  color: #c92a2a;
+}
+
+.jh-action-icon {
+  font-size: 16px;
+}
+
+.jh-action-badge.jh-pursue .jh-action-icon::before {
+  content: '✓';
+}
+
+.jh-action-badge.jh-consider .jh-action-icon::before {
+  content: '?';
+}
+
+.jh-action-badge.jh-skip .jh-action-icon::before {
+  content: '✗';
+}
+
+/* Conversation starters */
+.jh-conversation-starters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.jh-conversation-starters-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #868e96;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.jh-conversation-starter {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #495057;
+}
+
+.jh-conversation-starter::before {
+  content: '💬';
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+   MODAL FOOTER
+============================================================================ */
+
+.jh-modal-footer {
+  display: flex;
+  gap: 10px;
+  padding: 16px 24px;
+  background: #f8f9fa;
+  border-radius: 0 0 16px 16px;
+}
+
+.jh-btn {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.jh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.jh-btn-primary {
+  flex: 1;
+  background: linear-gradient(135deg, #4361ee 0%, #3a56d4 100%);
+  color: #fff;
+}
+
+.jh-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #3a56d4 0%, #324bc0 100%);
+}
+
+.jh-btn-secondary {
+  background: #e9ecef;
+  color: #495057;
+}
+
+.jh-btn-secondary:hover:not(:disabled) {
+  background: #dee2e6;
+}
+
+/* Success state for Send button */
+.jh-btn-primary.jh-success {
+  background: linear-gradient(135deg, #2b8a3e 0%, #228b22 100%);
+}
+
+/* Loading state */
+.jh-btn.jh-loading {
+  position: relative;
+  color: transparent;
+}
+
+.jh-btn.jh-loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border: 2px solid transparent;
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: jh-spin 0.8s linear infinite;
+}
+
+@keyframes jh-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================================
+   SCORE RING COLORS
+============================================================================ */
+
+.jh-score-ring.jh-strong-fit .jh-score-progress { stroke: #2b8a3e; }
+.jh-score-ring.jh-good-fit .jh-score-progress { stroke: #087f5b; }
+.jh-score-ring.jh-moderate-fit .jh-score-progress { stroke: #e67700; }
+.jh-score-ring.jh-weak-fit .jh-score-progress { stroke: #d9480f; }
+.jh-score-ring.jh-poor-fit .jh-score-progress { stroke: #c92a2a; }
+.jh-score-ring.jh-hard-no .jh-score-progress { stroke: #495057; }
+
+/* ============================================================================
+   RESPONSIVE ADJUSTMENTS
+============================================================================ */
+
+@media (max-width: 480px) {
+  .jh-modal-content {
+    width: 95%;
+    max-height: 95vh;
+    border-radius: 12px;
+  }
+
+  .jh-score-header {
+    flex-direction: column;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .jh-fit-section,
+  .jh-interpretation-section {
+    padding: 12px 16px;
+  }
+
+  .jh-modal-footer {
+    flex-wrap: wrap;
+    padding: 12px 16px;
+  }
+
+  .jh-btn {
+    flex: 1 1 45%;
+  }
+
+  .jh-btn-primary {
+    flex: 1 1 100%;
+    order: -1;
+    margin-bottom: 8px;
+  }
+}
+
+/* ============================================================================
+   DEAL-BREAKER SPECIAL STATE
+============================================================================ */
+
+.jh-modal-content.jh-deal-breaker-triggered {
+  border: 2px solid #c92a2a;
+}
+
+.jh-modal-content.jh-deal-breaker-triggered .jh-score-header {
+  background: linear-gradient(135deg, #ffe3e3 0%, #ffc9c9 100%);
+}
+
+.jh-deal-breaker-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #ffe3e3;
+  border-bottom: 1px solid #ffa8a8;
+  color: #c92a2a;
+  font-size: 13px;
+}
+
+.jh-deal-breaker-notice::before {
+  content: '⚠️';
+  font-size: 18px;
+}
