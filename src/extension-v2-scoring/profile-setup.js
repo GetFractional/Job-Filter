@@ -57,6 +57,9 @@ let skillTags = [];
 let industryTags = [];
 let roleTags = [];
 
+// Limits
+const MAX_TAGS_PER_FIELD = 30;
+
 // DOM element cache
 let elements = {};
 
@@ -309,7 +312,7 @@ function tagExists(tags, newTag) {
 function setupTagInput(input, container, getTags, updateTags, category) {
   if (!input || !container) return;
 
-  // Handle Enter key to add tag
+  // Handle Enter key to add tag (supports comma-delimited bulk on Enter)
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -331,7 +334,24 @@ function setupTagInput(input, container, getTags, updateTags, category) {
         showInlineValidation(input, ''); // Clear any validation message
       } else if (value && tagExists(tags, value)) {
         showInlineValidation(input, 'This item already exists.');
+      if (!value) return;
+
+      // Split on commas to allow bulk add in one go
+      const parts = value.split(',').map(p => p.trim()).filter(Boolean);
+      let newTags = [...tags];
+      for (const part of parts) {
+        if (!newTags.includes(part)) {
+          if (newTags.length >= MAX_TAGS_PER_FIELD) {
+            showStatus(`You can add up to ${MAX_TAGS_PER_FIELD} entries here.`, 'error');
+            break;
+          }
+          newTags = [...newTags, part];
+        }
       }
+      updateTags(newTags);
+      tags = newTags;
+      renderTags(container, newTags, updateTags);
+      input.value = '';
     }
 
     // Handle Backspace to remove last tag
