@@ -855,10 +855,10 @@ function setupPanelEventHandlers(panel) {
   // View Details button
   const detailsBtn = panel.querySelector('.jh-fp-details-btn');
   if (detailsBtn) {
-    detailsBtn.addEventListener('click', async () => {
+    detailsBtn.addEventListener('click', () => {
       // Trigger full modal view
       if (window.JobHunterResults && panelState.currentScore && panelState.currentJobData) {
-        await window.JobHunterResults.showResultsModal(
+        window.JobHunterResults.showResultsModal(
           panelState.currentScore,
           panelState.currentJobData,
           window.sendJobToAirtable,
