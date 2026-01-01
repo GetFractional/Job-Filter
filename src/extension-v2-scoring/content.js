@@ -260,6 +260,7 @@ function extractLinkedInJobData() {
     source: 'LinkedIn',
     // New extraction fields
     hiringManager: null,
+    hiringManagerDetails: null, // { name, title }
     postedDate: null,
     applicantCount: null
   };
@@ -426,17 +427,60 @@ function extractLinkedInJobData() {
       data.bonusMentioned = detectBonusWithProximityRule(data.descriptionText);
     }
 
-    // Extract Hiring Manager from "Meet the hiring team" section
-    const hiringTeamSelectors = [
-      '.hirer-card__hirer-information a',
-      '.jobs-poster__name',
-      '.hiring-team__title a',
-      '[data-test-hiring-team-card] a',
-      '.job-details-jobs-unified-top-card__hiring-team-member-name'
-    ];
-    const hiringManagerEl = document.querySelector(hiringTeamSelectors.join(', '));
-    if (hiringManagerEl?.textContent?.trim()) {
-      data.hiringManager = hiringManagerEl.textContent.trim();
+    // Extract Hiring Manager with name and job title from "Meet the hiring team" section
+    const hiringTeamContainer = document.querySelector(
+      '.hirer-card__hirer-information, .jobs-poster, .hiring-team, [data-test-hiring-team-card], .job-details-jobs-unified-top-card__hiring-team'
+    );
+
+    if (hiringTeamContainer) {
+      // Name selectors
+      const nameSelectors = [
+        '.hirer-card__hirer-information a',
+        '.jobs-poster__name',
+        '.hiring-team__title a',
+        '[data-test-hiring-team-card] a',
+        '.job-details-jobs-unified-top-card__hiring-team-member-name',
+        '.hiring-team-card-container__link'
+      ];
+      // Title selectors (usually the element after the name)
+      const titleSelectors = [
+        '.hirer-card__hirer-information .t-14',
+        '.jobs-poster__headline',
+        '.hiring-team__subtitle',
+        '.job-details-jobs-unified-top-card__hiring-team-member-subtitle',
+        '.hiring-team-card-container__headline'
+      ];
+
+      const nameEl = hiringTeamContainer.querySelector(nameSelectors.join(', ')) ||
+                     document.querySelector(nameSelectors.join(', '));
+      const titleEl = hiringTeamContainer.querySelector(titleSelectors.join(', ')) ||
+                      document.querySelector(titleSelectors.join(', '));
+
+      const hiringManagerName = nameEl?.textContent?.trim() || null;
+      const hiringManagerTitle = titleEl?.textContent?.trim() || null;
+
+      // Store as structured object
+      if (hiringManagerName) {
+        data.hiringManager = hiringManagerTitle
+          ? `${hiringManagerName}, ${hiringManagerTitle}`
+          : hiringManagerName;
+        data.hiringManagerDetails = {
+          name: hiringManagerName,
+          title: hiringManagerTitle
+        };
+      }
+    } else {
+      // Fallback to simpler extraction if container not found
+      const hiringManagerEl = document.querySelector([
+        '.hirer-card__hirer-information a',
+        '.jobs-poster__name',
+        '.hiring-team__title a',
+        '[data-test-hiring-team-card] a',
+        '.job-details-jobs-unified-top-card__hiring-team-member-name'
+      ].join(', '));
+      if (hiringManagerEl?.textContent?.trim()) {
+        data.hiringManager = hiringManagerEl.textContent.trim();
+      }
     }
 
     // Extract Posted Date from job card metadata
