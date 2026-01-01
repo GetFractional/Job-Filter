@@ -447,8 +447,8 @@ function extractLinkedInJobData() {
       if (hiringTeamContainer) break;
     }
 
-    // Name selectors - expanded list
-    const nameSelectors = [
+    // Hiring Manager Name selectors - expanded list
+    const hiringManagerNameSelectors = [
       '.hirer-card__hirer-information a',
       '.jobs-poster__name',
       '.hiring-team__title a',
@@ -461,8 +461,8 @@ function extractLinkedInJobData() {
       'a[data-test-hiring-team-member-link]'
     ];
 
-    // Title selectors - expanded list
-    const titleSelectors = [
+    // Hiring Manager Title selectors - expanded list
+    const hiringManagerTitleSelectors = [
       '.hirer-card__hirer-information .t-14',
       '.jobs-poster__headline',
       '.hiring-team__subtitle',
@@ -479,12 +479,12 @@ function extractLinkedInJobData() {
 
     // Try to find name and title within the container first
     if (hiringTeamContainer) {
-      for (const selector of nameSelectors) {
+      for (const selector of hiringManagerNameSelectors) {
         nameEl = hiringTeamContainer.querySelector(selector);
         if (nameEl && nameEl.textContent?.trim()) break;
       }
 
-      for (const selector of titleSelectors) {
+      for (const selector of hiringManagerTitleSelectors) {
         titleEl = hiringTeamContainer.querySelector(selector);
         if (titleEl && titleEl.textContent?.trim()) break;
       }
@@ -492,14 +492,14 @@ function extractLinkedInJobData() {
 
     // Fallback: search entire document
     if (!nameEl || !nameEl.textContent?.trim()) {
-      for (const selector of nameSelectors) {
+      for (const selector of hiringManagerNameSelectors) {
         nameEl = document.querySelector(selector);
         if (nameEl && nameEl.textContent?.trim()) break;
       }
     }
 
     if (!titleEl || !titleEl.textContent?.trim()) {
-      for (const selector of titleSelectors) {
+      for (const selector of hiringManagerTitleSelectors) {
         titleEl = document.querySelector(selector);
         if (titleEl && titleEl.textContent?.trim()) break;
       }
