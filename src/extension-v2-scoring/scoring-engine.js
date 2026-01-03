@@ -1004,6 +1004,11 @@ function scoreOrgStability(jobPayload, userProfile) {
   const description = (jobPayload.descriptionText || jobPayload.job_description_text || '').toLowerCase();
   const headcountGrowthText = jobPayload.companyHeadcountGrowth || jobPayload.company_headcount_growth || '';
 
+  console.log('[Scoring] Org Stability input:', {
+    headcountGrowthText,
+    jobPayload_keys: Object.keys(jobPayload)
+  });
+
   // Parse growth percentage from text like "+5% over last 6 months" or "-3% decline"
   let growthRate = null;
   const growthMatch = headcountGrowthText.match(/([+-]?\d+(?:\.\d+)?)\s*%/);
@@ -1024,29 +1029,38 @@ function scoreOrgStability(jobPayload, userProfile) {
 
   // Score based on growth rate if available
   if (growthRate !== null) {
-    if (growthRate >= 10) {
+    // More nuanced scoring based on 2-year company-wide growth
+    if (growthRate >= 15) {
       score = 50;
-      rationale = `Strong growth company (+${growthRate}% headcount)`;
+      rationale = `Hyper-growth company (+${growthRate}% over 2 years)`;
+      actualValue = `+${growthRate}% growth`;
+    } else if (growthRate >= 10) {
+      score = 45;
+      rationale = `Strong growth company (+${growthRate}% over 2 years)`;
       actualValue = `+${growthRate}% growth`;
     } else if (growthRate >= 5) {
-      score = 45;
-      rationale = `Good growth (+${growthRate}% headcount)`;
+      score = 40;
+      rationale = `Healthy growth (+${growthRate}% over 2 years)`;
+      actualValue = `+${growthRate}% growth`;
+    } else if (growthRate >= 2) {
+      score = 35;
+      rationale = `Moderate growth (+${growthRate}% over 2 years)`;
       actualValue = `+${growthRate}% growth`;
     } else if (growthRate >= 0) {
-      score = 40;
-      rationale = `Stable company (${growthRate}% headcount change)`;
-      actualValue = 'Stable';
-    } else if (growthRate >= -3) {
       score = 30;
-      rationale = `Minor decline (${growthRate}% headcount)`;
-      actualValue = `${growthRate}% decline`;
+      rationale = `Minimal growth (+${growthRate}% over 2 years)`;
+      actualValue = `+${growthRate}% growth`;
+    } else if (growthRate >= -2) {
+      score = 20;
+      rationale = `Stagnant/slight decline (${growthRate}% over 2 years)`;
+      actualValue = `${growthRate}% change`;
     } else if (growthRate >= -5) {
-      score = 15;
-      rationale = `Concerning decline (${growthRate}% headcount)`;
+      score = 10;
+      rationale = `Concerning decline (${growthRate}% over 2 years)`;
       actualValue = `${growthRate}% decline`;
     } else {
       score = 5;
-      rationale = `Significant decline (${growthRate}%) - potential layoffs`;
+      rationale = `Significant decline (${growthRate}% over 2 years) - layoff risk`;
       actualValue = `${growthRate}% decline`;
     }
   }
@@ -1061,7 +1075,7 @@ function scoreOrgStability(jobPayload, userProfile) {
     actualValue = 'Growing';
   }
 
-  return {
+  const result = {
     criteria: 'Org Stability',
     criteria_description: 'Company headcount growth/decline trends (growing = more stable)',
     actual_value: actualValue,
@@ -1070,6 +1084,15 @@ function scoreOrgStability(jobPayload, userProfile) {
     growth_rate: growthRate,
     missing_data: growthRate === null && !hasGrowthSignals && !hasDeclineSignals
   };
+
+  console.log('[Scoring] Org Stability result:', {
+    growthRate,
+    score: result.score,
+    rationale,
+    actualValue
+  });
+
+  return result;
 }
 
 /**
@@ -1330,21 +1353,24 @@ function scoreSkillMatch(jobPayload, userProfile) {
   const totalSkills = normalizedUserSkills.length;
   const matchPercentage = (matchCount / totalSkills) * 100;
 
-  let score = 0;
+  // Proportional scoring: score = (matchPercentage / 100) * 50
+  // This makes it truly proportional: 50% match = 25 points, 100% match = 50 points
+  let score = (matchPercentage / 100) * 50;
   let rationale = '';
 
-  if (matchCount >= 5 || matchPercentage >= 50) {
-    score = 50;
-    rationale = `Strong match: ${matchCount} skills overlap (${Math.round(matchPercentage)}%)`;
-  } else if (matchCount >= 3 || matchPercentage >= 30) {
-    score = 40;
-    rationale = `Good match: ${matchCount} skills overlap`;
+  if (matchPercentage >= 80) {
+    rationale = `Excellent match: ${matchCount}/${totalSkills} skills (${Math.round(matchPercentage)}%)`;
+  } else if (matchPercentage >= 60) {
+    rationale = `Strong match: ${matchCount}/${totalSkills} skills (${Math.round(matchPercentage)}%)`;
+  } else if (matchPercentage >= 40) {
+    rationale = `Good match: ${matchCount}/${totalSkills} skills (${Math.round(matchPercentage)}%)`;
+  } else if (matchPercentage >= 20) {
+    rationale = `Moderate match: ${matchCount}/${totalSkills} skills (${Math.round(matchPercentage)}%)`;
   } else if (matchCount >= 1) {
-    score = 25;
-    rationale = `Limited match: only ${matchCount} skill(s) overlap`;
+    rationale = `Limited match: ${matchCount}/${totalSkills} skills (${Math.round(matchPercentage)}%)`;
   } else {
-    score = 10;
-    rationale = 'No clear skill overlap detected';
+    score = 0; // No match = 0 points
+    rationale = 'No skill overlap detected';
   }
 
   // Calculate unmatched skills (user's skills not found in the job)

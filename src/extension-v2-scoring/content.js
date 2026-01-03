@@ -17,6 +17,35 @@ const PROFILE_STORAGE_KEY = 'jh_user_profile';
 let autoScoreDebounceTimer = null;
 let lastScoredUrl = '';
 
+/**
+ * Check if extension context is still valid
+ * Returns false if extension was reloaded/updated
+ */
+function isExtensionContextValid() {
+  try {
+    // Try to access chrome.runtime - will throw if context invalidated
+    return !!(chrome && chrome.runtime && chrome.runtime.id);
+  } catch (error) {
+    console.warn('[Job Hunter] Extension context invalidated - extension was likely reloaded');
+    return false;
+  }
+}
+
+/**
+ * Show user-friendly message when extension context is invalidated
+ */
+function handleInvalidContext() {
+  console.log('[Job Hunter] Extension was reloaded. Please refresh this page to re-enable Job Hunter.');
+  // Optional: Show a subtle notification to the user
+  if (typeof window.JobHunterFloatingPanel !== 'undefined') {
+    try {
+      window.JobHunterFloatingPanel.remove();
+    } catch (e) {
+      // Ignore errors during cleanup
+    }
+  }
+}
+
 // Prevent multiple injections
 if (window.jobHunterInjected) {
   console.log('[Job Hunter] Already injected, skipping');
@@ -143,12 +172,13 @@ function handleLinkedIn() {
     if (jobCard) {
       // Reset scored URL to force re-scoring
       lastScoredUrl = '';
-      // Delay to let the job detail panel update
+      // Delay to let the job detail panel update and avoid LinkedIn 999 rate limiting
+      // Increased from 800ms to 1200ms for more reliable DOM rendering
       setTimeout(() => {
         if (isLinkedInJobPage()) {
           triggerAutoScore('LinkedIn');
         }
-      }, 800);
+      }, 1200);
     }
   });
 
@@ -179,7 +209,8 @@ function handleLinkedIn() {
       );
 
       if (hasSignificantChange) {
-        // Debounce to avoid excessive re-scoring
+        // Debounce to avoid excessive re-scoring and LinkedIn 999 rate limiting
+        // Increased from 600ms to 1000ms for better stability
         if (contentChangeDebounce) clearTimeout(contentChangeDebounce);
         contentChangeDebounce = setTimeout(() => {
           const currentJobId = extractLinkedInJobId(location.href);
@@ -188,7 +219,7 @@ function handleLinkedIn() {
             lastScoredUrl = '';
             triggerAutoScore('LinkedIn');
           }
-        }, 600);
+        }, 1000);
       }
     };
 
@@ -669,6 +700,51 @@ function extractCompanyHeadcountData() {
   };
 
   try {
+    // Method 0: LinkedIn Premium Company Growth Widget (MOST RELIABLE)
+    // Look for the specific "Company-wide" growth stat
+    console.log('[Job Hunter] Looking for LinkedIn premium company growth widget...');
+    const companyGrowthItems = document.querySelectorAll('.jobs-premium-company-growth__stat-item');
+    console.log('[Job Hunter] Found', companyGrowthItems.length, 'growth stat items');
+
+    for (const item of companyGrowthItems) {
+      const labels = item.querySelectorAll('p');
+      let isCompanyWide = false;
+      let growthText = '';
+
+      labels.forEach(label => {
+        const text = label.textContent?.trim() || '';
+        if (text.toLowerCase() === 'company-wide') {
+          isCompanyWide = true;
+        }
+      });
+
+      if (isCompanyWide) {
+        // Extract the percentage from the bold text
+        const percentageEl = item.querySelector('.t-16.t-black--light.t-bold');
+        if (percentageEl) {
+          growthText = percentageEl.textContent?.trim() || '';
+          const percentMatch = growthText.match(/([+-]?\d+(?:\.\d+)?)\s*%/);
+          if (percentMatch) {
+            const rate = parseFloat(percentMatch[1]);
+            // Check if it's an increase or decrease based on CSS class
+            const hasIncrease = item.querySelector('.jobs-premium-company-growth__number-with-arrow--increase');
+            const hasDecrease = item.querySelector('.jobs-premium-company-growth__number-with-arrow--decrease');
+
+            result.headcountGrowthRate = hasDecrease ? -Math.abs(rate) : rate;
+            result.headcountGrowthText = `Company-wide ${result.headcountGrowthRate >= 0 ? '+' : ''}${result.headcountGrowthRate}% (2yr)`;
+            result.headcountDataFound = true;
+            console.log('[Job Hunter] ✓ Found company growth from LinkedIn premium widget:', result.headcountGrowthText);
+            console.log('[Job Hunter] Growth rate:', result.headcountGrowthRate, '(increase:', !!hasIncrease, ', decrease:', !!hasDecrease, ')');
+            break;
+          }
+        }
+      }
+    }
+
+    if (!result.headcountDataFound) {
+      console.log('[Job Hunter] No premium company growth widget found, using fallback methods...');
+    }
+
     // Method 1: Try LinkedIn company sidebar / insights section on job posting
     const companyInfoSelectors = [
       '[data-testid="company-info"]',
@@ -1736,6 +1812,11 @@ function showProfileSetupPrompt() {
  * Open the profile setup page
  */
 function openProfileSetup() {
+  if (!isExtensionContextValid()) {
+    handleInvalidContext();
+    alert('Extension was reloaded. Please refresh this page to continue.');
+    return;
+  }
   const profileUrl = chrome.runtime.getURL('profile-setup.html');
   window.open(profileUrl, '_blank');
 }
@@ -1753,6 +1834,13 @@ window.openProfileSetup = openProfileSetup;
  * @param {string} source - 'LinkedIn' or 'Indeed'
  */
 async function triggerAutoScore(source) {
+  // Check if extension context is still valid
+  if (!isExtensionContextValid()) {
+    console.log('[Job Hunter] Extension context invalidated, skipping auto-score');
+    handleInvalidContext();
+    return;
+  }
+
   const currentUrl = window.location.href;
 
   // Don't re-score the same job
@@ -1769,6 +1857,13 @@ async function triggerAutoScore(source) {
   // Debounce to avoid scoring during rapid navigation
   autoScoreDebounceTimer = setTimeout(async () => {
     try {
+      // Double-check context is still valid after timeout
+      if (!isExtensionContextValid()) {
+        console.log('[Job Hunter] Extension context invalidated during debounce');
+        handleInvalidContext();
+        return;
+      }
+
       console.log('[Job Hunter] Auto-scoring job...');
 
       // Extract job data
@@ -1810,7 +1905,13 @@ async function triggerAutoScore(source) {
       lastScoredUrl = currentUrl;
 
     } catch (error) {
-      console.error('[Job Hunter] Auto-score error:', error);
+      // Check if error is due to extension context invalidation
+      if (error.message && error.message.includes('Extension context invalidated')) {
+        console.log('[Job Hunter] Extension was reloaded. Please refresh the page.');
+        handleInvalidContext();
+      } else {
+        console.error('[Job Hunter] Auto-score error:', error);
+      }
     }
   }, 800); // 800ms debounce
 }
@@ -1862,6 +1963,13 @@ window.sendJobToAirtable = async function sendJobToAirtable(jobData, scoreResult
     }
 
     try {
+      // Check if extension context is still valid before making API call
+      if (!isExtensionContextValid()) {
+        handleInvalidContext();
+        safeReject(new Error('Extension context invalidated. Please reload this page.'));
+        return;
+      }
+
       chrome.runtime.sendMessage(payload, (resp) => {
         // Check for Chrome runtime errors first
         const lastErr = chrome.runtime.lastError;
