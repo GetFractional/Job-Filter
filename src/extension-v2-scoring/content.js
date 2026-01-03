@@ -17,6 +17,35 @@ const PROFILE_STORAGE_KEY = 'jh_user_profile';
 let autoScoreDebounceTimer = null;
 let lastScoredUrl = '';
 
+/**
+ * Check if extension context is still valid
+ * Returns false if extension was reloaded/updated
+ */
+function isExtensionContextValid() {
+  try {
+    // Try to access chrome.runtime - will throw if context invalidated
+    return !!(chrome && chrome.runtime && chrome.runtime.id);
+  } catch (error) {
+    console.warn('[Job Hunter] Extension context invalidated - extension was likely reloaded');
+    return false;
+  }
+}
+
+/**
+ * Show user-friendly message when extension context is invalidated
+ */
+function handleInvalidContext() {
+  console.log('[Job Hunter] Extension was reloaded. Please refresh this page to re-enable Job Hunter.');
+  // Optional: Show a subtle notification to the user
+  if (typeof window.JobHunterFloatingPanel !== 'undefined') {
+    try {
+      window.JobHunterFloatingPanel.remove();
+    } catch (e) {
+      // Ignore errors during cleanup
+    }
+  }
+}
+
 // Prevent multiple injections
 if (window.jobHunterInjected) {
   console.log('[Job Hunter] Already injected, skipping');
@@ -1738,6 +1767,11 @@ function showProfileSetupPrompt() {
  * Open the profile setup page
  */
 function openProfileSetup() {
+  if (!isExtensionContextValid()) {
+    handleInvalidContext();
+    alert('Extension was reloaded. Please refresh this page to continue.');
+    return;
+  }
   const profileUrl = chrome.runtime.getURL('profile-setup.html');
   window.open(profileUrl, '_blank');
 }
@@ -1755,6 +1789,13 @@ window.openProfileSetup = openProfileSetup;
  * @param {string} source - 'LinkedIn' or 'Indeed'
  */
 async function triggerAutoScore(source) {
+  // Check if extension context is still valid
+  if (!isExtensionContextValid()) {
+    console.log('[Job Hunter] Extension context invalidated, skipping auto-score');
+    handleInvalidContext();
+    return;
+  }
+
   const currentUrl = window.location.href;
 
   // Don't re-score the same job
@@ -1771,6 +1812,13 @@ async function triggerAutoScore(source) {
   // Debounce to avoid scoring during rapid navigation
   autoScoreDebounceTimer = setTimeout(async () => {
     try {
+      // Double-check context is still valid after timeout
+      if (!isExtensionContextValid()) {
+        console.log('[Job Hunter] Extension context invalidated during debounce');
+        handleInvalidContext();
+        return;
+      }
+
       console.log('[Job Hunter] Auto-scoring job...');
 
       // Extract job data
@@ -1812,7 +1860,13 @@ async function triggerAutoScore(source) {
       lastScoredUrl = currentUrl;
 
     } catch (error) {
-      console.error('[Job Hunter] Auto-score error:', error);
+      // Check if error is due to extension context invalidation
+      if (error.message && error.message.includes('Extension context invalidated')) {
+        console.log('[Job Hunter] Extension was reloaded. Please refresh the page.');
+        handleInvalidContext();
+      } else {
+        console.error('[Job Hunter] Auto-score error:', error);
+      }
     }
   }, 800); // 800ms debounce
 }
@@ -1864,6 +1918,13 @@ window.sendJobToAirtable = async function sendJobToAirtable(jobData, scoreResult
     }
 
     try {
+      // Check if extension context is still valid before making API call
+      if (!isExtensionContextValid()) {
+        handleInvalidContext();
+        safeReject(new Error('Extension context invalidated. Please reload this page.'));
+        return;
+      }
+
       chrome.runtime.sendMessage(payload, (resp) => {
         // Check for Chrome runtime errors first
         const lastErr = chrome.runtime.lastError;
