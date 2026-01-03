@@ -208,6 +208,9 @@ async function upsertCompany(credentials, jobData) {
     console.log('[Job Hunter BG] Creating new company');
     const createUrl = `${AIRTABLE_API_BASE}/${credentials.baseId}/${TABLES.COMPANIES}`;
 
+    // DEBUG: Log payload before sending to Airtable
+    console.log('[Job Hunter BG] Payload being sent to Airtable (Companies):', JSON.stringify({ fields: companyFields }, null, 2));
+
     const createResponse = await fetchWithRetry(createUrl, {
       method: 'POST',
       headers: {
@@ -319,6 +322,9 @@ async function upsertContact(credentials, jobData, companyRecordId) {
     // Create new contact record
     console.log('[Job Hunter BG] Creating new contact');
     const createUrl = `${AIRTABLE_API_BASE}/${credentials.baseId}/${TABLES.CONTACTS}`;
+
+    // DEBUG: Log payload before sending to Airtable
+    console.log('[Job Hunter BG] Payload being sent to Airtable (Contacts):', JSON.stringify({ fields: contactFields }, null, 2));
 
     const createResponse = await fetchWithRetry(createUrl, {
       method: 'POST',
@@ -442,6 +448,9 @@ async function createJob(credentials, jobData, scoreData, companyRecordId, conta
 
   // Create the job record
   const createUrl = `${AIRTABLE_API_BASE}/${credentials.baseId}/${TABLES.JOBS_PIPELINE}`;
+
+  // DEBUG: Log payload before sending to Airtable
+  console.log('[Job Hunter BG] Payload being sent to Airtable (Jobs Pipeline):', JSON.stringify({ fields: jobFields }, null, 2));
 
   const createResponse = await fetchWithRetry(createUrl, {
     method: 'POST',

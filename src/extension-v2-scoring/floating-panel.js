@@ -344,6 +344,7 @@ function updateJobHighlights(panel, jobData, scoreResult) {
 
       hiringManagerEl.textContent = displayText;
       hiringManagerEl.classList.add('jh-fp-has-value');
+      hiringManagerEl.classList.remove('jh-fp-neutral');
 
       // Tooltip with full details
       const tooltipText = managerDetails?.title
@@ -351,8 +352,12 @@ function updateJobHighlights(panel, jobData, scoreResult) {
         : `Hiring Manager: ${managerName}`;
       hiringManagerEl.setAttribute('data-tooltip', tooltipText);
     } else {
-      hiringManagerEl.textContent = '';
-      hiringManagerEl.style.display = 'none';
+      // Show fallback message instead of hiding
+      hiringManagerEl.textContent = '👤 Hiring Manager: Not found on page';
+      hiringManagerEl.classList.remove('jh-fp-has-value');
+      hiringManagerEl.classList.add('jh-fp-neutral');
+      hiringManagerEl.style.display = 'inline-flex'; // Ensure it's visible
+      hiringManagerEl.setAttribute('data-tooltip', 'Hiring manager not detected on this job posting');
     }
   }
 }
