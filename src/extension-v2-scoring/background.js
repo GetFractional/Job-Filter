@@ -222,55 +222,52 @@ async function upsertCompany(credentials, jobData) {
   const searchData = await searchResponse.json();
   const existingRecord = searchData.records?.[0];
 
-  // Build company payload with proper field types
+  // Build company payload with ONLY fields that exist in Companies table schema
   const companyFields = {
     'Company Name': sanitizeString(companyName)
   };
 
-  // Add optional fields if available
+  // CRITICAL: Only include fields that actually exist in your Companies Airtable schema
+  // DO NOT send: Total Employees, Growth, Median Employee Tenure, Followers
+  // Those fields don't exist in Companies table - they would cause 422 errors!
+
+  // LinkedIn URL (exists in Companies schema)
   if (jobData.companyPageUrl) {
     companyFields['LinkedIn URL'] = sanitizeString(jobData.companyPageUrl);
+    console.log('[Job Hunter BG] ✓ LinkedIn URL:', jobData.companyPageUrl);
   }
+
+  // Location (exists in Companies schema)
   if (jobData.location) {
     companyFields['Location'] = sanitizeString(jobData.location);
+    console.log('[Job Hunter BG] ✓ Location:', jobData.location);
   }
 
-  // Total Employees (Number field)
-  const totalEmployees = ensureNumber(jobData.companyHeadcount || jobData.totalEmployees);
-  if (totalEmployees !== null) {
-    companyFields['Total Employees'] = totalEmployees;
-  }
-
-  // Size (Single Select - map from headcount)
-  const sizeCategory = mapHeadcountToSize(totalEmployees);
-  if (sizeCategory) {
-    companyFields['Size'] = sizeCategory;
-  }
-
-  // Growth (Percent field - send as decimal)
-  const growthPercent = parsePercentToDecimal(jobData.companyHeadcountGrowth || jobData.growth);
-  if (growthPercent !== null) {
-    companyFields['Growth'] = growthPercent;
-  }
-
-  // Median Employee Tenure (Number field)
-  const tenure = ensureNumber(jobData.medianEmployeeTenure || jobData.tenure);
-  if (tenure !== null) {
-    companyFields['Median Employee Tenure'] = tenure;
-  }
-
-  // Industry (Single Select)
+  // Industry (exists in Companies schema)
   if (jobData.industry) {
     companyFields['Industry'] = sanitizeString(jobData.industry);
+    console.log('[Job Hunter BG] ✓ Industry:', jobData.industry);
   }
 
-  // Followers (Number field)
-  const followers = ensureNumber(jobData.companyFollowers || jobData.followers);
-  if (followers !== null) {
-    companyFields['Followers'] = followers;
+  // Website (exists in Companies schema)
+  if (jobData.website) {
+    companyFields['Website'] = sanitizeString(jobData.website);
+    console.log('[Job Hunter BG] ✓ Website:', jobData.website);
   }
 
-  console.log('[Job Hunter BG] Company payload:', JSON.stringify(companyFields, null, 2));
+  // Size (exists in Companies schema - Single Select)
+  // Map from headcount if available
+  const totalEmployees = ensureNumber(jobData.companyHeadcount || jobData.totalEmployees);
+  if (totalEmployees !== null && totalEmployees > 0) {
+    const sizeCategory = mapHeadcountToSize(totalEmployees);
+    if (sizeCategory) {
+      companyFields['Size'] = sizeCategory;
+      console.log('[Job Hunter BG] ✓ Size:', sizeCategory, '(from', totalEmployees, 'employees)');
+    }
+  }
+
+  console.log('[Job Hunter BG] === Companies Table Payload (schema-validated) ===');
+  console.log(JSON.stringify(companyFields, null, 2));
 
   if (existingRecord) {
     // Update existing company record
@@ -287,7 +284,13 @@ async function upsertCompany(credentials, jobData) {
     });
 
     if (!updateResponse.ok) {
-      throw new Error(`Failed to update company: ${updateResponse.status}`);
+      const errorBody = await updateResponse.json().catch(() => ({}));
+      console.error('[Job Hunter BG] ❌ Company UPDATE failed (422):', {
+        status: updateResponse.status,
+        error: errorBody.error,
+        sentPayload: companyFields
+      });
+      throw new Error(`Failed to update company: ${updateResponse.status} - ${JSON.stringify(errorBody.error)}`);
     }
 
     const updateData = await updateResponse.json();
@@ -311,7 +314,13 @@ async function upsertCompany(credentials, jobData) {
     });
 
     if (!createResponse.ok) {
-      throw new Error(`Failed to create company: ${createResponse.status}`);
+      const errorBody = await createResponse.json().catch(() => ({}));
+      console.error('[Job Hunter BG] ❌ Company CREATE failed (422):', {
+        status: createResponse.status,
+        error: errorBody.error,
+        sentPayload: companyFields
+      });
+      throw new Error(`Failed to create company: ${createResponse.status} - ${JSON.stringify(errorBody.error)}`);
     }
 
     const createData = await createResponse.json();
