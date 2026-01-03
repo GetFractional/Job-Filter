@@ -222,7 +222,7 @@ async function upsertCompany(credentials, jobData) {
   const searchData = await searchResponse.json();
   const existingRecord = searchData.records?.[0];
 
-  // Build company payload with proper field types
+  // Build company payload with proper field types and validation
   const companyFields = {
     'Company Name': sanitizeString(companyName)
   };
@@ -235,42 +235,52 @@ async function upsertCompany(credentials, jobData) {
     companyFields['Location'] = sanitizeString(jobData.location);
   }
 
-  // Total Employees (Number field)
+  // Total Employees (Number field) - Ensure it's an integer
   const totalEmployees = ensureNumber(jobData.companyHeadcount || jobData.totalEmployees);
-  if (totalEmployees !== null) {
-    companyFields['Total Employees'] = totalEmployees;
+  if (totalEmployees !== null && totalEmployees > 0) {
+    companyFields['Total Employees'] = Math.round(totalEmployees); // Ensure integer
+    console.log('[Job Hunter BG] ✓ Total Employees:', totalEmployees);
   }
 
   // Size (Single Select - map from headcount)
   const sizeCategory = mapHeadcountToSize(totalEmployees);
   if (sizeCategory) {
     companyFields['Size'] = sizeCategory;
+    console.log('[Job Hunter BG] ✓ Size category:', sizeCategory);
   }
 
   // Growth (Percent field - send as decimal)
   const growthPercent = parsePercentToDecimal(jobData.companyHeadcountGrowth || jobData.growth);
   if (growthPercent !== null) {
-    companyFields['Growth'] = growthPercent;
+    // Round to 4 decimal places to avoid precision issues
+    companyFields['Growth'] = Math.round(growthPercent * 10000) / 10000;
+    console.log('[Job Hunter BG] ✓ Growth (decimal):', companyFields['Growth'], 'from', jobData.companyHeadcountGrowth);
   }
 
   // Median Employee Tenure (Number field)
   const tenure = ensureNumber(jobData.medianEmployeeTenure || jobData.tenure);
-  if (tenure !== null) {
-    companyFields['Median Employee Tenure'] = tenure;
+  if (tenure !== null && tenure > 0) {
+    // Round to 1 decimal place
+    companyFields['Median Employee Tenure'] = Math.round(tenure * 10) / 10;
+    console.log('[Job Hunter BG] ✓ Median Tenure:', companyFields['Median Employee Tenure'], 'years');
   }
 
-  // Industry (Single Select)
+  // Industry (Single Select) - Validate and sanitize
   if (jobData.industry) {
-    companyFields['Industry'] = sanitizeString(jobData.industry);
+    const industry = sanitizeString(jobData.industry);
+    companyFields['Industry'] = industry;
+    console.log('[Job Hunter BG] ✓ Industry:', industry);
   }
 
-  // Followers (Number field)
+  // Followers (Number field) - Ensure it's an integer
   const followers = ensureNumber(jobData.companyFollowers || jobData.followers);
-  if (followers !== null) {
-    companyFields['Followers'] = followers;
+  if (followers !== null && followers > 0) {
+    companyFields['Followers'] = Math.round(followers); // Ensure integer
+    console.log('[Job Hunter BG] ✓ Followers:', followers);
   }
 
-  console.log('[Job Hunter BG] Company payload:', JSON.stringify(companyFields, null, 2));
+  console.log('[Job Hunter BG] === FINAL Company Payload ===');
+  console.log(JSON.stringify(companyFields, null, 2));
 
   if (existingRecord) {
     // Update existing company record
