@@ -702,7 +702,10 @@ function extractCompanyHeadcountData() {
   try {
     // Method 0: LinkedIn Premium Company Growth Widget (MOST RELIABLE)
     // Look for the specific "Company-wide" growth stat
+    console.log('[Job Hunter] Looking for LinkedIn premium company growth widget...');
     const companyGrowthItems = document.querySelectorAll('.jobs-premium-company-growth__stat-item');
+    console.log('[Job Hunter] Found', companyGrowthItems.length, 'growth stat items');
+
     for (const item of companyGrowthItems) {
       const labels = item.querySelectorAll('p');
       let isCompanyWide = false;
@@ -731,10 +734,15 @@ function extractCompanyHeadcountData() {
             result.headcountGrowthText = `Company-wide ${result.headcountGrowthRate >= 0 ? '+' : ''}${result.headcountGrowthRate}% (2yr)`;
             result.headcountDataFound = true;
             console.log('[Job Hunter] ✓ Found company growth from LinkedIn premium widget:', result.headcountGrowthText);
+            console.log('[Job Hunter] Growth rate:', result.headcountGrowthRate, '(increase:', !!hasIncrease, ', decrease:', !!hasDecrease, ')');
             break;
           }
         }
       }
+    }
+
+    if (!result.headcountDataFound) {
+      console.log('[Job Hunter] No premium company growth widget found, using fallback methods...');
     }
 
     // Method 1: Try LinkedIn company sidebar / insights section on job posting

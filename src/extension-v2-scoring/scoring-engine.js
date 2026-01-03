@@ -1004,6 +1004,11 @@ function scoreOrgStability(jobPayload, userProfile) {
   const description = (jobPayload.descriptionText || jobPayload.job_description_text || '').toLowerCase();
   const headcountGrowthText = jobPayload.companyHeadcountGrowth || jobPayload.company_headcount_growth || '';
 
+  console.log('[Scoring] Org Stability input:', {
+    headcountGrowthText,
+    jobPayload_keys: Object.keys(jobPayload)
+  });
+
   // Parse growth percentage from text like "+5% over last 6 months" or "-3% decline"
   let growthRate = null;
   const growthMatch = headcountGrowthText.match(/([+-]?\d+(?:\.\d+)?)\s*%/);
@@ -1070,7 +1075,7 @@ function scoreOrgStability(jobPayload, userProfile) {
     actualValue = 'Growing';
   }
 
-  return {
+  const result = {
     criteria: 'Org Stability',
     criteria_description: 'Company headcount growth/decline trends (growing = more stable)',
     actual_value: actualValue,
@@ -1079,6 +1084,15 @@ function scoreOrgStability(jobPayload, userProfile) {
     growth_rate: growthRate,
     missing_data: growthRate === null && !hasGrowthSignals && !hasDeclineSignals
   };
+
+  console.log('[Scoring] Org Stability result:', {
+    growthRate,
+    score: result.score,
+    rationale,
+    actualValue
+  });
+
+  return result;
 }
 
 /**
