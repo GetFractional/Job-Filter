@@ -463,7 +463,25 @@ function extractLinkedInJobData() {
     }
 
     // Extract Hiring Manager with name and job title from "Meet the hiring team" section
-    // Try multiple container selectors
+    // CRITICAL: First scope to the right-hand job detail pane ONLY
+    // This prevents pulling data from left-hand search results
+    const jobDetailPaneSelectors = [
+      '.jobs-search__job-details',  // Primary right-hand detail pane
+      '.jobs-details',               // Fallback detail container
+      '.job-details-jobs-unified-top-card',
+      '.jobs-unified-top-card'
+    ];
+
+    let jobDetailPane = null;
+    for (const selector of jobDetailPaneSelectors) {
+      jobDetailPane = document.querySelector(selector);
+      if (jobDetailPane) {
+        console.log('[Job Hunter] ✓ Found job detail pane:', selector);
+        break;
+      }
+    }
+
+    // Now search for hiring team container within the job detail pane ONLY
     const hiringTeamContainerSelectors = [
       '.hirer-card__hirer-information',
       '.jobs-poster',
@@ -477,8 +495,9 @@ function extractLinkedInJobData() {
     ];
 
     let hiringTeamContainer = null;
+    const searchScope = jobDetailPane || document; // Fallback to document if pane not found
     for (const selector of hiringTeamContainerSelectors) {
-      hiringTeamContainer = document.querySelector(selector);
+      hiringTeamContainer = searchScope.querySelector(selector);
       if (hiringTeamContainer) break;
     }
 
@@ -557,17 +576,17 @@ function extractLinkedInJobData() {
       }
     }
 
-    // Fallback: search entire document
+    // Fallback: search within job detail pane scope (not entire document)
     if (!nameEl || !nameEl.textContent?.trim()) {
       for (const selector of hiringManagerNameSelectors) {
-        nameEl = document.querySelector(selector);
+        nameEl = searchScope.querySelector(selector);
         if (nameEl && nameEl.textContent?.trim()) break;
       }
     }
 
     if (!titleEl || !titleEl.textContent?.trim()) {
       for (const selector of hiringManagerTitleSelectors) {
-        titleEl = document.querySelector(selector);
+        titleEl = searchScope.querySelector(selector);
         if (titleEl && titleEl.textContent?.trim()) break;
       }
     }
