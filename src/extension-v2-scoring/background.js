@@ -222,64 +222,51 @@ async function upsertCompany(credentials, jobData) {
   const searchData = await searchResponse.json();
   const existingRecord = searchData.records?.[0];
 
-  // Build company payload with proper field types and validation
+  // Build company payload with ONLY fields that exist in Companies table schema
   const companyFields = {
     'Company Name': sanitizeString(companyName)
   };
 
-  // Add optional fields if available
+  // CRITICAL: Only include fields that actually exist in your Companies Airtable schema
+  // DO NOT send: Total Employees, Growth, Median Employee Tenure, Followers
+  // Those fields don't exist in Companies table - they would cause 422 errors!
+
+  // LinkedIn URL (exists in Companies schema)
   if (jobData.companyPageUrl) {
     companyFields['LinkedIn URL'] = sanitizeString(jobData.companyPageUrl);
+    console.log('[Job Hunter BG] ✓ LinkedIn URL:', jobData.companyPageUrl);
   }
+
+  // Location (exists in Companies schema)
   if (jobData.location) {
     companyFields['Location'] = sanitizeString(jobData.location);
+    console.log('[Job Hunter BG] ✓ Location:', jobData.location);
   }
 
-  // Total Employees (Number field) - Ensure it's an integer
+  // Industry (exists in Companies schema)
+  if (jobData.industry) {
+    companyFields['Industry'] = sanitizeString(jobData.industry);
+    console.log('[Job Hunter BG] ✓ Industry:', jobData.industry);
+  }
+
+  // Website (exists in Companies schema)
+  if (jobData.website) {
+    companyFields['Website'] = sanitizeString(jobData.website);
+    console.log('[Job Hunter BG] ✓ Website:', jobData.website);
+  }
+
+  // Size (exists in Companies schema - Single Select)
+  // Map from headcount if available
   const totalEmployees = ensureNumber(jobData.companyHeadcount || jobData.totalEmployees);
   if (totalEmployees !== null && totalEmployees > 0) {
-    companyFields['Total Employees'] = Math.round(totalEmployees); // Ensure integer
-    console.log('[Job Hunter BG] ✓ Total Employees:', totalEmployees);
+    const sizeCategory = mapHeadcountToSize(totalEmployees);
+    if (sizeCategory) {
+      companyFields['Size'] = sizeCategory;
+      console.log('[Job Hunter BG] ✓ Size:', sizeCategory, '(from', totalEmployees, 'employees)');
+    }
   }
 
-  // Size (Single Select - map from headcount)
-  const sizeCategory = mapHeadcountToSize(totalEmployees);
-  if (sizeCategory) {
-    companyFields['Size'] = sizeCategory;
-    console.log('[Job Hunter BG] ✓ Size category:', sizeCategory);
-  }
-
-  // Growth (Percent field - send as decimal)
-  const growthPercent = parsePercentToDecimal(jobData.companyHeadcountGrowth || jobData.growth);
-  if (growthPercent !== null) {
-    // Round to 4 decimal places to avoid precision issues
-    companyFields['Growth'] = Math.round(growthPercent * 10000) / 10000;
-    console.log('[Job Hunter BG] ✓ Growth (decimal):', companyFields['Growth'], 'from', jobData.companyHeadcountGrowth);
-  }
-
-  // Median Employee Tenure (Number field)
-  const tenure = ensureNumber(jobData.medianEmployeeTenure || jobData.tenure);
-  if (tenure !== null && tenure > 0) {
-    // Round to 1 decimal place
-    companyFields['Median Employee Tenure'] = Math.round(tenure * 10) / 10;
-    console.log('[Job Hunter BG] ✓ Median Tenure:', companyFields['Median Employee Tenure'], 'years');
-  }
-
-  // Industry (Single Select) - Validate and sanitize
-  if (jobData.industry) {
-    const industry = sanitizeString(jobData.industry);
-    companyFields['Industry'] = industry;
-    console.log('[Job Hunter BG] ✓ Industry:', industry);
-  }
-
-  // Followers (Number field) - Ensure it's an integer
-  const followers = ensureNumber(jobData.companyFollowers || jobData.followers);
-  if (followers !== null && followers > 0) {
-    companyFields['Followers'] = Math.round(followers); // Ensure integer
-    console.log('[Job Hunter BG] ✓ Followers:', followers);
-  }
-
-  console.log('[Job Hunter BG] === FINAL Company Payload ===');
+  console.log('[Job Hunter BG] === Companies Table Payload (schema-validated) ===');
   console.log(JSON.stringify(companyFields, null, 2));
 
   if (existingRecord) {
