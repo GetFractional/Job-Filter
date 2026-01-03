@@ -451,10 +451,15 @@ function extractLinkedInJobData() {
       if (hiringTeamContainer) break;
     }
 
-    // Hiring Manager Name selectors - expanded list
+    // Hiring Manager Name selectors - expanded list with more robust patterns
     const hiringManagerNameSelectors = [
+      // Primary selectors - LinkedIn's most common patterns
       '.hirer-card__hirer-information a',
       '.jobs-poster__name',
+      '.jobs-poster__name a',
+      '.jobs-poster a.app-aware-link',
+
+      // Hiring team card patterns
       '.hiring-team__title a',
       '[data-test-hiring-team-card] a',
       '.job-details-jobs-unified-top-card__hiring-team-member-name',
@@ -462,20 +467,47 @@ function extractLinkedInJobData() {
       '.jobs-hiring-team__name a',
       '.hiring-team-member__name',
       '.hirer-info__name',
-      'a[data-test-hiring-team-member-link]'
+      'a[data-test-hiring-team-member-link]',
+
+      // Additional fallback patterns
+      '.jobs-poster-name',
+      '.hiring-team-member a',
+      '.job-poster__name',
+      '[class*="hiring-team"] a[href*="/in/"]',
+      '[class*="poster"] a[href*="/in/"]',
+      '.artdeco-entity-lockup__title a',
+      '.hirer-name',
+      '.job-details-hiring-manager-name'
     ];
 
-    // Hiring Manager Title selectors - expanded list
+    // Hiring Manager Title selectors - expanded list with more robust patterns
     const hiringManagerTitleSelectors = [
+      // Primary selectors - matching actual LinkedIn HTML structure
+      '.hirer-card__hirer-information .linked-area .text-body-small',
+      '.linked-area .text-body-small.t-black',
       '.hirer-card__hirer-information .t-14',
       '.jobs-poster__headline',
+      '.jobs-poster .t-14',
+      '.jobs-poster .t-12',
+
+      // Hiring team card patterns
       '.hiring-team__subtitle',
       '.job-details-jobs-unified-top-card__hiring-team-member-subtitle',
       '.hiring-team-card-container__headline',
       '.jobs-hiring-team__subtitle',
       '.hiring-team-member__subtitle',
       '.hirer-info__subtitle',
-      '[data-test-hiring-team-member-subtitle]'
+      '[data-test-hiring-team-member-subtitle]',
+
+      // Additional fallback patterns
+      '.jobs-poster-subtitle',
+      '.hiring-team-member .t-14',
+      '.job-poster__headline',
+      '.artdeco-entity-lockup__subtitle',
+      '.hirer-subtitle',
+      '.linked-area div',
+      '[class*="hiring-team"] [class*="subtitle"]',
+      '[class*="poster"] [class*="headline"]'
     ];
 
     let nameEl = null;
@@ -526,9 +558,33 @@ function extractLinkedInJobData() {
         name: hiringManagerName,
         title: hiringManagerTitle
       };
-      console.log('[Job Hunter] Hiring Manager extracted:', data.hiringManager);
+      console.log('[Job Hunter] ✓ Hiring Manager extracted:', data.hiringManager);
+      console.log('[Job Hunter] Hiring Manager Details:', {
+        name: hiringManagerName,
+        title: hiringManagerTitle,
+        foundInContainer: !!hiringTeamContainer,
+        nameSelector: nameEl?.className || 'unknown',
+        titleSelector: titleEl?.className || 'unknown'
+      });
     } else {
-      console.log('[Job Hunter] Hiring Manager not found on page');
+      console.log('[Job Hunter] ⚠ Hiring Manager not found on page');
+      console.log('[Job Hunter] Debug info:', {
+        hiringTeamContainerFound: !!hiringTeamContainer,
+        hiringTeamContainerClass: hiringTeamContainer?.className || 'none',
+        nameElementFound: !!nameEl,
+        titleElementFound: !!titleEl,
+        pageURL: window.location.href
+      });
+      // Try to help debug by logging any elements that might contain hiring manager info
+      const possibleElements = document.querySelectorAll('[class*="hiring"], [class*="poster"], [class*="hirer"]');
+      if (possibleElements.length > 0) {
+        console.log('[Job Hunter] Possible hiring-related elements found:', possibleElements.length);
+        possibleElements.forEach((el, idx) => {
+          if (idx < 3) { // Log first 3 to avoid spam
+            console.log(`  [${idx}] ${el.className}:`, el.textContent?.trim().substring(0, 100));
+          }
+        });
+      }
     }
 
     // Extract Posted Date from job card metadata
