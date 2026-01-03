@@ -26,6 +26,61 @@ const TABLES = {
   OUTREACH_LOG: 'Outreach%20Log'
 };
 
+// ===========================
+// AIRTABLE DATA SANITIZATION
+// ===========================
+
+/**
+ * Sanitize string values for Airtable - removes double quotes that cause 422 errors
+ * @param {string} value - String to sanitize
+ * @returns {string} Sanitized string
+ */
+function sanitizeString(value) {
+  if (typeof value !== 'string') return value;
+  // Remove leading/trailing quotes that might cause double-stringification
+  return value.replace(/^"|"$/g, '').trim();
+}
+
+/**
+ * Convert headcount number to size category for Airtable Single Select
+ * @param {number} headcount - Employee count
+ * @returns {string|null} Size category
+ */
+function mapHeadcountToSize(headcount) {
+  if (!headcount || headcount <= 0) return null;
+  if (headcount <= 50) return '1-50 employees';
+  if (headcount <= 200) return '51-200 employees';
+  if (headcount <= 500) return '201-500 employees';
+  if (headcount <= 1000) return '501-1,000 employees';
+  if (headcount <= 5000) return '1,001-5,000 employees';
+  if (headcount <= 10000) return '5,001-10,000 employees';
+  return '10,001+ employees';
+}
+
+/**
+ * Convert percentage string (e.g., "+11%") to decimal for Airtable Percent field
+ * @param {string} percentString - Percentage string like "+11%" or "11%"
+ * @returns {number|null} Decimal value (e.g., 0.11 for 11%)
+ */
+function parsePercentToDecimal(percentString) {
+  if (!percentString || typeof percentString !== 'string') return null;
+  const match = percentString.match(/([+-]?\d+(?:\.\d+)?)\s*%/);
+  if (!match) return null;
+  const percentage = parseFloat(match[1]);
+  return percentage / 100; // Convert to decimal
+}
+
+/**
+ * Ensure value is a proper number for Airtable Number field
+ * @param {any} value - Value to convert
+ * @returns {number|null} Number or null
+ */
+function ensureNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const num = typeof value === 'string' ? parseFloat(value.replace(/,/g, '')) : Number(value);
+  return isNaN(num) ? null : num;
+}
+
 /**
  * Listen for messages from content scripts
  */
@@ -167,20 +222,55 @@ async function upsertCompany(credentials, jobData) {
   const searchData = await searchResponse.json();
   const existingRecord = searchData.records?.[0];
 
-  // Build company payload
+  // Build company payload with proper field types
   const companyFields = {
-    'Company Name': companyName
+    'Company Name': sanitizeString(companyName)
   };
 
   // Add optional fields if available
   if (jobData.companyPageUrl) {
-    companyFields['LinkedIn URL'] = jobData.companyPageUrl;
+    companyFields['LinkedIn URL'] = sanitizeString(jobData.companyPageUrl);
   }
   if (jobData.location) {
-    companyFields['Location'] = jobData.location;
+    companyFields['Location'] = sanitizeString(jobData.location);
   }
-  // Note: Industry, Size, Type, Website would need to be extracted from job description or company page
-  // For now, we'll leave them empty and they can be enriched later
+
+  // Total Employees (Number field)
+  const totalEmployees = ensureNumber(jobData.companyHeadcount || jobData.totalEmployees);
+  if (totalEmployees !== null) {
+    companyFields['Total Employees'] = totalEmployees;
+  }
+
+  // Size (Single Select - map from headcount)
+  const sizeCategory = mapHeadcountToSize(totalEmployees);
+  if (sizeCategory) {
+    companyFields['Size'] = sizeCategory;
+  }
+
+  // Growth (Percent field - send as decimal)
+  const growthPercent = parsePercentToDecimal(jobData.companyHeadcountGrowth || jobData.growth);
+  if (growthPercent !== null) {
+    companyFields['Growth'] = growthPercent;
+  }
+
+  // Median Employee Tenure (Number field)
+  const tenure = ensureNumber(jobData.medianEmployeeTenure || jobData.tenure);
+  if (tenure !== null) {
+    companyFields['Median Employee Tenure'] = tenure;
+  }
+
+  // Industry (Single Select)
+  if (jobData.industry) {
+    companyFields['Industry'] = sanitizeString(jobData.industry);
+  }
+
+  // Followers (Number field)
+  const followers = ensureNumber(jobData.companyFollowers || jobData.followers);
+  if (followers !== null) {
+    companyFields['Followers'] = followers;
+  }
+
+  console.log('[Job Hunter BG] Company payload:', JSON.stringify(companyFields, null, 2));
 
   if (existingRecord) {
     // Update existing company record
@@ -241,16 +331,16 @@ async function upsertCompany(credentials, jobData) {
 async function upsertContact(credentials, jobData, companyRecordId) {
   const hiringManager = jobData.hiringManagerDetails;
 
-  // Default to "John Doe" when no hiring manager is found
-  let firstName = 'John';
-  let lastName = 'Doe';
-
-  if (hiringManager?.name) {
-    // Parse actual hiring manager name
-    const nameParts = hiringManager.name.trim().split(' ');
-    firstName = nameParts[0] || 'John';
-    lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Doe';
+  // CRITICAL: If no hiring manager found, return null - do NOT create fake "John Doe" contact
+  if (!hiringManager?.name) {
+    console.log('[Job Hunter BG] No hiring manager found - skipping contact creation');
+    return null;
   }
+
+  // Parse actual hiring manager name
+  const nameParts = hiringManager.name.trim().split(' ');
+  const firstName = sanitizeString(nameParts[0] || '');
+  const lastName = sanitizeString(nameParts.length > 1 ? nameParts.slice(1).join(' ') : '');
 
   // Search for existing contact by LinkedIn URL (if available) or by name + company
   let searchFormula;
@@ -286,18 +376,18 @@ async function upsertContact(credentials, jobData, companyRecordId) {
     'Contact Type': 'Hiring Manager' // Always set to Hiring Manager by default
   };
 
-  // Add optional fields
+  // Add optional fields (all sanitized)
   if (hiringManager?.title) {
-    contactFields['Role / Title'] = hiringManager.title;
+    contactFields['Role / Title'] = sanitizeString(hiringManager.title);
   }
   if (jobData.hiringManagerLinkedInUrl) {
-    contactFields['LinkedIn URL'] = jobData.hiringManagerLinkedInUrl;
+    contactFields['LinkedIn URL'] = sanitizeString(jobData.hiringManagerLinkedInUrl);
   }
   if (jobData.hiringManagerEmail) {
-    contactFields['Email'] = jobData.hiringManagerEmail;
+    contactFields['Email'] = sanitizeString(jobData.hiringManagerEmail);
   }
   if (jobData.hiringManagerPhone) {
-    contactFields['Phone / WhatsApp'] = jobData.hiringManagerPhone;
+    contactFields['Phone / WhatsApp'] = sanitizeString(jobData.hiringManagerPhone);
   }
 
   if (existingRecord) {
@@ -374,16 +464,16 @@ async function upsertContact(credentials, jobData, companyRecordId) {
  * @returns {Promise<string>} Job record ID
  */
 async function createJob(credentials, jobData, scoreData, companyRecordId, contactRecordId) {
-  // Build the Airtable record payload
+  // Build the Airtable record payload (all strings sanitized)
   // Field names must match exactly what's defined in Airtable
   const jobFields = {
-    'Job Title': jobData.jobTitle,
-    'Company Name': jobData.companyName, // TEXT field - company name as string
+    'Job Title': sanitizeString(jobData.jobTitle),
+    'Company Name': sanitizeString(jobData.companyName), // TEXT field - company name as string
     'Companies': [companyRecordId], // LINKED RECORD field - array of record IDs
-    'Job URL': jobData.jobUrl || '',
-    'Location': jobData.location || '',
-    'Source': jobData.source || 'LinkedIn',
-    'Job Description': jobData.descriptionText || '',
+    'Job URL': sanitizeString(jobData.jobUrl || ''),
+    'Location': sanitizeString(jobData.location || ''),
+    'Source': sanitizeString(jobData.source || 'LinkedIn'),
+    'Job Description': sanitizeString(jobData.descriptionText || ''),
     'Status': 'Captured'
   };
 
@@ -421,9 +511,9 @@ async function createJob(credentials, jobData, scoreData, companyRecordId, conta
       jobFields['Overall Fit Score'] = scoreData.overall_score;
     }
     if (scoreData.overall_label) {
-      // Map the label to valid Airtable select options
+      // Map the label to valid Airtable select options and sanitize
       const validFitOptions = ['STRONG FIT', 'GOOD FIT', 'MODERATE FIT', 'FAIR FIT', 'WEAK FIT', 'POOR FIT', 'HARD NO'];
-      let fitLabel = scoreData.overall_label.toUpperCase().trim();
+      let fitLabel = sanitizeString(scoreData.overall_label).toUpperCase().trim();
 
       if (!validFitOptions.includes(fitLabel)) {
         if (fitLabel.includes('STRONG')) fitLabel = 'STRONG FIT';
@@ -436,7 +526,8 @@ async function createJob(credentials, jobData, scoreData, companyRecordId, conta
         console.log(`[Job Hunter BG] Mapped "${scoreData.overall_label}" to "${fitLabel}" for Airtable`);
       }
 
-      jobFields['Fit Recommendation'] = fitLabel;
+      // Final sanitization before sending
+      jobFields['Fit Recommendation'] = sanitizeString(fitLabel);
     }
     if (scoreData.job_to_user_fit?.score !== undefined) {
       jobFields['Preference Fit Score'] = scoreData.job_to_user_fit.score;

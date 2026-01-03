@@ -684,22 +684,55 @@ function extractLinkedInJobData() {
     // Clean up the job URL - remove unnecessary parameters
     data.jobUrl = cleanLinkedInUrl(window.location.href);
 
-    // Extract Company Headcount and Growth Data
+    // Extract Company Headcount, Growth, and Tenure Data
     const companyHeadcountData = extractCompanyHeadcountData();
     if (companyHeadcountData.currentHeadcount !== null) {
       data.companyHeadcount = companyHeadcountData.currentHeadcount;
-      console.log('[Job Hunter] ✓ Headcount extracted:', companyHeadcountData.currentHeadcount, 'employees');
+      data.totalEmployees = companyHeadcountData.currentHeadcount; // Alias for Airtable
+      console.log('[Job Hunter] ✓ Total Employees extracted:', companyHeadcountData.currentHeadcount);
     }
     if (companyHeadcountData.headcountGrowthRate !== null) {
       data.companyHeadcountGrowth = `${companyHeadcountData.headcountGrowthRate >= 0 ? '+' : ''}${companyHeadcountData.headcountGrowthRate}%`;
       console.log('[Job Hunter] ✓ Growth rate extracted:', data.companyHeadcountGrowth, '(2-year company-wide)');
     } else {
-      // Explicitly set to null/undefined when no growth data exists
+      // Explicitly set to null when no growth data exists
       data.companyHeadcountGrowth = null;
       console.log('[Job Hunter] ⚠ No growth data found - companyHeadcountGrowth set to null');
     }
-    if (!companyHeadcountData.currentHeadcount && !companyHeadcountData.headcountGrowthRate) {
-      console.log('[Job Hunter] ℹ️ No company headcount/growth data available on this page');
+    if (companyHeadcountData.medianEmployeeTenure !== null) {
+      data.medianEmployeeTenure = companyHeadcountData.medianEmployeeTenure;
+      console.log('[Job Hunter] ✓ Median Employee Tenure extracted:', data.medianEmployeeTenure, 'years');
+    }
+
+    // Extract Industry from footer "About the company" section
+    const industryFooter = document.querySelector('.jobs-company__company-description .t-14.mt5');
+    if (industryFooter) {
+      const industryText = industryFooter.textContent?.trim() || '';
+      // Skip if it's "Staffing and Recruiting" - we'll infer from job description instead
+      if (industryText && !industryText.toLowerCase().includes('staffing and recruiting')) {
+        data.industry = industryText;
+        console.log('[Job Hunter] ✓ Industry extracted:', data.industry);
+      } else if (industryText.toLowerCase().includes('staffing and recruiting')) {
+        console.log('[Job Hunter] ⚠ Detected recruiting firm - industry will need inference from JD');
+      }
+    }
+
+    // Extract Followers from "About the company" section
+    const aboutCompanySection = document.querySelector('.jobs-company__company-description');
+    if (aboutCompanySection) {
+      const followersText = aboutCompanySection.textContent || '';
+      const followersMatch = followersText.match(/(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*(?:K|M)?\s*followers?/i);
+      if (followersMatch) {
+        let followersValue = followersMatch[1].replace(/,/g, '');
+        // Handle K (thousands) and M (millions) suffixes
+        if (followersText.match(/\d+\s*K\s*followers?/i)) {
+          followersValue = parseFloat(followersValue) * 1000;
+        } else if (followersText.match(/\d+\s*M\s*followers?/i)) {
+          followersValue = parseFloat(followersValue) * 1000000;
+        }
+        data.companyFollowers = parseInt(followersValue, 10);
+        console.log('[Job Hunter] ✓ Followers extracted:', data.companyFollowers);
+      }
     }
 
   } catch (error) {
@@ -710,62 +743,98 @@ function extractLinkedInJobData() {
 }
 
 /**
- * Extract company headcount and growth data from LinkedIn page
- * Looks in multiple places: company sidebar, about section, and page text
- * @returns {Object} { currentHeadcount, headcountGrowthRate, headcountGrowthText, headcountDataFound }
+ * Extract company headcount, growth, and tenure data from LinkedIn premium widget
+ * CRITICAL: Extracts specific fields from .jobs-premium-company-growth container:
+ *  - Total Employees: First .t-16 element
+ *  - Growth: "Company-wide" percentage (not department-specific)
+ *  - Median Employee Tenure: decimal from strong tag
+ * @returns {Object} { currentHeadcount, headcountGrowthRate, medianEmployeeTenure, headcountDataFound }
  */
 function extractCompanyHeadcountData() {
   const result = {
     currentHeadcount: null,
     headcountGrowthRate: null,
     headcountGrowthText: null,
+    medianEmployeeTenure: null,
     headcountDataFound: false
   };
 
   try {
-    // Method 0: LinkedIn Premium Company Growth Widget (MOST RELIABLE)
-    // Look for the specific "Company-wide" growth stat
+    // CRITICAL: LinkedIn Premium Company Growth Widget (.jobs-premium-company-growth)
+    // This widget contains Total Employees, Growth %, and Median Tenure
     console.log('[Job Hunter] Looking for LinkedIn premium company growth widget...');
-    const companyGrowthItems = document.querySelectorAll('.jobs-premium-company-growth__stat-item');
-    console.log('[Job Hunter] Found', companyGrowthItems.length, 'growth stat items');
+    const growthWidget = document.querySelector('.jobs-premium-company-growth');
 
-    for (const item of companyGrowthItems) {
-      const labels = item.querySelectorAll('p');
-      let isCompanyWide = false;
-      let growthText = '';
+    if (growthWidget) {
+      console.log('[Job Hunter] ✓ Found premium company growth widget');
 
-      labels.forEach(label => {
-        const text = label.textContent?.trim() || '';
-        if (text.toLowerCase() === 'company-wide') {
-          isCompanyWide = true;
+      // Extract Total Employees from the first .t-16 element
+      const employeeCountEl = growthWidget.querySelector('p.t-16');
+      if (employeeCountEl) {
+        const employeeText = employeeCountEl.textContent?.trim() || '';
+        const employeeMatch = employeeText.match(/(\d{1,3}(?:,\d{3})*)/);
+        if (employeeMatch) {
+          result.currentHeadcount = parseInt(employeeMatch[1].replace(/,/g, ''), 10);
+          console.log('[Job Hunter] ✓ Total Employees:', result.currentHeadcount);
+          result.headcountDataFound = true;
         }
-      });
+      }
 
-      if (isCompanyWide) {
-        // Extract the percentage from the bold text
-        const percentageEl = item.querySelector('.t-16.t-black--light.t-bold');
-        if (percentageEl) {
-          growthText = percentageEl.textContent?.trim() || '';
-          const percentMatch = growthText.match(/([+-]?\d+(?:\.\d+)?)\s*%/);
-          if (percentMatch) {
-            const rate = parseFloat(percentMatch[1]);
-            // Check if it's an increase or decrease based on CSS class
-            const hasIncrease = item.querySelector('.jobs-premium-company-growth__number-with-arrow--increase');
-            const hasDecrease = item.querySelector('.jobs-premium-company-growth__number-with-arrow--decrease');
+      // Extract Growth from "Company-wide" stat (NOT department-specific)
+      const companyGrowthItems = growthWidget.querySelectorAll('.jobs-premium-company-growth__stat-item');
+      console.log('[Job Hunter] Found', companyGrowthItems.length, 'growth stat items');
 
-            result.headcountGrowthRate = hasDecrease ? -Math.abs(rate) : rate;
-            result.headcountGrowthText = `Company-wide ${result.headcountGrowthRate >= 0 ? '+' : ''}${result.headcountGrowthRate}% (2yr)`;
-            result.headcountDataFound = true;
-            console.log('[Job Hunter] ✓ Found company growth from LinkedIn premium widget:', result.headcountGrowthText);
-            console.log('[Job Hunter] Growth rate:', result.headcountGrowthRate, '(increase:', !!hasIncrease, ', decrease:', !!hasDecrease, ')');
+      for (const item of companyGrowthItems) {
+        const labels = item.querySelectorAll('p');
+        let isCompanyWide = false;
+
+        // Check if this is the "Company-wide" growth stat (not department-specific)
+        labels.forEach(label => {
+          const text = label.textContent?.trim() || '';
+          if (text.toLowerCase() === 'company-wide') {
+            isCompanyWide = true;
+          }
+        });
+
+        if (isCompanyWide) {
+          // Extract the percentage from the bold text
+          const percentageEl = item.querySelector('.t-16.t-black--light.t-bold');
+          if (percentageEl) {
+            const growthText = percentageEl.textContent?.trim() || '';
+            const percentMatch = growthText.match(/([+-]?\d+(?:\.\d+)?)\s*%/);
+            if (percentMatch) {
+              const rate = parseFloat(percentMatch[1]);
+              // Check if it's an increase or decrease based on CSS class
+              const hasIncrease = item.querySelector('.jobs-premium-company-growth__number-with-arrow--increase');
+              const hasDecrease = item.querySelector('.jobs-premium-company-growth__number-with-arrow--decrease');
+
+              result.headcountGrowthRate = hasDecrease ? -Math.abs(rate) : rate;
+              result.headcountGrowthText = `Company-wide ${result.headcountGrowthRate >= 0 ? '+' : ''}${result.headcountGrowthRate}% (2yr)`;
+              result.headcountDataFound = true;
+              console.log('[Job Hunter] ✓ Company-wide Growth:', result.headcountGrowthRate + '%');
+              break;
+            }
+          }
+        }
+      }
+
+      // Extract Median Employee Tenure from strong tag
+      const tenureElements = growthWidget.querySelectorAll('strong');
+      for (const strong of tenureElements) {
+        const tenureText = strong.textContent?.trim() || '';
+        const tenureMatch = tenureText.match(/(\d+(?:\.\d+)?)\s*(?:years?)?/);
+        if (tenureMatch) {
+          // Check if this is within a tenure context
+          const parentText = strong.closest('div')?.textContent?.toLowerCase() || '';
+          if (parentText.includes('tenure') || parentText.includes('employee')) {
+            result.medianEmployeeTenure = parseFloat(tenureMatch[1]);
+            console.log('[Job Hunter] ✓ Median Employee Tenure:', result.medianEmployeeTenure, 'years');
             break;
           }
         }
       }
-    }
-
-    if (!result.headcountDataFound) {
-      console.log('[Job Hunter] No premium company growth widget found, using fallback methods...');
+    } else {
+      console.log('[Job Hunter] ⚠ Premium company growth widget not found on page');
     }
 
     // Method 1: Try LinkedIn company sidebar / insights section on job posting
