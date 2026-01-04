@@ -631,16 +631,14 @@ function scoreBenefits(jobPayload, userProfile) {
     }
   };
 
-  // Detect which benefits are mentioned
-  const matchedBenefits = [];
-  const benefitBadges = [];
+  // Detect which benefits are mentioned in job description
+  const allMatchedBenefits = [];
   let totalScore = 0;
 
   for (const [key, config] of Object.entries(individualBenefits)) {
     const hasMatch = config.patterns.some(pattern => pattern.test(description));
     if (hasMatch) {
-      matchedBenefits.push(config.label);
-      benefitBadges.push({ label: config.label }); // Icon removed for consistent text-only styling
+      allMatchedBenefits.push(config.label);
       totalScore += config.weight;
     }
   }
@@ -649,16 +647,51 @@ function scoreBenefits(jobPayload, userProfile) {
   const preferredBenefits = userProfile?.preferences?.benefits || [];
   const hasPreferences = preferredBenefits.length > 0;
 
-  // If user has preferences, adjust score based on match percentage
-  let finalScore = totalScore;
-  if (hasPreferences && matchedBenefits.length > 0) {
-    // Count how many preferred benefits are matched
-    const preferredMatches = matchedBenefits.filter(b =>
-      preferredBenefits.some(pref => b.toLowerCase().includes(pref.toLowerCase()))
-    ).length;
+  // NEW LOGIC: Filter to only show user's preferred benefits (X/Y format)
+  let matchedPreferredBenefits = [];
+  let benefitBadges = [];
+  let benefitsCount = `${allMatchedBenefits.length}/11`; // Default: total detected / total tracked
 
-    // Bonus for matching preferred benefits
-    const matchPercentage = (preferredMatches / preferredBenefits.length) * 100;
+  if (hasPreferences) {
+    // Map user preferences to benefit labels (case-insensitive matching)
+    const benefitLabelMap = {
+      'medical': 'Medical',
+      'dental': 'Dental',
+      'vision': 'Vision',
+      '401k': '401k',
+      'hsa': 'HSA/FSA',
+      'fsa': 'HSA/FSA',
+      'pto': 'PTO',
+      'parental': 'Paid Parental',
+      'tuition': 'Tuition Reimbursement',
+      'learning': 'Learning Stipend',
+      'wfh': 'WFH Reimbursement',
+      'relocation': 'Relocation'
+    };
+
+    // Find which of user's preferred benefits were detected
+    for (const pref of preferredBenefits) {
+      const prefLower = pref.toLowerCase();
+      const matchedLabel = benefitLabelMap[prefLower];
+
+      if (matchedLabel && allMatchedBenefits.includes(matchedLabel)) {
+        matchedPreferredBenefits.push(matchedLabel);
+        benefitBadges.push({ label: matchedLabel });
+      }
+    }
+
+    // Update count to show X/Y where X=matched preferred, Y=total preferred
+    benefitsCount = `${matchedPreferredBenefits.length}/${preferredBenefits.length}`;
+  } else {
+    // No preferences: show all matched benefits
+    matchedPreferredBenefits = allMatchedBenefits;
+    benefitBadges = allMatchedBenefits.map(label => ({ label }));
+  }
+
+  // Score based on match percentage of preferred benefits
+  let finalScore = totalScore;
+  if (hasPreferences && matchedPreferredBenefits.length > 0) {
+    const matchPercentage = (matchedPreferredBenefits.length / preferredBenefits.length) * 100;
     if (matchPercentage >= 80) {
       finalScore = Math.min(100, totalScore * 1.2); // 20% bonus
     } else if (matchPercentage >= 50) {
@@ -666,27 +699,32 @@ function scoreBenefits(jobPayload, userProfile) {
     }
   }
 
-  // Cap at 100 points (was 50)
-  const normalizedScore = Math.min(100, Math.round(finalScore));
+  const normalizedScore = Math.min(50, Math.round(finalScore / 2)); // Normalize to 0-50 scale
 
   // Build actual value
   let actualValue = 'Not specified';
-  if (matchedBenefits.length > 0) {
-    actualValue = matchedBenefits.join(', ');
+  if (matchedPreferredBenefits.length > 0) {
+    actualValue = matchedPreferredBenefits.join(', ');
   }
 
-  // Build rationale
+  // Build rationale based on user preferences
   let rationale = '';
-  if (matchedBenefits.length >= 8) {
-    rationale = `Excellent benefits package: ${matchedBenefits.length}/11 benefits mentioned`;
-  } else if (matchedBenefits.length >= 5) {
-    rationale = `Comprehensive benefits: ${matchedBenefits.length}/11 benefits mentioned`;
-  } else if (matchedBenefits.length >= 3) {
-    rationale = `Good benefits: ${matchedBenefits.length}/11 benefits mentioned`;
-  } else if (matchedBenefits.length >= 1) {
-    rationale = `Limited benefits: ${matchedBenefits.length}/11 benefits mentioned`;
+  if (hasPreferences) {
+    const matchPct = Math.round((matchedPreferredBenefits.length / preferredBenefits.length) * 100);
+    rationale = `${matchedPreferredBenefits.length}/${preferredBenefits.length} of your preferred benefits mentioned (${matchPct}%)`;
   } else {
-    rationale = 'No benefits information provided (common for job listings)';
+    // No preferences: use default rationale
+    if (allMatchedBenefits.length >= 8) {
+      rationale = `Excellent benefits package: ${allMatchedBenefits.length}/11 benefits mentioned`;
+    } else if (allMatchedBenefits.length >= 5) {
+      rationale = `Comprehensive benefits: ${allMatchedBenefits.length}/11 benefits mentioned`;
+    } else if (allMatchedBenefits.length >= 3) {
+      rationale = `Good benefits: ${allMatchedBenefits.length}/11 benefits mentioned`;
+    } else if (allMatchedBenefits.length >= 1) {
+      rationale = `Limited benefits: ${allMatchedBenefits.length}/11 benefits mentioned`;
+    } else {
+      rationale = 'No benefits information provided (common for job listings)';
+    }
   }
 
   return {
@@ -695,9 +733,10 @@ function scoreBenefits(jobPayload, userProfile) {
     actual_value: actualValue,
     score: normalizedScore,
     rationale,
-    matched_benefits: matchedBenefits,
-    benefit_badges: benefitBadges, // For UI display
-    missing_data: matchedBenefits.length === 0
+    matched_benefits: matchedPreferredBenefits, // Only preferred benefits
+    benefit_badges: benefitBadges, // Only preferred benefits
+    benefits_count: benefitsCount, // "X/Y" format for UI display
+    missing_data: matchedPreferredBenefits.length === 0
   };
 }
 
@@ -767,12 +806,24 @@ function scoreBusinessLifecycle(jobPayload, userProfile) {
     'multi-national', 'multinational'
   ];
 
-  const declineKeywords = [
-    'restructuring', 'wind down', 'winding down',
-    'bankruptcy', 'chapter 11', 'chapter 7',
-    'layoffs', 'downsizing', 'reduction in force', 'rif',
-    'turnaround', 'turn around', 'pivot required',
-    'cost cutting', 'budget cuts', 'financial difficulties'
+  // FIXED: Use regex patterns with word boundaries to avoid false positives (e.g., "rif" in "sacrifice")
+  const declinePatterns = [
+    { pattern: /\brestructuring\b/i, label: 'restructuring' },
+    { pattern: /\bwind\s+down\b/i, label: 'wind down' },
+    { pattern: /\bwinding\s+down\b/i, label: 'winding down' },
+    { pattern: /\bbankruptcy\b/i, label: 'bankruptcy' },
+    { pattern: /\bchapter\s+11\b/i, label: 'chapter 11' },
+    { pattern: /\bchapter\s+7\b/i, label: 'chapter 7' },
+    { pattern: /\blayoffs?\b/i, label: 'layoffs' },
+    { pattern: /\bdownsizing\b/i, label: 'downsizing' },
+    { pattern: /\breduction\s+in\s+force\b/i, label: 'reduction in force' },
+    { pattern: /\b(?:rif|r\.i\.f\.)\b/i, label: 'RIF' }, // Word boundary prevents matching "sacrifice"
+    { pattern: /\bturnaround\b/i, label: 'turnaround' },
+    { pattern: /\bturn\s+around\b/i, label: 'turn around' },
+    { pattern: /\bpivot\s+required\b/i, label: 'pivot required' },
+    { pattern: /\bcost\s+cutting\b/i, label: 'cost cutting' },
+    { pattern: /\bbudget\s+cuts?\b/i, label: 'budget cuts' },
+    { pattern: /\bfinancial\s+difficulties\b/i, label: 'financial difficulties' }
   ];
 
   // Priority-based detection (most specific matches first)
@@ -794,11 +845,11 @@ function scoreBusinessLifecycle(jobPayload, userProfile) {
 
   // Check keywords if not already detected
   if (detectedStage === 'unknown') {
-    // Check decline first (important warning sign)
-    for (const kw of declineKeywords) {
-      if (description.includes(kw)) {
+    // Check decline first (important warning sign) - using regex patterns with word boundaries
+    for (const item of declinePatterns) {
+      if (item.pattern.test(description)) {
         detectedStage = 'decline';
-        matchedKeyword = kw;
+        matchedKeyword = item.label;
         break;
       }
     }
@@ -957,12 +1008,24 @@ function scoreOrgStability(jobPayload, userProfile) {
     console.log('[Scoring] ℹ️ No headcount growth text available (null/empty/invalid)');
   }
 
-  // Also check description for signals
-  const growthKeywords = ['growing', 'expanding team', 'scaling', 'hiring', 'new positions'];
-  const declineKeywords = ['layoffs', 'restructuring', 'downsizing', 'headcount reduction', 'cost cutting'];
+  // Also check description for signals - FIXED: Use regex with word boundaries
+  const growthPatterns = [
+    /\bgrowing\b/i,
+    /\bexpanding\s+team\b/i,
+    /\bscaling\b/i,
+    /\bhiring\b/i,
+    /\bnew\s+positions?\b/i
+  ];
+  const declinePatterns = [
+    /\blayoffs?\b/i,
+    /\brestructuring\b/i,
+    /\bdownsizing\b/i,
+    /\bheadcount\s+reduction\b/i,
+    /\bcost\s+cutting\b/i
+  ];
 
-  const hasGrowthSignals = growthKeywords.some(kw => description.includes(kw));
-  const hasDeclineSignals = declineKeywords.some(kw => description.includes(kw));
+  const hasGrowthSignals = growthPatterns.some(pattern => pattern.test(description));
+  const hasDeclineSignals = declinePatterns.some(pattern => pattern.test(description));
 
   let score = 35; // Default moderate
   let rationale = 'Organizational stability unclear';
