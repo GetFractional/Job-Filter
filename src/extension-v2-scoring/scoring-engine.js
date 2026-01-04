@@ -767,12 +767,24 @@ function scoreBusinessLifecycle(jobPayload, userProfile) {
     'multi-national', 'multinational'
   ];
 
-  const declineKeywords = [
-    'restructuring', 'wind down', 'winding down',
-    'bankruptcy', 'chapter 11', 'chapter 7',
-    'layoffs', 'downsizing', 'reduction in force', 'rif',
-    'turnaround', 'turn around', 'pivot required',
-    'cost cutting', 'budget cuts', 'financial difficulties'
+  // FIXED: Use regex patterns with word boundaries to avoid false positives (e.g., "rif" in "sacrifice")
+  const declinePatterns = [
+    { pattern: /\brestructuring\b/i, label: 'restructuring' },
+    { pattern: /\bwind\s+down\b/i, label: 'wind down' },
+    { pattern: /\bwinding\s+down\b/i, label: 'winding down' },
+    { pattern: /\bbankruptcy\b/i, label: 'bankruptcy' },
+    { pattern: /\bchapter\s+11\b/i, label: 'chapter 11' },
+    { pattern: /\bchapter\s+7\b/i, label: 'chapter 7' },
+    { pattern: /\blayoffs?\b/i, label: 'layoffs' },
+    { pattern: /\bdownsizing\b/i, label: 'downsizing' },
+    { pattern: /\breduction\s+in\s+force\b/i, label: 'reduction in force' },
+    { pattern: /\b(?:rif|r\.i\.f\.)\b/i, label: 'RIF' }, // Word boundary prevents matching "sacrifice"
+    { pattern: /\bturnaround\b/i, label: 'turnaround' },
+    { pattern: /\bturn\s+around\b/i, label: 'turn around' },
+    { pattern: /\bpivot\s+required\b/i, label: 'pivot required' },
+    { pattern: /\bcost\s+cutting\b/i, label: 'cost cutting' },
+    { pattern: /\bbudget\s+cuts?\b/i, label: 'budget cuts' },
+    { pattern: /\bfinancial\s+difficulties\b/i, label: 'financial difficulties' }
   ];
 
   // Priority-based detection (most specific matches first)
@@ -794,11 +806,11 @@ function scoreBusinessLifecycle(jobPayload, userProfile) {
 
   // Check keywords if not already detected
   if (detectedStage === 'unknown') {
-    // Check decline first (important warning sign)
-    for (const kw of declineKeywords) {
-      if (description.includes(kw)) {
+    // Check decline first (important warning sign) - using regex patterns with word boundaries
+    for (const item of declinePatterns) {
+      if (item.pattern.test(description)) {
         detectedStage = 'decline';
-        matchedKeyword = kw;
+        matchedKeyword = item.label;
         break;
       }
     }
@@ -957,12 +969,24 @@ function scoreOrgStability(jobPayload, userProfile) {
     console.log('[Scoring] ℹ️ No headcount growth text available (null/empty/invalid)');
   }
 
-  // Also check description for signals
-  const growthKeywords = ['growing', 'expanding team', 'scaling', 'hiring', 'new positions'];
-  const declineKeywords = ['layoffs', 'restructuring', 'downsizing', 'headcount reduction', 'cost cutting'];
+  // Also check description for signals - FIXED: Use regex with word boundaries
+  const growthPatterns = [
+    /\bgrowing\b/i,
+    /\bexpanding\s+team\b/i,
+    /\bscaling\b/i,
+    /\bhiring\b/i,
+    /\bnew\s+positions?\b/i
+  ];
+  const declinePatterns = [
+    /\blayoffs?\b/i,
+    /\brestructuring\b/i,
+    /\bdownsizing\b/i,
+    /\bheadcount\s+reduction\b/i,
+    /\bcost\s+cutting\b/i
+  ];
 
-  const hasGrowthSignals = growthKeywords.some(kw => description.includes(kw));
-  const hasDeclineSignals = declineKeywords.some(kw => description.includes(kw));
+  const hasGrowthSignals = growthPatterns.some(pattern => pattern.test(description));
+  const hasDeclineSignals = declinePatterns.some(pattern => pattern.test(description));
 
   let score = 35; // Default moderate
   let rationale = 'Organizational stability unclear';
