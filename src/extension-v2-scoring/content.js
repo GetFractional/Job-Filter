@@ -724,25 +724,45 @@ function extractLinkedInJobData() {
     }
 
     // Extract Applicant Count (often Premium-only)
+    // Also extract applicants in last 24h when available
     const applicantSelectors = [
       '.jobs-unified-top-card__applicant-count',
       '.job-details-jobs-unified-top-card__job-insight span',
       '.jobs-details-top-card__bullet',
-      '[data-test-job-applicant-count]'
+      '[data-test-job-applicant-count]',
+      '.jobs-unified-top-card__job-insight',
+      '.jobs-unified-top-card__job-insight-view-model-secondary',
+      'li.jobs-unified-top-card__job-insight',
+      'span.jobs-unified-top-card__subtitle-secondary-grouping span'
     ];
     for (const selector of applicantSelectors) {
       const elements = document.querySelectorAll(selector);
       for (const el of elements) {
         const text = el.textContent?.trim() || '';
+
         // Match patterns like "25 applicants", "Over 100 applicants", "Be among the first 25 applicants"
         const applicantMatch = text.match(/(?:over\s+)?(\d+)\s+applicants?|be\s+among\s+the\s+first\s+(\d+)/i);
         if (applicantMatch) {
           const count = applicantMatch[1] || applicantMatch[2];
           data.applicantCount = parseInt(count, 10);
-          break;
+        }
+
+        // Match "X applicants in the past 24 hours" or similar
+        const recent24hMatch = text.match(/(\d+)\s+applicants?\s+in\s+(?:the\s+)?(?:past|last)\s+24\s+hours?/i);
+        if (recent24hMatch) {
+          data.applicantsLast24h = parseInt(recent24hMatch[1], 10);
         }
       }
       if (data.applicantCount) break;
+    }
+
+    // Additional check for 24h applicants in the page text
+    if (!data.applicantsLast24h) {
+      const pageText = document.body.textContent || '';
+      const recent24hMatch = pageText.match(/(\d+)\s+applicants?\s+in\s+(?:the\s+)?(?:past|last)\s+24\s+hours?/i);
+      if (recent24hMatch) {
+        data.applicantsLast24h = parseInt(recent24hMatch[1], 10);
+      }
     }
 
     // Clean up the job URL - remove unnecessary parameters
@@ -782,23 +802,43 @@ function extractLinkedInJobData() {
     }
 
     // Extract company metadata from "About the company" section
+    // Try multiple locations for followers count
+    const followersSelectors = [
+      '.jobs-company__company-description',
+      '.org-top-card-summary-info-list__info-item',
+      '.org-page-details__definition',
+      'dt.mb1 + dd'
+    ];
+
+    for (const selector of followersSelectors) {
+      const elements = document.querySelectorAll(selector);
+      for (const el of elements) {
+        const aboutText = el.textContent || '';
+
+        // Extract Followers with K/M suffix support
+        const followersMatch = aboutText.match(/(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*(K|M)?\s*followers?/i);
+        if (followersMatch) {
+          let followersValue = followersMatch[1].replace(/,/g, '');
+          const suffix = followersMatch[2];
+
+          // Handle K (thousands) and M (millions) suffixes
+          if (suffix && suffix.toUpperCase() === 'K') {
+            followersValue = parseFloat(followersValue) * 1000;
+          } else if (suffix && suffix.toUpperCase() === 'M') {
+            followersValue = parseFloat(followersValue) * 1000000;
+          }
+          data.companyFollowers = parseInt(followersValue, 10);
+          console.log('[Job Hunter] ✓ Followers extracted:', data.companyFollowers);
+          break;
+        }
+      }
+      if (data.companyFollowers) break;
+    }
+
+    // Extract other company metadata from "About the company" section
     const aboutCompanySection = document.querySelector('.jobs-company__company-description');
     if (aboutCompanySection) {
       const aboutText = aboutCompanySection.textContent || '';
-
-      // Extract Followers
-      const followersMatch = aboutText.match(/(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*(?:K|M)?\s*followers?/i);
-      if (followersMatch) {
-        let followersValue = followersMatch[1].replace(/,/g, '');
-        // Handle K (thousands) and M (millions) suffixes
-        if (aboutText.match(/\d+\s*K\s*followers?/i)) {
-          followersValue = parseFloat(followersValue) * 1000;
-        } else if (aboutText.match(/\d+\s*M\s*followers?/i)) {
-          followersValue = parseFloat(followersValue) * 1000000;
-        }
-        data.companyFollowers = parseInt(followersValue, 10);
-        console.log('[Job Hunter] ✓ Followers extracted:', data.companyFollowers);
-      }
 
       // Extract Company Type (Public, Private, etc.)
       // LinkedIn shows company type like "Public Company", "Privately Held", "Partnership", etc.
