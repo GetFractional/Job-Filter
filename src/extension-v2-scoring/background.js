@@ -1159,7 +1159,7 @@ async function handleUpsertContactFromProfile(contactData) {
     'First Name': sanitizeString(firstName || ''),
     'Last Name': sanitizeString(lastName || ''),
     'LinkedIn URL': sanitizeString(cleanLinkedinUrl),
-    'Contact Type': 'Networking' // Default type for profile-captured contacts
+    'Contact Type': 'Hiring Manager' // Default type (valid Airtable option)
   };
 
   if (roleTitle) contactFields['Role / Title'] = sanitizeString(roleTitle);

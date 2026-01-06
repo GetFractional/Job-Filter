@@ -563,12 +563,14 @@ function scoreEquityBonus(jobPayload, userProfile) {
 /**
  * Score benefits package (0-50)
  * Detects mentions of health, 401k, PTO, and other common benefits
- * @param {Object} jobPayload - Job data with job_description_text
+ * UPDATED: Now prioritizes LinkedIn's Featured Benefits section if available
+ * @param {Object} jobPayload - Job data with job_description_text and featuredBenefits array
  * @param {Object} userProfile - User preferences
  * @returns {Object} Criterion score result
  */
 function scoreBenefits(jobPayload, userProfile) {
   const description = (jobPayload.descriptionText || jobPayload.job_description_text || '').toLowerCase();
+  const featuredBenefits = jobPayload.featuredBenefits || [];
 
   // Individual benefits with detection patterns
   // Each benefit has a weight based on importance
@@ -631,15 +633,81 @@ function scoreBenefits(jobPayload, userProfile) {
     }
   };
 
-  // Detect which benefits are mentioned in job description
+  // Detect which benefits are mentioned
+  // PRIORITY 1: Use LinkedIn's Featured Benefits if available
+  // PRIORITY 2: Fall back to regex matching in job description
   const allMatchedBenefits = [];
   let totalScore = 0;
 
+  // Map LinkedIn Featured Benefits to our standard labels
+  const featuredBenefitMapping = {
+    'medical insurance': 'Medical',
+    'health insurance': 'Medical',
+    'dental insurance': 'Dental',
+    'vision insurance': 'Vision',
+    '401(k)': '401k',
+    '401k': '401k',
+    'retirement': '401k',
+    'hsa': 'HSA/FSA',
+    'fsa': 'HSA/FSA',
+    'health savings': 'HSA/FSA',
+    'flexible spending': 'HSA/FSA',
+    'pto': 'PTO',
+    'paid time off': 'PTO',
+    'vacation': 'PTO',
+    'paid parental': 'Paid Parental',
+    'maternity leave': 'Paid Parental',
+    'paternity leave': 'Paid Parental',
+    'parental leave': 'Paid Parental',
+    'tuition': 'Tuition Reimbursement',
+    'tuition assistance': 'Tuition Reimbursement',
+    'tuition reimbursement': 'Tuition Reimbursement',
+    'education assistance': 'Tuition Reimbursement',
+    'learning stipend': 'Learning Stipend',
+    'professional development': 'Learning Stipend',
+    'training budget': 'Learning Stipend',
+    'student loan': 'Tuition Reimbursement',
+    'work from home': 'WFH Reimbursement',
+    'home office': 'WFH Reimbursement',
+    'remote work': 'WFH Reimbursement',
+    'commuter': 'WFH Reimbursement',
+    'commuter benefits': 'WFH Reimbursement',
+    'relocation': 'Relocation',
+    'relocation assistance': 'Relocation',
+    'moving assistance': 'Relocation',
+    'disability insurance': 'Medical',
+    'child care': 'Paid Parental',
+    'child care support': 'Paid Parental'
+  };
+
+  // Check LinkedIn Featured Benefits first
+  if (featuredBenefits.length > 0) {
+    console.log('[Scoring] Using LinkedIn Featured Benefits:', featuredBenefits.length, 'items');
+    for (const benefit of featuredBenefits) {
+      const benefitLower = benefit.toLowerCase().trim();
+      // Find matching label from our mapping
+      for (const [pattern, label] of Object.entries(featuredBenefitMapping)) {
+        if (benefitLower.includes(pattern)) {
+          if (!allMatchedBenefits.includes(label)) {
+            allMatchedBenefits.push(label);
+            // Look up weight from individualBenefits config
+            const config = Object.values(individualBenefits).find(c => c.label === label);
+            if (config) totalScore += config.weight;
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  // Fall back to regex patterns in job description (if no featured benefits or to supplement)
   for (const [key, config] of Object.entries(individualBenefits)) {
-    const hasMatch = config.patterns.some(pattern => pattern.test(description));
-    if (hasMatch) {
-      allMatchedBenefits.push(config.label);
-      totalScore += config.weight;
+    if (!allMatchedBenefits.includes(config.label)) {
+      const hasMatch = config.patterns.some(pattern => pattern.test(description));
+      if (hasMatch) {
+        allMatchedBenefits.push(config.label);
+        totalScore += config.weight;
+      }
     }
   }
 

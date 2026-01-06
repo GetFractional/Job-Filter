@@ -20,6 +20,7 @@
 const sidebarState = {
   mode: null, // 'jobs' | 'outreach' | null
   isVisible: false,
+  isMinimized: false,
   currentScore: null,
   currentJobData: null,
   currentContactData: null,
@@ -185,12 +186,12 @@ function updateHeaderSection(sidebar, jobData, scoreResult) {
   const companyEl = sidebar.querySelector('.jh-header-company');
   const titleEl = sidebar.querySelector('.jh-header-title');
   const locationEl = sidebar.querySelector('.jh-header-location');
+  const postedEl = sidebar.querySelector('.jh-header-posted');
 
   // Stats grid elements
   const employeesEl = sidebar.querySelector('.jh-stat-employees');
   const followersEl = sidebar.querySelector('.jh-stat-followers');
   const applicantsEl = sidebar.querySelector('.jh-stat-applicants');
-  const applicants24hEl = sidebar.querySelector('.jh-stat-applicants-24h');
   const growthEl = sidebar.querySelector('.jh-stat-growth');
   const tenureEl = sidebar.querySelector('.jh-stat-tenure');
   const hiringManagerEl = sidebar.querySelector('.jh-stat-hiring-manager');
@@ -204,6 +205,18 @@ function updateHeaderSection(sidebar, jobData, scoreResult) {
     if (jobData.workplaceType) locationParts.push(jobData.workplaceType);
     if (jobData.location) locationParts.push(jobData.location);
     locationEl.textContent = locationParts.length > 0 ? locationParts.join(' · ') : '--';
+  }
+
+  // Posted date
+  if (postedEl) {
+    const posted = jobData.postedDate;
+    if (posted) {
+      // Clean up the posted date text
+      let postedText = posted.replace(/^(Posted|Reposted)\s*/i, '').trim();
+      postedEl.textContent = `· ${postedText}`;
+    } else {
+      postedEl.textContent = '';
+    }
   }
 
   // Stats grid values
@@ -220,11 +233,6 @@ function updateHeaderSection(sidebar, jobData, scoreResult) {
   if (applicantsEl) {
     const count = jobData.applicantCount;
     applicantsEl.textContent = (count !== null && count !== undefined) ? `${count}+` : '--';
-  }
-
-  if (applicants24hEl) {
-    // Premium-only data
-    applicants24hEl.textContent = '--';
   }
 
   if (growthEl) {
@@ -244,12 +252,14 @@ function updateHeaderSection(sidebar, jobData, scoreResult) {
 
   if (tenureEl) {
     const tenure = jobData.medianEmployeeTenure;
-    tenureEl.textContent = (tenure !== null && tenure !== undefined) ? `${tenure} yrs` : '--';
+    tenureEl.textContent = (tenure !== null && tenure !== undefined) ? `${tenure}y` : '--';
   }
 
   if (hiringManagerEl) {
     const manager = jobData.hiringManagerDetails?.name;
-    hiringManagerEl.textContent = manager || '--';
+    // Truncate long names
+    const displayName = manager ? (manager.length > 15 ? manager.substring(0, 14) + '…' : manager) : '--';
+    hiringManagerEl.textContent = displayName;
   }
 }
 
@@ -269,8 +279,8 @@ function updateFitScoreCard(sidebar, scoreResult) {
     fitChip.style.borderColor = fitColors.border;
   }
 
-  // Update score circle
-  const scoreCircle = sidebar.querySelector('.jh-score-circle');
+  // Update score circle (both regular and compact versions)
+  const scoreCircle = sidebar.querySelector('.jh-score-circle') || sidebar.querySelector('.jh-score-circle-compact');
   const scoreValue = sidebar.querySelector('.jh-score-value');
 
   if (scoreValue) {
@@ -287,7 +297,7 @@ function updateFitScoreCard(sidebar, scoreResult) {
 /**
  * Update the score breakdown section with progress bars
  */
-function updateScoreBreakdown(sidebar, scoreResult) {
+function updateScoreBreakdown(sidebar, scoreResult, userProfile = null) {
   // Job Fit section (job-to-user)
   const jobFitProgress = sidebar.querySelector('.jh-breakdown-job-fit .jh-section-progress');
   const jobFitList = sidebar.querySelector('.jh-breakdown-job-fit .jh-breakdown-list');
@@ -302,7 +312,8 @@ function updateScoreBreakdown(sidebar, scoreResult) {
   if (jobFitList && scoreResult.job_to_user_fit?.breakdown) {
     jobFitList.innerHTML = renderBreakdownItems(
       scoreResult.job_to_user_fit.breakdown,
-      'j2u'
+      'j2u',
+      userProfile
     );
   }
 
@@ -320,8 +331,78 @@ function updateScoreBreakdown(sidebar, scoreResult) {
   if (yourFitList && scoreResult.user_to_job_fit?.breakdown) {
     yourFitList.innerHTML = renderBreakdownItems(
       scoreResult.user_to_job_fit.breakdown,
-      'u2j'
+      'u2j',
+      userProfile
     );
+  }
+
+  // Add profile mismatch warnings if any
+  updateProfileMismatchWarnings(sidebar, scoreResult);
+}
+
+/**
+ * Display profile mismatch warnings (softer than dealbreakers)
+ */
+function updateProfileMismatchWarnings(sidebar, scoreResult) {
+  let warningsContainer = sidebar.querySelector('.jh-mismatch-warnings');
+
+  // Create container if it doesn't exist
+  if (!warningsContainer) {
+    const dealbreakersEl = sidebar.querySelector('.jh-dealbreakers');
+    if (dealbreakersEl) {
+      warningsContainer = document.createElement('div');
+      warningsContainer.className = 'jh-mismatch-warnings';
+      dealbreakersEl.parentNode.insertBefore(warningsContainer, dealbreakersEl);
+    }
+  }
+
+  if (!warningsContainer) return;
+
+  const warnings = [];
+
+  // Check for low scores that warrant warnings (but not dealbreakers)
+  const userToJobBreakdown = scoreResult.user_to_job_fit?.breakdown || [];
+  const jobToUserBreakdown = scoreResult.job_to_user_fit?.breakdown || [];
+
+  // Check experience level mismatch
+  const expItem = userToJobBreakdown.find(b => b.criteria === 'Experience Level');
+  if (expItem && expItem.score <= 20 && expItem.required_years) {
+    warnings.push(`Experience gap: Job requires ${expItem.required_years}+ years`);
+  }
+
+  // Check skills gap
+  const skillsItem = userToJobBreakdown.find(b => b.criteria === 'Skills Overlap');
+  if (skillsItem && skillsItem.match_percentage && skillsItem.match_percentage < 30) {
+    warnings.push(`Skills gap: Only ${skillsItem.match_percentage}% of your skills match`);
+  }
+
+  // Check industry mismatch
+  const industryItem = userToJobBreakdown.find(b => b.criteria === 'Industry Experience');
+  if (industryItem && industryItem.score <= 20) {
+    warnings.push('Industry: Outside your typical sectors');
+  }
+
+  // Check salary concerns
+  const salaryItem = jobToUserBreakdown.find(b => b.criteria === 'Base Salary');
+  if (salaryItem && salaryItem.score <= 15 && !salaryItem.missing_data) {
+    warnings.push('Salary: Below your target range');
+  }
+
+  if (warnings.length > 0) {
+    warningsContainer.innerHTML = `
+      <div class="jh-mismatch-alert">
+        <div class="jh-mismatch-header">
+          <span class="jh-mismatch-icon">⚡</span>
+          <strong>Profile Considerations</strong>
+        </div>
+        <ul class="jh-mismatch-list">
+          ${warnings.map(w => `<li>${escapeHtml(w)}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+    warningsContainer.style.display = 'block';
+  } else {
+    warningsContainer.style.display = 'none';
   }
 }
 
@@ -356,19 +437,26 @@ function updateDealbreakers(sidebar, scoreResult) {
 
 /**
  * Render breakdown items with progress bars
+ * @param {Array} breakdown - Score breakdown items
+ * @param {string} type - 'j2u' (job-to-user) or 'u2j' (user-to-job)
+ * @param {Object} userProfile - User profile for skills count
  */
-function renderBreakdownItems(breakdown, type) {
+function renderBreakdownItems(breakdown, type, userProfile = null) {
   if (!breakdown || breakdown.length === 0) {
     return '<div class="jh-breakdown-empty">No data available</div>';
   }
 
-  const maxScore = type === 'j2u' ? 50 : 50;
+  // Get total user skills count for proper X/Y display
+  const totalUserSkills = userProfile?.background?.core_skills?.length || 30;
+  const totalUserBenefits = userProfile?.preferences?.benefits?.length || 11;
 
   return breakdown.map(item => {
     const score = item.score || 0;
     const criteriaMaxScore = item.max_score || 10;
+    // Calculate percentage based on the criteria's max score
     const percentage = (score / criteriaMaxScore) * 100;
     const isHigh = percentage >= 70;
+    const isMedium = percentage >= 40 && percentage < 70;
 
     // Shorten criteria names
     let criteriaName = item.criteria || '';
@@ -382,84 +470,100 @@ function renderBreakdownItems(breakdown, type) {
       'Business Lifecycle': 'Lifecycle',
       'Base Salary': 'Base Salary',
       'Work Location': 'Location',
+      'Bonus & Equity': 'Bonus & Equity',
       'Bonus': 'Bonus',
       'Equity': 'Equity',
-      'Experience Level': 'Experience'
+      'Experience Level': 'Experience',
+      'Org Stability': 'Org Stability',
+      'Hiring Urgency': 'Hiring Urgency'
     };
     criteriaName = nameMap[criteriaName] || criteriaName;
 
     // Build extra content based on criteria type
     let extraHtml = '';
 
-    // Skills display with matched skills as blue badges
-    if (item.matched_skills && item.matched_skills.length > 0) {
-      const allSkills = item.all_skills || item.matched_skills;
-      const matchedSet = new Set(item.matched_skills.map(s => s.toLowerCase()));
+    // Skills display with ghost badges for non-matching
+    if (item.criteria === 'Skills Overlap' && (item.matched_skills || item.unmatched_skills)) {
+      const matchedSkills = item.matched_skills || [];
+      const unmatchedSkills = item.unmatched_skills || [];
+      const matchCount = matchedSkills.length;
 
-      extraHtml += `
-        <div class="jh-skill-tags">
-          ${allSkills.map(s => {
-            const isMatched = matchedSet.has(s.toLowerCase());
-            return `<span class="jh-skill-tag ${isMatched ? 'jh-matched' : ''}">${escapeHtml(s)}</span>`;
-          }).join('')}
-        </div>
-      `;
+      // Show X/Y where Y is total user skills
+      extraHtml += `<div class="jh-skills-summary">${matchCount}/${totalUserSkills} skills matched</div>`;
+
+      // Combine matched and unmatched for display (limit to reasonable number)
+      const displaySkills = [
+        ...matchedSkills.slice(0, 8).map(s => ({ name: s, matched: true })),
+        ...unmatchedSkills.slice(0, 6).map(s => ({ name: s, matched: false }))
+      ];
+
+      if (displaySkills.length > 0) {
+        extraHtml += `
+          <div class="jh-skill-tags">
+            ${displaySkills.map(s =>
+              `<span class="jh-skill-tag ${s.matched ? 'jh-matched' : 'jh-ghost'}">${escapeHtml(s.name)}</span>`
+            ).join('')}
+          </div>
+        `;
+      }
     }
 
-    // Benefits display with X/Y (Z%) format and blue badges for matches
+    // Benefits display - same logic as skills with ghost badges
     if (item.criteria === 'Benefits Package' || item.criteria === 'Benefits') {
-      const matched = item.matched_count || 0;
-      const total = item.total_preferred || item.total_count || 0;
-      const pct = total > 0 ? Math.round((matched / total) * 100) : 0;
-
-      if (total > 0) {
-        extraHtml += `<div class="jh-benefits-summary">${matched}/${total} preferred (${pct}%)</div>`;
-      }
-
+      const matchedBenefits = item.matched_benefits || [];
       const allBenefits = item.all_benefits || [];
-      const matchedBenefits = item.matched_benefits || item.benefit_badges || [];
+      const matchCount = matchedBenefits.length;
+
+      // Show X/Y where Y is total user preferred benefits
+      extraHtml += `<div class="jh-benefits-summary">${matchCount}/${totalUserBenefits} benefits matched</div>`;
+
+      // Get user's preferred benefits to show as ghost badges if not matched
       const matchedSet = new Set(matchedBenefits.map(b => b.toLowerCase()));
+      const preferredBenefits = userProfile?.preferences?.benefits || [];
 
-      if (allBenefits.length > 0) {
+      // Build display list: matched first, then unmatched preferred as ghost
+      const displayBenefits = [];
+      matchedBenefits.slice(0, 6).forEach(b => displayBenefits.push({ name: b, matched: true }));
+
+      // Add unmatched preferred benefits as ghost
+      preferredBenefits.forEach(b => {
+        if (!matchedSet.has(b.toLowerCase()) && displayBenefits.length < 10) {
+          displayBenefits.push({ name: b, matched: false });
+        }
+      });
+
+      if (displayBenefits.length > 0) {
         extraHtml += `
           <div class="jh-benefits-tags">
-            ${allBenefits.map(b => {
-              const isMatched = matchedSet.has(b.toLowerCase());
-              return `<span class="jh-benefit-tag ${isMatched ? 'jh-matched' : ''}">${escapeHtml(b)}</span>`;
-            }).join('')}
-          </div>
-        `;
-      } else if (matchedBenefits.length > 0) {
-        extraHtml += `
-          <div class="jh-benefits-tags">
-            ${matchedBenefits.map(b => `<span class="jh-benefit-tag jh-matched">${escapeHtml(b)}</span>`).join('')}
+            ${displayBenefits.map(b =>
+              `<span class="jh-benefit-tag ${b.matched ? 'jh-matched' : 'jh-ghost'}">${escapeHtml(b.name)}</span>`
+            ).join('')}
           </div>
         `;
       }
     }
 
-    // Bonus display with detection status
-    if (item.criteria === 'Bonus') {
-      if (item.bonus_detected) {
-        extraHtml += `<div class="jh-detection-status jh-detected">✓ Performance bonus mentioned</div>`;
-      } else {
-        extraHtml += `<div class="jh-detection-status jh-not-detected">No bonus mentioned</div>`;
-      }
+    // Bonus & Equity combined display
+    if (item.criteria === 'Bonus & Equity') {
+      extraHtml += `<div class="jh-actual-value">${escapeHtml(item.actual_value || 'Not specified')}</div>`;
     }
 
-    // Equity display with detection status
-    if (item.criteria === 'Equity') {
-      if (item.equity_detected) {
-        extraHtml += `<div class="jh-detection-status jh-detected">✓ Equity/stock compensation mentioned</div>`;
-      } else {
-        extraHtml += `<div class="jh-detection-status jh-not-detected">No equity mentioned</div>`;
+    // Experience Level display with required years
+    if (item.criteria === 'Experience Level') {
+      if (item.required_years) {
+        extraHtml += `<div class="jh-actual-value">${item.required_years}+ years required</div>`;
+      } else if (item.actual_value) {
+        extraHtml += `<div class="jh-actual-value">${escapeHtml(item.actual_value)}</div>`;
       }
     }
 
     // Actual value display for other criteria
-    if (item.actual_value && !['Benefits Package', 'Benefits', 'Bonus', 'Equity', 'Skills Overlap'].includes(item.criteria)) {
+    if (item.actual_value && !['Benefits Package', 'Benefits', 'Bonus & Equity', 'Skills Overlap', 'Experience Level'].includes(item.criteria)) {
       extraHtml += `<div class="jh-actual-value">${escapeHtml(item.actual_value)}</div>`;
     }
+
+    // Progress bar color class
+    const progressClass = isHigh ? 'jh-high' : (isMedium ? 'jh-medium' : 'jh-low');
 
     return `
       <div class="jh-breakdown-item" title="${escapeHtml(item.rationale || '')}">
@@ -468,7 +572,7 @@ function renderBreakdownItems(breakdown, type) {
           <span class="jh-breakdown-score">${score}/${criteriaMaxScore}</span>
         </div>
         <div class="jh-progress-bar">
-          <div class="jh-progress-fill ${isHigh ? 'jh-high' : 'jh-low'}" style="width: ${percentage}%"></div>
+          <div class="jh-progress-fill ${progressClass}" style="width: ${percentage}%"></div>
         </div>
         ${extraHtml}
       </div>
@@ -495,21 +599,27 @@ function updateSidebarContact(contactData) {
 
   sidebarState.currentContactData = contactData;
 
-  // Update contact mini-card
+  // Update contact mini-card - order: Name, Company, Location, Headline/Role
   const nameEl = sidebar.querySelector('.jh-contact-name');
-  const roleEl = sidebar.querySelector('.jh-contact-role');
   const companyEl = sidebar.querySelector('.jh-contact-company');
   const locationEl = sidebar.querySelector('.jh-contact-location');
+  const roleEl = sidebar.querySelector('.jh-contact-role');
 
-  if (nameEl) nameEl.textContent = contactData.fullName || 'Unknown';
-  if (roleEl) roleEl.textContent = contactData.roleTitle || 'Role not specified';
-  if (companyEl) companyEl.textContent = contactData.companyName || 'Company not found';
-  if (locationEl) locationEl.textContent = contactData.location || '';
+  // Build full name from firstName + lastName if fullName not available
+  let displayName = contactData.fullName;
+  if (!displayName && (contactData.firstName || contactData.lastName)) {
+    displayName = `${contactData.firstName || ''} ${contactData.lastName || ''}`.trim();
+  }
+
+  if (nameEl) nameEl.textContent = displayName || 'Unknown Contact';
+  if (companyEl) companyEl.textContent = contactData.companyName || '--';
+  if (locationEl) locationEl.textContent = contactData.location || '--';
+  if (roleEl) roleEl.textContent = contactData.roleTitle || contactData.headline || '--';
 
   // Update sync status
   updateSyncStatus(sidebar, 'ready');
 
-  console.log('[Job Hunter Sidebar] Contact data loaded:', contactData.fullName);
+  console.log('[Job Hunter Sidebar] Contact data loaded:', displayName);
 }
 
 /**
@@ -693,6 +803,23 @@ function setupSidebarEventHandlers(sidebar, mode) {
     closeBtn.addEventListener('click', () => {
       sidebar.classList.remove('jh-visible');
       sidebar.classList.add('jh-hidden');
+    });
+  }
+
+  // Minimize button - collapse to title bar only
+  const minimizeBtn = sidebar.querySelector('.jh-btn-minimize');
+  if (minimizeBtn) {
+    minimizeBtn.addEventListener('click', () => {
+      sidebarState.isMinimized = !sidebarState.isMinimized;
+      if (sidebarState.isMinimized) {
+        sidebar.classList.add('jh-minimized');
+        minimizeBtn.textContent = '+';
+        minimizeBtn.title = 'Expand';
+      } else {
+        sidebar.classList.remove('jh-minimized');
+        minimizeBtn.textContent = '−';
+        minimizeBtn.title = 'Minimize';
+      }
     });
   }
 
@@ -909,57 +1036,55 @@ function getJobsSidebarHTML() {
           <span class="jh-brand-text">Job Hunter</span>
         </div>
         <div class="jh-header-controls">
+          <button class="jh-btn-minimize" title="Minimize">−</button>
           <button class="jh-btn-settings" title="Edit Profile">⚙</button>
           <button class="jh-sidebar-close" title="Close">×</button>
         </div>
       </div>
 
-      <!-- Fit Label Chip -->
-      <div class="jh-fit-row">
-        <span class="jh-fit-chip">ANALYZING...</span>
-      </div>
-
-      <!-- Score Card with Job Info -->
-      <div class="jh-score-card">
-        <div class="jh-score-section">
-          <div class="jh-score-circle">
-            <span class="jh-score-value">--</span>
+      <!-- Condensed Score Card with Job Info -->
+      <div class="jh-score-card jh-score-card-compact">
+        <div class="jh-score-section-compact">
+          <div class="jh-fit-score-compact">
+            <span class="jh-fit-chip">ANALYZING...</span>
+            <div class="jh-score-circle-compact">
+              <span class="jh-score-value">--</span>
+            </div>
           </div>
-          <div class="jh-job-info">
+          <div class="jh-job-info-compact">
             <div class="jh-header-company">Loading...</div>
             <div class="jh-header-title">Loading...</div>
-            <div class="jh-header-location">--</div>
+            <div class="jh-header-meta">
+              <span class="jh-header-location">--</span>
+              <span class="jh-header-posted">--</span>
+            </div>
           </div>
         </div>
 
-        <!-- Stats Grid -->
-        <div class="jh-stats-grid">
-          <div class="jh-stat-item">
+        <!-- Compact Stats Grid -->
+        <div class="jh-stats-grid-compact">
+          <div class="jh-stat-item-compact">
             <span class="jh-stat-label">Employees</span>
             <span class="jh-stat-value jh-stat-employees">--</span>
           </div>
-          <div class="jh-stat-item">
+          <div class="jh-stat-item-compact">
             <span class="jh-stat-label">Followers</span>
             <span class="jh-stat-value jh-stat-followers">--</span>
           </div>
-          <div class="jh-stat-item">
+          <div class="jh-stat-item-compact">
             <span class="jh-stat-label">Applicants</span>
             <span class="jh-stat-value jh-stat-applicants">--</span>
           </div>
-          <div class="jh-stat-item">
-            <span class="jh-stat-label">Last 24h</span>
-            <span class="jh-stat-value jh-stat-applicants-24h">--</span>
-          </div>
-          <div class="jh-stat-item">
-            <span class="jh-stat-label">Growth</span>
+          <div class="jh-stat-item-compact">
+            <span class="jh-stat-label">2Y Growth</span>
             <span class="jh-stat-value jh-stat-growth">--</span>
           </div>
-          <div class="jh-stat-item">
+          <div class="jh-stat-item-compact">
             <span class="jh-stat-label">Tenure</span>
             <span class="jh-stat-value jh-stat-tenure">--</span>
           </div>
-          <div class="jh-stat-item jh-stat-full">
-            <span class="jh-stat-label">Hiring Manager</span>
+          <div class="jh-stat-item-compact">
+            <span class="jh-stat-label">Hiring Mgr</span>
             <span class="jh-stat-value jh-stat-hiring-manager">--</span>
           </div>
         </div>
@@ -1025,6 +1150,7 @@ function getOutreachSidebarHTML() {
           <span class="jh-mode-badge">Outreach</span>
         </div>
         <div class="jh-header-controls">
+          <button class="jh-btn-minimize" title="Minimize">−</button>
           <button class="jh-sidebar-close" title="Close">×</button>
         </div>
       </div>
@@ -1033,12 +1159,12 @@ function getOutreachSidebarHTML() {
       <div class="jh-contact-card">
         <div class="jh-contact-info">
           <span class="jh-contact-name">Loading...</span>
-          <span class="jh-contact-role">Role not specified</span>
-          <span class="jh-contact-company">Company not found</span>
-          <span class="jh-contact-location"></span>
+          <span class="jh-contact-company">--</span>
+          <span class="jh-contact-location">--</span>
+          <span class="jh-contact-role">--</span>
         </div>
         <div class="jh-sync-row">
-          <button class="jh-btn jh-btn-sync jh-btn-primary">Capture / Sync Contact</button>
+          <button class="jh-btn jh-btn-sync jh-btn-primary">Hunt Contact</button>
           <span class="jh-sync-status"></span>
         </div>
       </div>
@@ -1051,7 +1177,7 @@ function getOutreachSidebarHTML() {
         <div class="jh-outreach-history-list">
           <div class="jh-outreach-empty">
             <p>No outreach history yet.</p>
-            <p class="jh-outreach-hint">Sync the contact first, then compose a message below.</p>
+            <p class="jh-outreach-hint">Hunt the contact first, then compose a message below.</p>
           </div>
         </div>
       </div>
@@ -1062,13 +1188,16 @@ function getOutreachSidebarHTML() {
           <span class="jh-section-title">Compose Message</span>
         </div>
         <div class="jh-compose-form">
-          <select class="jh-channel-select">
-            <option value="LinkedIn Message">LinkedIn Message</option>
-            <option value="Email">Email</option>
-            <option value="Phone">Phone</option>
-            <option value="In-Person">In-Person</option>
-            <option value="Other">Other</option>
-          </select>
+          <div class="jh-select-wrapper">
+            <select class="jh-channel-select">
+              <option value="LinkedIn Message">LinkedIn Message</option>
+              <option value="Email">Email</option>
+              <option value="Phone">Phone</option>
+              <option value="In-Person">In-Person</option>
+              <option value="Other">Other</option>
+            </select>
+            <span class="jh-select-chevron">▼</span>
+          </div>
           <textarea class="jh-compose-textarea" placeholder="Draft your outreach message..."></textarea>
           <div class="jh-compose-actions">
             <button class="jh-btn jh-btn-copy-draft">Copy Draft</button>
@@ -1367,7 +1496,7 @@ function getSidebarStyles() {
     }
 
     .jh-breakdown-your-fit .jh-breakdown-section-header {
-      background: #5856D6;
+      background: #1F2937;
     }
 
     .jh-breakdown-section-title {
@@ -1489,39 +1618,102 @@ function getSidebarStyles() {
     }
 
     /* ========================================
-       SKILL TAGS - Blue badges for matches
+       SKILL TAGS - Light badges for matches, ghost for non-matches
        ======================================== */
 
     .jh-skill-tags,
     .jh-benefits-tags {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 5px;
       margin-top: 8px;
     }
 
     .jh-skill-tag,
     .jh-benefit-tag {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 500;
-      padding: 4px 10px;
-      background: #F3F4F6;
-      color: #6B7280;
-      border-radius: 12px;
-      border: 1px solid #E5E7EB;
+      padding: 3px 8px;
+      background: transparent;
+      color: #9CA3AF;
+      border-radius: 10px;
+      border: 1px dashed #D1D9E0;
     }
 
+    /* Matched skills/benefits - light indigo background */
     .jh-skill-tag.jh-matched,
     .jh-benefit-tag.jh-matched {
-      background: #5856D6;
-      color: white;
-      border: none;
+      background: #EEF2FF;
+      color: #5856D6;
+      border: 1px solid #C7D2FE;
     }
 
+    /* Ghost badges for non-matching */
+    .jh-skill-tag.jh-ghost,
+    .jh-benefit-tag.jh-ghost {
+      background: transparent;
+      color: #9CA3AF;
+      border: 1px dashed #D1D9E0;
+      opacity: 0.7;
+    }
+
+    .jh-skills-summary,
     .jh-benefits-summary {
-      font-size: 12px;
+      font-size: 11px;
       color: #6B7280;
       margin-top: 6px;
+    }
+
+    /* ========================================
+       PROFILE MISMATCH WARNINGS
+       ======================================== */
+
+    .jh-mismatch-warnings {
+      padding: 0 16px;
+      margin-bottom: 12px;
+    }
+
+    .jh-mismatch-alert {
+      padding: 10px 12px;
+      background: #FEF3C7;
+      border: 1px solid #FDE68A;
+      border-radius: 8px;
+    }
+
+    .jh-mismatch-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    .jh-mismatch-icon {
+      font-size: 14px;
+      color: #B45309;
+    }
+
+    .jh-mismatch-header strong {
+      font-size: 12px;
+      color: #B45309;
+    }
+
+    .jh-mismatch-list {
+      margin: 0;
+      padding-left: 20px;
+      font-size: 11px;
+      color: #92400E;
+    }
+
+    .jh-mismatch-list li {
+      margin: 3px 0;
+    }
+
+    /* ========================================
+       PROGRESS BAR - Medium state
+       ======================================== */
+
+    .jh-progress-fill.jh-medium {
+      background: #F59E0B;
     }
 
     /* ========================================
@@ -1845,6 +2037,156 @@ function getSidebarStyles() {
       background: #F4F7FA;
       color: #1F2937;
       border: 1px solid #D1D9E0;
+    }
+
+    /* ========================================
+       SELECT WRAPPER WITH CHEVRON
+       ======================================== */
+
+    .jh-select-wrapper {
+      position: relative;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+
+    .jh-select-wrapper .jh-channel-select {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      padding-right: 32px;
+      margin-bottom: 0;
+    }
+
+    .jh-select-chevron {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: #6B7280;
+      pointer-events: none;
+    }
+
+    /* ========================================
+       COMPACT HEADER STYLES
+       ======================================== */
+
+    .jh-score-card-compact {
+      padding: 10px 12px;
+    }
+
+    .jh-score-section-compact {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .jh-fit-score-compact {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .jh-fit-score-compact .jh-fit-chip {
+      padding: 4px 12px;
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 12px;
+    }
+
+    .jh-score-circle-compact {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #F4F7FA;
+      border: 3px solid #E5E7EB;
+      flex-shrink: 0;
+    }
+
+    .jh-score-circle-compact .jh-score-value {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .jh-job-info-compact {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .jh-job-info-compact .jh-header-company {
+      font-size: 12px;
+      font-weight: 500;
+      color: #6B7280;
+      margin-bottom: 1px;
+    }
+
+    .jh-job-info-compact .jh-header-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .jh-header-meta {
+      font-size: 11px;
+      color: #6B7280;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .jh-header-posted {
+      color: #9CA3AF;
+    }
+
+    /* Compact Stats Grid */
+    .jh-stats-grid-compact {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: #E5E7EB;
+      border: 1px solid #E5E7EB;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .jh-stat-item-compact {
+      display: flex;
+      flex-direction: column;
+      padding: 6px 8px;
+      background: #ffffff;
+    }
+
+    .jh-stat-item-compact .jh-stat-label {
+      font-size: 9px;
+      margin-bottom: 1px;
+    }
+
+    .jh-stat-item-compact .jh-stat-value {
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* ========================================
+       MINIMIZE STATE
+       ======================================== */
+
+    #jh-sidebar-rail.jh-minimized {
+      height: auto;
+      overflow: hidden;
+    }
+
+    #jh-sidebar-rail.jh-minimized .jh-sidebar-container > *:not(.jh-sidebar-header) {
+      display: none;
+    }
+
+    #jh-sidebar-rail.jh-minimized .jh-sidebar-header {
+      border-bottom: none;
     }
 
     /* ========================================

@@ -852,6 +852,50 @@ function extractLinkedInJobData() {
       }
     }
 
+    // Extract Featured Benefits from LinkedIn's dedicated benefits section
+    // CRITICAL: This extracts from the "Featured benefits" module which shows actual benefits
+    data.featuredBenefits = [];
+    const benefitsSelectors = [
+      '.featured-benefits__benefit-list li.featured-benefits__benefit',
+      '.job-details-module ul.featured-benefits__benefit-list li',
+      '[class*="featured-benefits"] li'
+    ];
+
+    for (const selector of benefitsSelectors) {
+      const benefitElements = document.querySelectorAll(selector);
+      if (benefitElements.length > 0) {
+        benefitElements.forEach(el => {
+          const benefitText = el.textContent?.trim();
+          if (benefitText && !data.featuredBenefits.includes(benefitText)) {
+            data.featuredBenefits.push(benefitText);
+          }
+        });
+        if (data.featuredBenefits.length > 0) {
+          console.log('[Job Hunter] ✓ Featured Benefits extracted:', data.featuredBenefits.length, 'benefits');
+          console.log('[Job Hunter] Benefits:', data.featuredBenefits.join(', '));
+          break;
+        }
+      }
+    }
+
+    // If no featured benefits found, try the artdeco-card module
+    if (data.featuredBenefits.length === 0) {
+      const benefitsCard = document.querySelector('.artdeco-card.job-details-module h3');
+      if (benefitsCard && /featured benefits/i.test(benefitsCard.textContent)) {
+        const card = benefitsCard.closest('.artdeco-card');
+        const listItems = card?.querySelectorAll('ul li');
+        listItems?.forEach(el => {
+          const benefitText = el.textContent?.trim();
+          if (benefitText && !data.featuredBenefits.includes(benefitText)) {
+            data.featuredBenefits.push(benefitText);
+          }
+        });
+        if (data.featuredBenefits.length > 0) {
+          console.log('[Job Hunter] ✓ Featured Benefits (from artdeco-card):', data.featuredBenefits.length, 'benefits');
+        }
+      }
+    }
+
   } catch (error) {
     console.error('[Job Hunter] Error extracting LinkedIn data:', error);
   }
