@@ -241,7 +241,17 @@ function updateHeaderSection(sidebar, jobData, scoreResult) {
 
   if (applicantsEl) {
     const count = jobData.applicantCount;
-    applicantsEl.textContent = (count !== null && count !== undefined) ? `${count}+` : '--';
+    const recent24h = jobData.applicantsLast24h;
+
+    if (count !== null && count !== undefined) {
+      let displayText = `${count}+`;
+      if (recent24h !== null && recent24h !== undefined) {
+        displayText += ` (${recent24h} in <24h)`;
+      }
+      applicantsEl.textContent = displayText;
+    } else {
+      applicantsEl.textContent = '--';
+    }
   }
 
   if (growthEl) {
@@ -579,44 +589,80 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
       }
     }
 
-    // Base Salary - special visualization with range
+    // Base Salary - clear range display with comparison
     if (item.criteria === 'Base Salary') {
       const salaryFloor = userProfile?.preferences?.salary_floor || 150000;
       const salaryTarget = userProfile?.preferences?.salary_target || 200000;
       const jobSalaryMin = item.job_salary_min || null;
       const jobSalaryMax = item.job_salary_max || null;
 
-      // Create range visualization
-      // Scale: use $0 to $300K as the full range for visualization
-      const vizMin = 0;
-      const vizMax = 300000;
-      const scale = (val) => ((val - vizMin) / (vizMax - vizMin)) * 100;
+      let jobRangeHtml = '';
+      let statusHtml = '';
 
-      const floorPos = scale(salaryFloor);
-      const targetPos = scale(salaryTarget);
-      const userRangeWidth = targetPos - floorPos;
+      if (jobSalaryMin !== null || jobSalaryMax !== null) {
+        // Show job salary range
+        if (jobSalaryMin !== null && jobSalaryMax !== null) {
+          jobRangeHtml = `$${formatSalary(jobSalaryMin)} - $${formatSalary(jobSalaryMax)}`;
+        } else if (jobSalaryMin !== null) {
+          jobRangeHtml = `$${formatSalary(jobSalaryMin)}+`;
+        } else {
+          jobRangeHtml = `Up to $${formatSalary(jobSalaryMax)}`;
+        }
 
-      let jobMarkersHtml = '';
-      if (jobSalaryMin !== null && jobSalaryMax !== null) {
-        const jobMinPos = scale(jobSalaryMin);
-        const jobMaxPos = scale(jobSalaryMax);
-        const jobRangeWidth = jobMaxPos - jobMinPos;
-        jobMarkersHtml = `<div class="jh-salary-range jh-salary-job" style="left: ${jobMinPos}%; width: ${jobRangeWidth}%" title="Job: $${formatSalary(jobSalaryMin)} - $${formatSalary(jobSalaryMax)}"></div>`;
-      } else if (jobSalaryMin !== null) {
-        const jobPos = scale(jobSalaryMin);
-        jobMarkersHtml = `<div class="jh-salary-marker jh-salary-job-single" style="left: ${jobPos}%" title="Job: $${formatSalary(jobSalaryMin)}"></div>`;
+        // Calculate status and gap
+        const jobMax = jobSalaryMax || jobSalaryMin || 0;
+        const jobMin = jobSalaryMin || jobSalaryMax || 0;
+
+        let statusClass = '';
+        let statusText = '';
+        let gapText = '';
+
+        if (jobMax >= salaryTarget) {
+          // Job max meets or exceeds target - excellent
+          statusClass = 'jh-status-excellent';
+          statusText = '✓ At or above target';
+          const surplus = jobMax - salaryTarget;
+          if (surplus > 0) {
+            gapText = `+$${formatSalary(surplus)} above target`;
+          }
+        } else if (jobMax >= salaryFloor) {
+          // Job is within acceptable range
+          statusClass = 'jh-status-good';
+          statusText = '✓ Within range';
+          const gapToTarget = salaryTarget - jobMax;
+          if (gapToTarget > 0) {
+            gapText = `$${formatSalary(gapToTarget)} below target`;
+          }
+        } else {
+          // Job is below minimum
+          statusClass = 'jh-status-below';
+          statusText = '⚠ Below minimum';
+          const gap = salaryFloor - jobMax;
+          gapText = `$${formatSalary(gap)} below floor`;
+        }
+
+        statusHtml = `
+          <div class="jh-salary-status ${statusClass}">
+            <div class="jh-salary-status-label">${statusText}</div>
+            ${gapText ? `<div class="jh-salary-gap">${gapText}</div>` : ''}
+          </div>
+        `;
+      } else {
+        jobRangeHtml = 'Not specified';
+        statusHtml = `<div class="jh-salary-status jh-status-unknown">Salary not listed</div>`;
       }
 
       extraHtml += `
-        <div class="jh-salary-viz">
-          <div class="jh-salary-track">
-            <div class="jh-salary-range jh-salary-user" style="left: ${floorPos}%; width: ${userRangeWidth}%" title="Your target: $${formatSalary(salaryFloor)} - $${formatSalary(salaryTarget)}"></div>
-            ${jobMarkersHtml}
+        <div class="jh-salary-comparison">
+          <div class="jh-salary-row">
+            <span class="jh-salary-label-text">Job offers:</span>
+            <span class="jh-salary-value">${jobRangeHtml}</span>
           </div>
-          <div class="jh-salary-labels">
-            <span class="jh-salary-label">$${formatSalary(salaryFloor)}</span>
-            <span class="jh-salary-label jh-salary-label-right">$${formatSalary(salaryTarget)}</span>
+          <div class="jh-salary-row">
+            <span class="jh-salary-label-text">Your target:</span>
+            <span class="jh-salary-value">$${formatSalary(salaryFloor)} - $${formatSalary(salaryTarget)}</span>
           </div>
+          ${statusHtml}
         </div>
       `;
     }
@@ -638,21 +684,31 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
     const isFullWidth = ['Skills Overlap', 'Skills', 'Benefits Package', 'Benefits'].includes(item.criteria);
     const itemClass = isFullWidth ? 'jh-breakdown-item jh-full-width' : 'jh-breakdown-item';
 
-    // Build fit assessment text for hover tooltip
-    const rationaleText = item.rationale || 'Hover for assessment details';
+    // Build fit assessment text for card flip back
+    const rationaleText = item.rationale || 'Assessment details not available';
+    const hasRationale = item.rationale && item.rationale.trim().length > 0;
 
     return `
-      <div class="${itemClass}"
-           data-criteria="${escapeHtml(item.criteria || '')}"
-           data-rationale="${escapeHtml(rationaleText)}">
-        <div class="jh-breakdown-row">
-          <span class="jh-breakdown-name">${escapeHtml(criteriaName)}</span>
-          <span class="jh-breakdown-score">${scoreDisplay}</span>
+      <div class="${itemClass}" data-criteria="${escapeHtml(item.criteria || '')}">
+        <div class="jh-card-inner">
+          <div class="jh-card-front">
+            <div class="jh-breakdown-row">
+              <span class="jh-breakdown-name">${escapeHtml(criteriaName)}</span>
+              <span class="jh-breakdown-score">${scoreDisplay}</span>
+            </div>
+            <div class="jh-progress-bar">
+              <div class="jh-progress-fill ${progressClass}" style="width: ${percentage}%"></div>
+            </div>
+            ${extraHtml}
+            ${hasRationale ? '<div class="jh-flip-hint">↻ Hover for details</div>' : ''}
+          </div>
+          ${hasRationale ? `
+          <div class="jh-card-back">
+            <div class="jh-card-back-header">${escapeHtml(criteriaName)}</div>
+            <div class="jh-card-back-content">${escapeHtml(rationaleText)}</div>
+          </div>
+          ` : ''}
         </div>
-        <div class="jh-progress-bar">
-          <div class="jh-progress-fill ${progressClass}" style="width: ${percentage}%"></div>
-        </div>
-        ${extraHtml}
       </div>
     `;
   }).join('');
@@ -1620,55 +1676,88 @@ function getSidebarStyles() {
     }
 
     .jh-breakdown-item {
-      padding: 12px;
-      background: #ffffff;
-      border-radius: 8px;
-      border: 1px solid #E5E7EB;
+      background: transparent;
+      border: none;
       position: relative;
       cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .jh-breakdown-item:hover {
-      border-color: #5856D6;
-      box-shadow: 0 2px 8px rgba(88, 86, 214, 0.15);
-      transform: translateY(-1px);
+      perspective: 1000px;
+      min-height: 120px;
     }
 
     .jh-breakdown-item.jh-full-width {
       grid-column: span 2;
     }
 
-    .jh-breakdown-item::after {
-      content: attr(data-rationale);
+    .jh-card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-height: 120px;
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+    }
+
+    .jh-breakdown-item:hover .jh-card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .jh-card-front,
+    .jh-card-back {
       position: absolute;
-      bottom: 100%;
-      left: 50%;
-      transform: translateX(-50%) translateY(-8px);
-      background: #1F2937;
-      color: white;
-      padding: 10px 14px;
+      width: 100%;
+      height: 100%;
+      min-height: 120px;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
       border-radius: 8px;
+      padding: 12px;
+      box-sizing: border-box;
+    }
+
+    .jh-card-front {
+      background: #ffffff;
+      border: 1px solid #E5E7EB;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .jh-breakdown-item:hover .jh-card-front {
+      border-color: #5856D6;
+      box-shadow: 0 2px 8px rgba(88, 86, 214, 0.15);
+    }
+
+    .jh-card-back {
+      background: linear-gradient(135deg, #5856D6 0%, #4845B4 100%);
+      color: white;
+      transform: rotateY(180deg);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 16px;
+    }
+
+    .jh-card-back-header {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      opacity: 0.9;
+    }
+
+    .jh-card-back-content {
       font-size: 12px;
-      line-height: 1.5;
-      white-space: normal;
-      max-width: 280px;
-      width: max-content;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.25s ease, transform 0.25s ease;
-      z-index: 100;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      line-height: 1.6;
+      opacity: 0.95;
     }
 
-    .jh-breakdown-item:hover::after {
-      opacity: 1;
-      transform: translateX(-50%) translateY(-4px);
-    }
-
-    .jh-breakdown-item[data-rationale=""]::after,
-    .jh-breakdown-item:not([data-rationale])::after {
-      display: none;
+    .jh-flip-hint {
+      font-size: 10px;
+      color: #9CA3AF;
+      text-align: center;
+      margin-top: 8px;
+      opacity: 0.7;
     }
 
     .jh-breakdown-row {
@@ -1795,68 +1884,77 @@ function getSidebarStyles() {
     }
 
     /* ========================================
-       SALARY RANGE VISUALIZATION
+       SALARY COMPARISON DISPLAY
        ======================================== */
 
-    .jh-salary-viz {
+    .jh-salary-comparison {
       margin-top: 10px;
+      background: #F9FAFB;
+      border-radius: 8px;
+      padding: 10px;
     }
 
-    .jh-salary-track {
-      position: relative;
-      height: 12px;
-      background: #E5E7EB;
-      border-radius: 6px;
+    .jh-salary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 6px;
     }
 
-    .jh-salary-range {
-      position: absolute;
-      height: 100%;
-      border-radius: 6px;
-      top: 0;
+    .jh-salary-row:last-of-type {
+      margin-bottom: 10px;
     }
 
-    .jh-salary-range.jh-salary-user {
-      background: linear-gradient(90deg, #5856D6 0%, #4845B4 100%);
-      opacity: 0.7;
-      z-index: 1;
-    }
-
-    .jh-salary-range.jh-salary-job {
-      background: linear-gradient(90deg, #10B981 0%, #059669 100%);
-      opacity: 0.8;
-      z-index: 2;
-      border: 2px solid #ffffff;
-    }
-
-    .jh-salary-marker {
-      position: absolute;
-      width: 4px;
-      height: 16px;
-      top: -2px;
-      border-radius: 2px;
-    }
-
-    .jh-salary-marker.jh-salary-job-single {
-      background: #10B981;
-      z-index: 2;
-      box-shadow: 0 0 0 2px #ffffff;
-    }
-
-    .jh-salary-labels {
-      display: flex;
-      justify-content: space-between;
-      font-size: 10px;
+    .jh-salary-label-text {
+      font-size: 11px;
       color: #6B7280;
+      font-weight: 500;
     }
 
-    .jh-salary-label {
+    .jh-salary-value {
+      font-size: 12px;
+      color: #1F2937;
       font-weight: 600;
     }
 
-    .jh-salary-label-right {
-      color: #5856D6;
+    .jh-salary-status {
+      padding: 8px 10px;
+      border-radius: 6px;
+      margin-top: 4px;
+    }
+
+    .jh-salary-status-label {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .jh-salary-gap {
+      font-size: 11px;
+      opacity: 0.8;
+    }
+
+    .jh-status-excellent {
+      background: #D1FAE5;
+      color: #065F46;
+    }
+
+    .jh-status-good {
+      background: #DBEAFE;
+      color: #1E40AF;
+    }
+
+    .jh-status-below {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+
+    .jh-status-unknown {
+      background: #F3F4F6;
+      color: #6B7280;
+      font-size: 11px;
+      text-align: center;
+      padding: 6px;
     }
 
     /* ========================================
