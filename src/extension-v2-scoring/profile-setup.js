@@ -56,6 +56,7 @@ let profileData = {
 let skillTags = [];
 let industryTags = [];
 let roleTags = [];
+let benefitsTags = [];
 
 // Limits
 const MAX_TAGS_PER_FIELD = 30;
@@ -188,6 +189,9 @@ function cacheElements() {
     bonusPreference: document.getElementById('bonus-preference'),
     equityPreference: document.getElementById('equity-preference'),
     employmentType: document.getElementById('employment-type'),
+    // Benefits (tab 1)
+    benefitsInput: document.getElementById('preferred-benefits'),
+    benefitsTags: document.getElementById('benefits-tags'),
     // Tab 2: Background
     currentTitle: document.getElementById('current-title'),
     yearsExperience: document.getElementById('years-experience'),
@@ -268,6 +272,7 @@ const TAG_LIMIT = 30;
 
 // Maps for tracking tag input configurations
 const tagInputConfigs = {
+  benefits: { tags: () => benefitsTags, setTags: (t) => { benefitsTags = t; }, suggestedAttr: 'data-benefit' },
   skills: { tags: () => skillTags, setTags: (t) => { skillTags = t; }, suggestedAttr: 'data-skill' },
   industries: { tags: () => industryTags, setTags: (t) => { industryTags = t; }, suggestedAttr: 'data-industry' },
   roles: { tags: () => roleTags, setTags: (t) => { roleTags = t; }, suggestedAttr: 'data-role' }
@@ -277,6 +282,15 @@ const tagInputConfigs = {
  * Set up tag input functionality for skills, industries, and roles
  */
 function setupTagInputs() {
+  // Benefits tag input
+  setupTagInput(
+    elements.benefitsInput,
+    elements.benefitsTags,
+    () => benefitsTags,
+    (tags) => { benefitsTags = tags; syncSuggestedTags('benefits'); updateTagCount('benefits'); },
+    'benefits'
+  );
+
   // Skills tag input
   setupTagInput(
     elements.skillsInput,
@@ -305,6 +319,7 @@ function setupTagInputs() {
   );
 
   // Initialize tag counts
+  updateTagCount('benefits');
   updateTagCount('skills');
   updateTagCount('industries');
   updateTagCount('roles');
@@ -312,7 +327,7 @@ function setupTagInputs() {
 
 /**
  * Update the tag count display for a category
- * @param {string} category - 'skills', 'industries', or 'roles'
+ * @param {string} category - 'skills', 'industries', 'roles', or 'benefits'
  */
 function updateTagCount(category) {
   const config = tagInputConfigs[category];
@@ -321,6 +336,8 @@ function updateTagCount(category) {
   const tags = config.tags();
   const container = category === 'skills' ? elements.skillsTags :
                    category === 'industries' ? elements.industriesTags :
+                   category === 'roles' ? elements.rolesTags :
+                   category === 'benefits' ? elements.benefitsTags :
                    elements.rolesTags;
 
   // Find or create count element
@@ -566,6 +583,24 @@ function syncSuggestedTags(category) {
  * Set up click handlers for suggested tag buttons
  */
 function setupSuggestedTags() {
+  // Benefit suggestions
+  document.querySelectorAll('.suggested-tag[data-benefit]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.classList.contains('used')) return;
+      if (benefitsTags.length >= TAG_LIMIT) {
+        showInlineValidation(elements.benefitsInput, `Maximum ${TAG_LIMIT} items reached.`);
+        return;
+      }
+
+      const benefit = btn.dataset.benefit;
+      if (!tagExists(benefitsTags, benefit)) {
+        benefitsTags.push(benefit);
+        renderTags(elements.benefitsTags, benefitsTags, (tags) => { benefitsTags = tags; syncSuggestedTags('benefits'); updateTagCount('benefits'); }, 'benefits');
+        updateTagCount('benefits');
+      }
+    });
+  });
+
   // Skill suggestions
   document.querySelectorAll('.suggested-tag[data-skill]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -712,9 +747,8 @@ function collectFormData() {
     t => !profileData.preferences.workplace_types_acceptable.includes(t)
   );
 
-  // Benefits preferences (from checkboxes)
-  const benefitsCheckboxes = document.querySelectorAll('input[name="benefits_preferred"]:checked');
-  profileData.preferences.benefits = Array.from(benefitsCheckboxes).map(cb => cb.value);
+  // Benefits preferences (from tags)
+  profileData.preferences.benefits = [...benefitsTags];
 
   // Tab 2: Background
   profileData.background.current_title = elements.currentTitle.value.trim();
@@ -813,11 +847,6 @@ function populateFormFromProfile() {
     cb.checked = (profileData.preferences.workplace_types_acceptable || []).includes(cb.value);
   });
 
-  // Benefits preferences checkboxes
-  document.querySelectorAll('input[name="benefits_preferred"]').forEach(cb => {
-    cb.checked = (profileData.preferences.benefits || []).includes(cb.value);
-  });
-
   // Tab 2: Background
   if (profileData.background.current_title) {
     elements.currentTitle.value = profileData.background.current_title;
@@ -827,16 +856,22 @@ function populateFormFromProfile() {
   }
 
   // Load tags
+  benefitsTags = profileData.preferences.benefits || [];
   skillTags = profileData.background.core_skills || [];
   industryTags = profileData.background.industries || [];
   roleTags = profileData.background.target_roles || [];
 
   // Render tags
+  renderTags(elements.benefitsTags, benefitsTags, (tags) => { benefitsTags = tags; });
   renderTags(elements.skillsTags, skillTags, (tags) => { skillTags = tags; });
   renderTags(elements.industriesTags, industryTags, (tags) => { industryTags = tags; });
   renderTags(elements.rolesTags, roleTags, (tags) => { roleTags = tags; });
 
   // Mark suggested tags as used
+  benefitsTags.forEach(benefit => {
+    const btn = document.querySelector(`.suggested-tag[data-benefit="${CSS.escape(benefit)}"]`);
+    if (btn) btn.classList.add('used');
+  });
   skillTags.forEach(skill => {
     const btn = document.querySelector(`.suggested-tag[data-skill="${skill}"]`);
     if (btn) btn.classList.add('used');
