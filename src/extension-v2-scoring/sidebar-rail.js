@@ -317,21 +317,8 @@ function updateFitScoreCard(sidebar, scoreResult) {
  * Update the score breakdown section with progress bars
  */
 function updateScoreBreakdown(sidebar, scoreResult, userProfile = null) {
-  // Consolidated section combining both job-to-user and user-to-job criteria
-  const breakdownProgress = sidebar.querySelector('.jh-breakdown-section .jh-section-progress');
-  const breakdownList = sidebar.querySelector('.jh-breakdown-section .jh-breakdown-list');
-
-  // Calculate total score (job fit + user fit)
-  const jobFitScore = scoreResult.job_to_user_fit?.score || 0;
-  const userFitScore = scoreResult.user_to_job_fit?.score || 0;
-  const totalScore = jobFitScore + userFitScore;
-
-  // Update progress bar
-  if (breakdownProgress) {
-    const percentage = totalScore; // Total is already out of 100
-    breakdownProgress.querySelector('.jh-progress-fill').style.width = `${percentage}%`;
-    breakdownProgress.querySelector('.jh-progress-text').textContent = `${totalScore}/100`;
-  }
+  // Get the breakdown list directly
+  const breakdownList = sidebar.querySelector('.jh-score-breakdown .jh-breakdown-list');
 
   // Merge both breakdown arrays
   if (breakdownList) {
@@ -347,11 +334,36 @@ function updateScoreBreakdown(sidebar, scoreResult, userProfile = null) {
       allCriteria.push(...scoreResult.user_to_job_fit.breakdown);
     }
 
-    // Sort by weight/importance (highest first)
+    // Custom order as specified by user
+    const criteriaOrder = [
+      'Base Salary',
+      'Bonus & Equity',
+      'Title & Seniority Match',
+      'Experience Level',
+      'Work Location',
+      'Industry Experience',
+      'Skills Overlap',
+      'Benefits Package',
+      'Business Lifecycle',
+      'Organizational Stability'
+    ];
+
+    // Sort by custom order
     allCriteria.sort((a, b) => {
-      const weightA = a.weight || 0;
-      const weightB = b.weight || 0;
-      return weightB - weightA;
+      const indexA = criteriaOrder.indexOf(a.criteria);
+      const indexB = criteriaOrder.indexOf(b.criteria);
+
+      // If both found, sort by order
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+
+      // If only A found, A comes first
+      if (indexA !== -1) return -1;
+
+      // If only B found, B comes first
+      if (indexB !== -1) return 1;
+
+      // Neither found, maintain original order
+      return 0;
     });
 
     // Render all criteria in one consolidated list
@@ -655,14 +667,14 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
           </div>
         `;
       } else {
-        jobRangeHtml = 'Not specified';
-        statusHtml = `<div class="jh-salary-status jh-status-unknown">Salary not listed</div>`;
+        jobRangeHtml = '--';
+        statusHtml = '';
       }
 
       extraHtml += `
         <div class="jh-salary-comparison">
           <div class="jh-salary-row">
-            <span class="jh-salary-label-text">Job offers:</span>
+            <span class="jh-salary-label-text">Job target:</span>
             <span class="jh-salary-value">${jobRangeHtml}</span>
           </div>
           <div class="jh-salary-row">
@@ -707,7 +719,6 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
               <div class="jh-progress-fill ${progressClass}" style="width: ${percentage}%"></div>
             </div>
             ${extraHtml}
-            ${hasRationale ? '<div class="jh-flip-hint">↻ Hover for details</div>' : ''}
           </div>
           ${hasRationale ? `
           <div class="jh-card-back">
@@ -1209,43 +1220,24 @@ function getJobsSidebarHTML() {
             <span class="jh-stat-value jh-stat-employees">--</span>
           </div>
           <div class="jh-stat-item-compact">
-            <span class="jh-stat-label">Followers</span>
-            <span class="jh-stat-value jh-stat-followers">--</span>
-          </div>
-          <div class="jh-stat-item-compact">
-            <span class="jh-stat-label">Applicants</span>
-            <span class="jh-stat-value jh-stat-applicants">--</span>
+            <span class="jh-stat-label">Tenure</span>
+            <span class="jh-stat-value jh-stat-tenure">--</span>
           </div>
           <div class="jh-stat-item-compact">
             <span class="jh-stat-label">2Y Growth</span>
             <span class="jh-stat-value jh-stat-growth">--</span>
           </div>
-          <div class="jh-stat-item-compact">
-            <span class="jh-stat-label">Tenure</span>
-            <span class="jh-stat-value jh-stat-tenure">--</span>
-          </div>
-          <div class="jh-stat-item-compact">
-            <span class="jh-stat-label">Hiring Mgr</span>
+          <div class="jh-stat-item-compact jh-stat-item-full">
+            <span class="jh-stat-label">Hiring Manager</span>
             <span class="jh-stat-value jh-stat-hiring-manager">--</span>
           </div>
         </div>
       </div>
 
-      <!-- Score Breakdown - Consolidated -->
+      <!-- Score Breakdown -->
       <div class="jh-score-breakdown">
-        <div class="jh-breakdown-section">
-          <div class="jh-breakdown-section-header">
-            <span class="jh-breakdown-section-title">Criteria Assessment</span>
-            <div class="jh-section-progress">
-              <div class="jh-progress-bar-container">
-                <div class="jh-progress-fill"></div>
-              </div>
-              <span class="jh-progress-text">--/100</span>
-            </div>
-          </div>
-          <div class="jh-breakdown-list">
-            <!-- Populated dynamically with all criteria sorted by importance -->
-          </div>
+        <div class="jh-breakdown-list">
+          <!-- Populated dynamically with criteria sorted by custom order -->
         </div>
       </div>
 
@@ -1661,8 +1653,9 @@ function getSidebarStyles() {
 
     .jh-breakdown-list {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      padding: 12px 16px;
     }
 
     .jh-breakdown-item {
@@ -1671,18 +1664,18 @@ function getSidebarStyles() {
       position: relative;
       cursor: pointer;
       perspective: 1000px;
-      min-height: 120px;
+      min-height: 90px;
     }
 
     .jh-breakdown-item.jh-full-width {
-      grid-column: span 2;
+      grid-column: span 4;
     }
 
     .jh-card-inner {
       position: relative;
       width: 100%;
       height: 100%;
-      min-height: 120px;
+      min-height: 90px;
       transition: transform 0.6s;
       transform-style: preserve-3d;
     }
@@ -1696,11 +1689,11 @@ function getSidebarStyles() {
       position: absolute;
       width: 100%;
       height: 100%;
-      min-height: 120px;
+      min-height: 90px;
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
       border-radius: 8px;
-      padding: 12px;
+      padding: 10px;
       box-sizing: border-box;
     }
 
@@ -1742,29 +1735,21 @@ function getSidebarStyles() {
       opacity: 0.95;
     }
 
-    .jh-flip-hint {
-      font-size: 10px;
-      color: #9CA3AF;
-      text-align: center;
-      margin-top: 8px;
-      opacity: 0.7;
-    }
-
     .jh-breakdown-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
 
     .jh-breakdown-name {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       color: #1F2937;
     }
 
     .jh-breakdown-score {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       color: #1F2937;
     }
@@ -1777,9 +1762,9 @@ function getSidebarStyles() {
     }
 
     .jh-progress-bar {
-      height: 6px;
+      height: 4px;
       background: #E5E7EB;
-      border-radius: 3px;
+      border-radius: 2px;
       overflow: hidden;
     }
 
@@ -1798,9 +1783,9 @@ function getSidebarStyles() {
     }
 
     .jh-actual-value {
-      font-size: 12px;
+      font-size: 11px;
       color: #6B7280;
-      margin-top: 6px;
+      margin-top: 4px;
     }
 
     .jh-detection-status {
@@ -1834,8 +1819,8 @@ function getSidebarStyles() {
     .jh-benefits-tags {
       display: flex;
       flex-wrap: wrap;
-      gap: 5px;
-      margin-top: 8px;
+      gap: 4px;
+      margin-top: 5px;
     }
 
     .jh-skill-tag,
@@ -1868,9 +1853,9 @@ function getSidebarStyles() {
 
     .jh-skills-summary,
     .jh-benefits-summary {
-      font-size: 11px;
+      font-size: 10px;
       color: #6B7280;
-      margin-top: 6px;
+      margin-top: 4px;
     }
 
     /* ========================================
@@ -2459,6 +2444,10 @@ function getSidebarStyles() {
     .jh-stat-item-compact .jh-stat-value {
       font-size: 12px;
       font-weight: 600;
+    }
+
+    .jh-stat-item-compact.jh-stat-item-full {
+      grid-column: span 3;
     }
 
     /* ========================================
