@@ -33,7 +33,8 @@ function extractRequiredSkillConcepts(jobDescriptionText, options = {}) {
     ? window.SkillConstants.EXTRACTION_CONFIG
     : {};
   const minConfidence = typeof config.MIN_CONFIDENCE === 'number' ? config.MIN_CONFIDENCE : 0.5;
-  const maxSkills = typeof config.MAX_SKILLS_PER_JOB === 'number' ? config.MAX_SKILLS_PER_JOB : 30;
+  // FIXED: Default to 0 (no cap) instead of 30 to match EXTRACTION_CONFIG.MAX_SKILLS_PER_JOB
+  const maxSkills = typeof config.MAX_SKILLS_PER_JOB === 'number' ? config.MAX_SKILLS_PER_JOB : 0;
 
   // Default options
   const {

@@ -605,20 +605,33 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
       const unmatchedSkills = item.unmatched_skills || [];
       const matchCount = matchedSkills.length;
 
-      // Calculate total correctly: either from unmatched + matched, or from user profile
+      // Calculate total correctly: matched + unmatched = job's required skills
       const actualTotal = matchedSkills.length + unmatchedSkills.length;
       const displayTotal = actualTotal > 0 ? actualTotal : totalUserSkills;
 
-      // Show X/Y where Y is total user skills
-      extraHtml += `<div class="jh-skills-summary">${matchCount}/${displayTotal} skills</div>`;
+      // FIXED: Calculate percentage consistently with match_percentage used in warnings
+      // percentage = matchCount / displayTotal * 100
+      const displayPercentage = displayTotal > 0 ? Math.round((matchCount / displayTotal) * 100) : 0;
 
-      // Combine matched and unmatched for display
+      // Update match_percentage to ensure consistency between card and warnings
+      if (displayTotal > 0) {
+        item.match_percentage = displayPercentage;
+      }
+
+      // Show X/Y with percentage - same calculation used everywhere
+      extraHtml += `<div class="jh-skills-summary">${matchCount}/${displayTotal} skills (${displayPercentage}%)</div>`;
+
+      // Combine matched and unmatched for display (matched first)
       const combinedSkills = [
         ...matchedSkills.map(s => ({ name: s, matched: true })),
         ...unmatchedSkills.map(s => ({ name: s, matched: false }))
       ];
       badgeCount = combinedSkills.length;
-      const displaySkills = combinedSkills;
+
+      // FIXED: Add overflow truncation with accurate "+more" count
+      const maxVisibleBadges = 10;
+      const displaySkills = combinedSkills.slice(0, maxVisibleBadges);
+      const hiddenCount = combinedSkills.length - displaySkills.length;
 
       if (displaySkills.length > 0) {
         extraHtml += `
@@ -626,6 +639,7 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
             ${displaySkills.map(s =>
               `<span class="jh-skill-tag ${s.matched ? 'jh-matched' : 'jh-ghost'}">${escapeHtml(formatBadgeLabel(s.name))}</span>`
             ).join('')}
+            ${hiddenCount > 0 ? `<span class="jh-skill-tag jh-more" title="Click to see all ${combinedSkills.length} skills">+${hiddenCount} more</span>` : ''}
           </div>
         `;
       }
@@ -643,14 +657,21 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
         ? `<div class="jh-benefits-summary">${matchCount}/${totalCount} benefits matched</div>`
         : `<div class="jh-benefits-summary">${matchCount} benefits matched</div>`;
 
-      const displayBenefits = matchedBenefits.map(b => ({ name: b, matched: true }));
-      badgeCount = displayBenefits.length;
+      const allBenefits = matchedBenefits.map(b => ({ name: b, matched: true }));
+      badgeCount = allBenefits.length;
+
+      // FIXED: Add overflow truncation with accurate "+more" count for benefits
+      const maxVisibleBenefits = 6;
+      const displayBenefits = allBenefits.slice(0, maxVisibleBenefits);
+      const hiddenBenefitCount = allBenefits.length - displayBenefits.length;
+
       if (displayBenefits.length > 0) {
         extraHtml += `
           <div class="jh-benefits-tags">
             ${displayBenefits.map(b =>
               `<span class="jh-benefit-tag ${b.matched ? 'jh-matched' : 'jh-ghost'}">${escapeHtml(formatBadgeLabel(b.name))}</span>`
             ).join('')}
+            ${hiddenBenefitCount > 0 ? `<span class="jh-benefit-tag jh-more" title="Click to see all ${allBenefits.length} benefits">+${hiddenBenefitCount} more</span>` : ''}
           </div>
         `;
       }
@@ -1963,6 +1984,21 @@ function getSidebarStyles() {
       color: #9CA3AF;
       border: 1px dashed #D1D9E0;
       opacity: 0.7;
+    }
+
+    /* "+X more" badges for overflow */
+    .jh-skill-tag.jh-more,
+    .jh-benefit-tag.jh-more {
+      background: #F3F4F6;
+      color: #6B7280;
+      border: 1px solid #E5E7EB;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .jh-skill-tag.jh-more:hover,
+    .jh-benefit-tag.jh-more:hover {
+      background: #E5E7EB;
+      color: #374151;
     }
 
     .jh-skills-summary,

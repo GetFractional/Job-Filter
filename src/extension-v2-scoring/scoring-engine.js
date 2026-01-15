@@ -23,16 +23,17 @@
  *
  * REORGANIZED: Now includes Business Lifecycle and Org Stability
  */
+// FIXED: Weights MUST sum to 1.0 for proper weighted average calculation
+// Redistributed removed companyStage weight (0.10) across other criteria
 const JOB_TO_USER_WEIGHTS = {
-  salary: 0.22,           // How well the salary meets user's floor/target
-  workplaceType: 0.18,    // Remote/Hybrid/On-site alignment
-  equityBonus: 0.15,      // Whether equity/bonus is present
-  benefits: 0.12,         // Benefits package (health, 401k, PTO, etc.)
-  // companyStage: 0.10,  // REMOVED - Company maturity level
-  businessLifecycle: 0.10, // Company stage (Seed/Startup/Growth/Maturity)
-  orgStability: 0.08,     // Headcount growth/decline trends - MOVED from User-to-Job
+  salary: 0.25,           // How well the salary meets user's floor/target (was 0.22)
+  workplaceType: 0.20,    // Remote/Hybrid/On-site alignment (was 0.18)
+  equityBonus: 0.17,      // Whether equity/bonus is present (was 0.15)
+  benefits: 0.13,         // Benefits package (health, 401k, PTO, etc.) (was 0.12)
+  businessLifecycle: 0.11, // Company stage (Seed/Startup/Growth/Maturity) (was 0.10)
+  orgStability: 0.09,     // Headcount growth/decline trends (was 0.08)
   hiringUrgency: 0.05     // Urgency signals from job posting
-  // Note: Weights now sum to 0.90 (was 1.0) - this is intentional after removing companyStage
+  // Sum: 0.25 + 0.20 + 0.17 + 0.13 + 0.11 + 0.09 + 0.05 = 1.00
 };
 
 /**
@@ -40,13 +41,14 @@ const JOB_TO_USER_WEIGHTS = {
  * These determine how well the user matches the job's requirements
  * Must sum to 1.0
  */
+// FIXED: Weights MUST sum to 1.0 for proper weighted average calculation
+// Redistributed removed revOpsComponent weight (0.25) across other criteria
 const USER_TO_JOB_WEIGHTS = {
-  roleType: 0.25,         // Title/seniority alignment with target roles
-  // revOpsComponent: 0.25,  // REMOVED - Operations & Systems Focus criterion removed per user request
-  skillMatch: 0.25,       // Keyword overlap with user's core skills
-  industryAlignment: 0.15, // Industry match (exact/adjacent/new)
-  experienceLevel: 0.10   // Years of experience alignment - REPLACES orgComplexity
-  // Note: Weights now sum to 0.75 (was 1.0) - this is intentional after removing revOpsComponent
+  roleType: 0.30,         // Title/seniority alignment with target roles (was 0.25)
+  skillMatch: 0.35,       // Keyword overlap with user's core skills (was 0.25)
+  industryAlignment: 0.20, // Industry match (exact/adjacent/new) (was 0.15)
+  experienceLevel: 0.15   // Years of experience alignment (was 0.10)
+  // Sum: 0.30 + 0.35 + 0.20 + 0.15 = 1.00
 };
 
 /**
@@ -399,18 +401,52 @@ function scoreSalary(jobPayload, userProfile) {
   let score = 0;
   let rationale = '';
 
+  // FIXED: Revised salary scoring algorithm for better alignment with user expectations
+  // - At target or above: 50/50 (100%)
+  // - At floor exactly: 25/50 (50%) - barely acceptable
+  // - Linear interpolation between floor and target
+  // - Below floor: drops rapidly
   const scoreFromOffer = (offer) => {
-    if (offer >= target) return { score: 50, note: 'meets/exceeds target' };
-    if (offer >= (target * 0.95)) return { score: 48, note: 'within 5% of target' };
-    if (offer >= (target * 0.90)) return { score: 45, note: 'within 10% of target' };
+    if (offer >= target) {
+      return { score: 50, note: 'meets/exceeds target' };
+    }
     if (offer >= floor) {
-      const range = (target * 0.90) - floor;
+      // Linear interpolation from floor (25 points) to target (50 points)
+      // At floor: 25 points (50%)
+      // At target: 50 points (100%)
+      const range = target - floor;
       const aboveFloor = offer - floor;
       const percentage = range > 0 ? (aboveFloor / range) : 0;
-      return { score: 35 + (percentage * 10), note: 'within target range' };
+      // Score from 25 (at floor) to 50 (at target)
+      const calculatedScore = 25 + (percentage * 25);
+
+      // Generate appropriate note
+      let note;
+      if (percentage >= 0.90) {
+        note = 'within 10% of target';
+      } else if (percentage >= 0.75) {
+        note = 'solid match, approaching target';
+      } else if (percentage >= 0.50) {
+        note = 'moderate match, midway to target';
+      } else if (percentage >= 0.25) {
+        note = 'meets minimum, below midpoint';
+      } else {
+        note = 'barely meets minimum floor';
+      }
+
+      return { score: calculatedScore, note };
     }
-    if (offer >= (floor * 0.9)) return { score: 15, note: 'close to floor but below' };
-    return { score: 5, note: 'below floor' };
+    // Below floor
+    if (offer >= (floor * 0.95)) {
+      return { score: 20, note: 'slightly below floor' };
+    }
+    if (offer >= (floor * 0.90)) {
+      return { score: 15, note: 'below floor by ~10%' };
+    }
+    if (offer >= (floor * 0.80)) {
+      return { score: 10, note: 'significantly below floor' };
+    }
+    return { score: 5, note: 'well below floor' };
   };
 
   const base = scoreFromOffer(offeredSalary);
