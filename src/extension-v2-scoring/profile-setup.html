@@ -129,51 +129,30 @@
           <div class="form-group">
             <label>Preferred Benefits</label>
             <small>Select benefits that are most important to you (improves scoring when matched)</small>
-            <div class="checkbox-group">
-              <label class="checkbox-label">
-                <input type="checkbox" name="benefits_preferred" value="medical">
-                <span>🏥 Medical Insurance</span>
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" name="benefits_preferred" value="dental">
-                <span>🦷 Dental Insurance</span>
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" name="benefits_preferred" value="vision">
-                <span>👁️ Vision Insurance</span>
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" name="benefits_preferred" value="401k">
-                <span>💰 401k / Retirement</span>
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" name="benefits_preferred" value="hsa_fsa">
-                <span>💳 HSA/FSA</span>
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" name="benefits_preferred" value="pto">
-                <span>🏖️ PTO / Vacation</span>
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" name="benefits_preferred" value="paid_parental">
-                <span>👶 Paid Parental Leave</span>
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" name="benefits_preferred" value="tuition">
-                <span>🎓 Tuition Reimbursement</span>
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" name="benefits_preferred" value="learning_stipend">
-                <span>📚 Learning Stipend</span>
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" name="benefits_preferred" value="wfh_reimbursement">
-                <span>🏡 WFH Reimbursement</span>
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" name="benefits_preferred" value="relocation">
-                <span>📦 Relocation Assistance</span>
-              </label>
+            <div class="tag-input-container" id="benefits-container">
+              <div class="tags" id="benefits-tags"></div>
+              <input
+                type="text"
+                id="preferred-benefits"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Type a benefit and press Enter"
+              >
+            </div>
+            <small>Add benefits you care about (improves scoring when matched)</small>
+            <div class="suggested-tags">
+              <span class="suggested-label">Suggested:</span>
+              <button type="button" class="suggested-tag" data-benefit="medical_insurance">Medical Insurance</button>
+              <button type="button" class="suggested-tag" data-benefit="dental_insurance">Dental Insurance</button>
+              <button type="button" class="suggested-tag" data-benefit="401k">401k</button>
+              <button type="button" class="suggested-tag" data-benefit="paid_maternity_leave">Paid Maternity Leave</button>
+              <button type="button" class="suggested-tag" data-benefit="paid_paternity_leave">Paid Paternity Leave</button>
+              <button type="button" class="suggested-tag" data-benefit="disability_insurance">Disability Insurance</button>
+              <button type="button" class="suggested-tag" data-benefit="childcare_support">Childcare Support</button>
+              <button type="button" class="suggested-tag" data-benefit="commuter_benefits">Commuter Benefits</button>
+              <button type="button" class="suggested-tag" data-benefit="relocation">Relocation</button>
+              <button type="button" class="suggested-tag" data-benefit="tuition_assistance">Tuition Assistance</button>
+              <button type="button" class="suggested-tag" data-benefit="student_loan_assistance">Student Loan Assistance</button>
             </div>
           </div>
 

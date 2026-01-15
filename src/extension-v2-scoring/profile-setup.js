@@ -56,6 +56,7 @@ let profileData = {
 let skillTags = [];
 let industryTags = [];
 let roleTags = [];
+let benefitsTags = [];
 
 // Limits
 const MAX_TAGS_PER_FIELD = 30;
@@ -129,6 +130,7 @@ function updateAllCounts() {
   updateTagCount('skills');
   updateTagCount('industries');
   updateTagCount('roles');
+  updateTagCount('benefits');
   updateDealBreakerCount();
   updateMustHaveCount();
   updateWorkplaceCount();
@@ -196,7 +198,9 @@ function cacheElements() {
     industriesInput: document.getElementById('industries'),
     industriesTags: document.getElementById('industries-tags'),
     rolesInput: document.getElementById('target-roles'),
-    rolesTags: document.getElementById('roles-tags')
+    rolesTags: document.getElementById('roles-tags'),
+    benefitsInput: document.getElementById('preferred-benefits'),
+    benefitsTags: document.getElementById('benefits-tags')
   };
 }
 
@@ -270,7 +274,8 @@ const TAG_LIMIT = 30;
 const tagInputConfigs = {
   skills: { tags: () => skillTags, setTags: (t) => { skillTags = t; }, suggestedAttr: 'data-skill' },
   industries: { tags: () => industryTags, setTags: (t) => { industryTags = t; }, suggestedAttr: 'data-industry' },
-  roles: { tags: () => roleTags, setTags: (t) => { roleTags = t; }, suggestedAttr: 'data-role' }
+  roles: { tags: () => roleTags, setTags: (t) => { roleTags = t; }, suggestedAttr: 'data-role' },
+  benefits: { tags: () => benefitsTags, setTags: (t) => { benefitsTags = t; }, suggestedAttr: 'data-benefit' }
 };
 
 /**
@@ -304,10 +309,20 @@ function setupTagInputs() {
     'roles'
   );
 
+  // Benefits tag input
+  setupTagInput(
+    elements.benefitsInput,
+    elements.benefitsTags,
+    () => benefitsTags,
+    (tags) => { benefitsTags = tags; syncSuggestedTags('benefits'); updateTagCount('benefits'); },
+    'benefits'
+  );
+
   // Initialize tag counts
   updateTagCount('skills');
   updateTagCount('industries');
   updateTagCount('roles');
+  updateTagCount('benefits');
 }
 
 /**
@@ -321,7 +336,8 @@ function updateTagCount(category) {
   const tags = config.tags();
   const container = category === 'skills' ? elements.skillsTags :
                    category === 'industries' ? elements.industriesTags :
-                   elements.rolesTags;
+                   category === 'roles' ? elements.rolesTags :
+                   elements.benefitsTags;
 
   // Find or create count element
   const tagInputContainer = container.closest('.tag-input-container');
@@ -485,7 +501,9 @@ function renderTags(container, tags, updateTags, category) {
     btn.addEventListener('click', () => {
       const index = parseInt(btn.dataset.index, 10);
       const currentTags = category === 'skills' ? skillTags :
-                         category === 'industries' ? industryTags : roleTags;
+                         category === 'industries' ? industryTags :
+                         category === 'roles' ? roleTags :
+                         benefitsTags;
       const newTags = currentTags.filter((_, i) => i !== index);
       updateTags(newTags);
       renderTags(container, newTags, updateTags, category);
@@ -619,6 +637,29 @@ function setupSuggestedTags() {
       }
     });
   });
+
+  // Benefits suggestions
+  document.querySelectorAll('.suggested-tag[data-benefit]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.classList.contains('used')) return;
+      if (benefitsTags.length >= TAG_LIMIT) {
+        showInlineValidation(elements.benefitsInput, `Maximum ${TAG_LIMIT} items reached.`);
+        return;
+      }
+
+      const benefit = btn.dataset.benefit;
+      if (!tagExists(benefitsTags, benefit)) {
+        benefitsTags.push(benefit);
+        renderTags(
+          elements.benefitsTags,
+          benefitsTags,
+          (tags) => { benefitsTags = tags; syncSuggestedTags('benefits'); updateTagCount('benefits'); },
+          'benefits'
+        );
+        updateTagCount('benefits');
+      }
+    });
+  });
 }
 
 // ============================================================================
@@ -712,9 +753,8 @@ function collectFormData() {
     t => !profileData.preferences.workplace_types_acceptable.includes(t)
   );
 
-  // Benefits preferences (from checkboxes)
-  const benefitsCheckboxes = document.querySelectorAll('input[name="benefits_preferred"]:checked');
-  profileData.preferences.benefits = Array.from(benefitsCheckboxes).map(cb => cb.value);
+  // Benefits preferences (from tag input)
+  profileData.preferences.benefits = [...benefitsTags];
 
   // Tab 2: Background
   profileData.background.current_title = elements.currentTitle.value.trim();
@@ -813,9 +853,14 @@ function populateFormFromProfile() {
     cb.checked = (profileData.preferences.workplace_types_acceptable || []).includes(cb.value);
   });
 
-  // Benefits preferences checkboxes
-  document.querySelectorAll('input[name="benefits_preferred"]').forEach(cb => {
-    cb.checked = (profileData.preferences.benefits || []).includes(cb.value);
+  // Benefits preferences tags
+  benefitsTags = profileData.preferences.benefits || [];
+  renderTags(elements.benefitsTags, benefitsTags, (tags) => { benefitsTags = tags; });
+
+  // Mark suggested benefits as used
+  benefitsTags.forEach(benefit => {
+    const btn = document.querySelector(`.suggested-tag[data-benefit="${benefit}"]`);
+    if (btn) btn.classList.add('used');
   });
 
   // Tab 2: Background

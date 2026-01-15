@@ -28,6 +28,9 @@ const sidebarState = {
   isExpanded: true
 };
 
+const CRITERIA_ORDER_STORAGE_KEY = 'jh_criteria_order';
+const SIDEBAR_POSITION_STORAGE_KEY = 'jh_sidebar_position';
+
 // ============================================================================
 // FIT LEVEL COLOR SYSTEM
 // ============================================================================
@@ -106,6 +109,8 @@ function createSidebarRail(mode) {
 
   // Set up event handlers
   setupSidebarEventHandlers(sidebar, mode);
+  applySavedSidebarPosition(sidebar);
+  enableSidebarDrag(sidebar);
 
   sidebarState.mode = mode;
   sidebarState.isVisible = true;
@@ -275,10 +280,20 @@ function updateHeaderSection(sidebar, jobData, scoreResult) {
   }
 
   if (hiringManagerEl) {
-    const manager = jobData.hiringManagerDetails?.name;
-    // Truncate long names
-    const displayName = manager ? (manager.length > 15 ? manager.substring(0, 14) + '…' : manager) : '--';
-    hiringManagerEl.textContent = displayName;
+    const manager = (jobData.hiringManagerDetails?.name || '').trim();
+    const headline = (jobData.hiringManagerDetails?.headline || jobData.hiringManagerDetails?.title || '').trim();
+    const companyName = (jobData.companyName || '').trim().toLowerCase();
+    const isCompanyFallback = manager && companyName && manager.toLowerCase().includes(companyName);
+
+    if (manager && !isCompanyFallback) {
+      const headlineHtml = headline ? `<div class="jh-hm-title">${escapeHtml(headline)}</div>` : '';
+      hiringManagerEl.innerHTML = `
+        <div class="jh-hm-name">${escapeHtml(manager)}</div>
+        ${headlineHtml}
+      `;
+    } else {
+      hiringManagerEl.textContent = 'Unknown';
+    }
   }
 }
 
@@ -314,24 +329,11 @@ function updateFitScoreCard(sidebar, scoreResult) {
 }
 
 /**
- * Update the score breakdown section with progress bars
+ * Update the score breakdown section with criteria cards
  */
 function updateScoreBreakdown(sidebar, scoreResult, userProfile = null) {
   // Consolidated section combining both job-to-user and user-to-job criteria
-  const breakdownProgress = sidebar.querySelector('.jh-breakdown-section .jh-section-progress');
   const breakdownList = sidebar.querySelector('.jh-breakdown-section .jh-breakdown-list');
-
-  // Calculate total score (job fit + user fit)
-  const jobFitScore = scoreResult.job_to_user_fit?.score || 0;
-  const userFitScore = scoreResult.user_to_job_fit?.score || 0;
-  const totalScore = jobFitScore + userFitScore;
-
-  // Update progress bar
-  if (breakdownProgress) {
-    const percentage = totalScore; // Total is already out of 100
-    breakdownProgress.querySelector('.jh-progress-fill').style.width = `${percentage}%`;
-    breakdownProgress.querySelector('.jh-progress-text').textContent = `${totalScore}/100`;
-  }
 
   // Merge both breakdown arrays
   if (breakdownList) {
@@ -347,19 +349,31 @@ function updateScoreBreakdown(sidebar, scoreResult, userProfile = null) {
       allCriteria.push(...scoreResult.user_to_job_fit.breakdown);
     }
 
-    // Sort by weight/importance (highest first)
-    allCriteria.sort((a, b) => {
-      const weightA = a.weight || 0;
-      const weightB = b.weight || 0;
-      return weightB - weightA;
-    });
+    const renderCriteria = (customOrder) => {
+      const sortedCriteria = sortCriteriaByOrder(allCriteria, customOrder);
+      breakdownList.innerHTML = renderBreakdownItems(
+        sortedCriteria,
+        'consolidated',
+        userProfile
+      );
+      enableCriteriaReorder(breakdownList);
+      enableCardResizing(breakdownList);
+      if (breakdownList.dataset.resizeListener !== 'true') {
+        breakdownList.dataset.resizeListener = 'true';
+        window.addEventListener('resize', () => applyGridLayout(breakdownList));
+      }
+      requestAnimationFrame(() => {
+        applyGridLayout(breakdownList);
+      });
+    };
 
-    // Render all criteria in one consolidated list
-    breakdownList.innerHTML = renderBreakdownItems(
-      allCriteria,
-      'consolidated',
-      userProfile
-    );
+    if (chrome?.storage?.local) {
+      chrome.storage.local.get([CRITERIA_ORDER_STORAGE_KEY], (result) => {
+        renderCriteria(result[CRITERIA_ORDER_STORAGE_KEY] || null);
+      });
+    } else {
+      renderCriteria(null);
+    }
   }
 
   // Add profile mismatch warnings if any
@@ -514,6 +528,7 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
 
     // Build extra content based on criteria type
     let extraHtml = '';
+    let badgeCount = null;
 
     // Skills display with ghost badges for non-matching
     if (item.criteria === 'Skills Overlap' && (item.matched_skills || item.unmatched_skills || totalUserSkills)) {
@@ -529,19 +544,19 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
       extraHtml += `<div class="jh-skills-summary">${matchCount}/${displayTotal} skills</div>`;
 
       // Combine matched and unmatched for display
-      // Show ALL skills up to a reasonable limit (first 15 total)
-      const displaySkills = [
+      const combinedSkills = [
         ...matchedSkills.map(s => ({ name: s, matched: true })),
         ...unmatchedSkills.map(s => ({ name: s, matched: false }))
-      ].slice(0, 15);
+      ];
+      badgeCount = combinedSkills.length;
+      const displaySkills = combinedSkills;
 
       if (displaySkills.length > 0) {
         extraHtml += `
           <div class="jh-skill-tags">
             ${displaySkills.map(s =>
-              `<span class="jh-skill-tag ${s.matched ? 'jh-matched' : 'jh-ghost'}">${escapeHtml(s.name)}</span>`
+              `<span class="jh-skill-tag ${s.matched ? 'jh-matched' : 'jh-ghost'}">${escapeHtml(formatBadgeLabel(s.name))}</span>`
             ).join('')}
-            ${(matchedSkills.length + unmatchedSkills.length) > 15 ? `<span class="jh-skill-tag jh-ghost">+${(matchedSkills.length + unmatchedSkills.length) - 15} more</span>` : ''}
           </div>
         `;
       }
@@ -557,25 +572,37 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
       extraHtml += `<div class="jh-benefits-summary">${matchCount}/${totalUserBenefits} benefits matched</div>`;
 
       // Get user's preferred benefits to show as ghost badges if not matched
-      const matchedSet = new Set(matchedBenefits.map(b => b.toLowerCase()));
+      const normalizeBenefitName = (value) => (value || '').toLowerCase().replace(/[_-]/g, ' ').replace(/\s+/g, ' ').trim();
+      const matchedSet = new Set(matchedBenefits.map(b => normalizeBenefitName(b)));
       const preferredBenefits = userProfile?.preferences?.benefits || [];
 
       // Build display list: matched first, then unmatched preferred as ghost
       const displayBenefits = [];
-      matchedBenefits.slice(0, 6).forEach(b => displayBenefits.push({ name: b, matched: true }));
+      matchedBenefits.forEach(b => displayBenefits.push({ name: b, matched: true }));
 
       // Add unmatched preferred benefits as ghost
+      const isPreferredMatched = (pref) => {
+        const prefKey = normalizeBenefitName(pref);
+        for (const matched of matchedSet) {
+          if (prefKey.includes(matched) || matched.includes(prefKey)) {
+            return true;
+          }
+        }
+        return false;
+      };
+
       preferredBenefits.forEach(b => {
-        if (!matchedSet.has(b.toLowerCase()) && displayBenefits.length < 10) {
+        if (!isPreferredMatched(b)) {
           displayBenefits.push({ name: b, matched: false });
         }
       });
 
+      badgeCount = displayBenefits.length;
       if (displayBenefits.length > 0) {
         extraHtml += `
           <div class="jh-benefits-tags">
             ${displayBenefits.map(b =>
-              `<span class="jh-benefit-tag ${b.matched ? 'jh-matched' : 'jh-ghost'}">${escapeHtml(b.name)}</span>`
+              `<span class="jh-benefit-tag ${b.matched ? 'jh-matched' : 'jh-ghost'}">${escapeHtml(formatBadgeLabel(b.name))}</span>`
             ).join('')}
           </div>
         `;
@@ -584,7 +611,7 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
 
     // Bonus & Equity combined display
     if (item.criteria === 'Bonus & Equity') {
-      extraHtml += `<div class="jh-actual-value">${escapeHtml(item.actual_value || 'Not specified')}</div>`;
+      extraHtml += `<div class="jh-actual-value">${escapeHtml(item.actual_value || '--')}</div>`;
     }
 
     // Experience Level display with required years
@@ -604,7 +631,6 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
       const jobSalaryMax = item.job_salary_max || null;
 
       let jobRangeHtml = '';
-      let statusHtml = '';
 
       if (jobSalaryMin !== null || jobSalaryMax !== null) {
         // Show job salary range
@@ -615,61 +641,20 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
         } else {
           jobRangeHtml = `Up to $${formatSalary(jobSalaryMax)}`;
         }
-
-        // Calculate status and gap
-        const jobMax = jobSalaryMax || jobSalaryMin || 0;
-        const jobMin = jobSalaryMin || jobSalaryMax || 0;
-
-        let statusClass = '';
-        let statusText = '';
-        let gapText = '';
-
-        if (jobMax >= salaryTarget) {
-          // Job max meets or exceeds target - excellent
-          statusClass = 'jh-status-excellent';
-          statusText = '✓ At or above target';
-          const surplus = jobMax - salaryTarget;
-          if (surplus > 0) {
-            gapText = `+$${formatSalary(surplus)} above target`;
-          }
-        } else if (jobMax >= salaryFloor) {
-          // Job is within acceptable range
-          statusClass = 'jh-status-good';
-          statusText = '✓ Within range';
-          const gapToTarget = salaryTarget - jobMax;
-          if (gapToTarget > 0) {
-            gapText = `$${formatSalary(gapToTarget)} below target`;
-          }
-        } else {
-          // Job is below minimum
-          statusClass = 'jh-status-below';
-          statusText = '⚠ Below minimum';
-          const gap = salaryFloor - jobMax;
-          gapText = `$${formatSalary(gap)} below floor`;
-        }
-
-        statusHtml = `
-          <div class="jh-salary-status ${statusClass}">
-            <div class="jh-salary-status-label">${statusText}</div>
-            ${gapText ? `<div class="jh-salary-gap">${gapText}</div>` : ''}
-          </div>
-        `;
       } else {
-        jobRangeHtml = 'Not specified';
-        statusHtml = `<div class="jh-salary-status jh-status-unknown">Salary not listed</div>`;
+        jobRangeHtml = item.actual_value && item.actual_value.includes('$') ? item.actual_value : '--';
       }
 
       extraHtml += `
         <div class="jh-salary-comparison">
           <div class="jh-salary-row">
-            <span class="jh-salary-label-text">Job offers:</span>
+            <span class="jh-salary-label-text">Salary</span>
             <span class="jh-salary-value">${jobRangeHtml}</span>
           </div>
           <div class="jh-salary-row">
-            <span class="jh-salary-label-text">Your target:</span>
-            <span class="jh-salary-value">$${formatSalary(salaryFloor)} - $${formatSalary(salaryTarget)}</span>
+            <span class="jh-salary-label-text">Target</span>
+            <span class="jh-salary-value jh-salary-muted">$${formatSalary(salaryFloor)} - $${formatSalary(salaryTarget)}</span>
           </div>
-          ${statusHtml}
         </div>
       `;
     }
@@ -683,20 +668,29 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
     const progressClass = isHigh ? 'jh-high' : (isMedium ? 'jh-medium' : 'jh-low');
 
     // Build score display - percentage with optional weight indicator
-    const scoreDisplay = weight !== null
-      ? `${percentage}% <span class="jh-weight">(${weight}%)</span>`
-      : `${percentage}%`;
+    const scoreDisplay = `${percentage}%`;
 
+    const criteriaKey = getCriteriaKey(item.criteria);
     // Determine if this item should be full-width (Skills and Benefits) or can be in grid
-    const isFullWidth = ['Skills Overlap', 'Skills', 'Benefits Package', 'Benefits'].includes(item.criteria);
-    const itemClass = isFullWidth ? 'jh-breakdown-item jh-full-width' : 'jh-breakdown-item';
+    const isFullWidth = ['skills', 'benefits'].includes(criteriaKey);
+    const sizeClass = isFullWidth ? 'jh-size-2' : 'jh-size-1';
+    const compactClass = criteriaKey === 'base salary' ? 'jh-compact-card' : '';
+    const itemClass = isFullWidth
+      ? `jh-breakdown-item jh-full-width jh-no-flip ${sizeClass} ${compactClass}`
+      : `jh-breakdown-item ${sizeClass} ${compactClass}`;
 
     // Build fit assessment text for card flip back
     const rationaleText = item.rationale || 'Assessment details not available';
-    const hasRationale = item.rationale && item.rationale.trim().length > 0;
+    const hasRationale = (item.rationale && item.rationale.trim().length > 0) || weight !== null;
 
+    const weightInline = weight !== null && isFullWidth
+      ? `<div class="jh-weight-inline">Weight: ${weight}%</div>`
+      : '';
+    const weightFooter = weight !== null ? `<div class="jh-card-back-weight">Weight: ${weight}%</div>` : '';
+
+    const badgeAttr = badgeCount !== null ? ` data-badge-count="${badgeCount}"` : '';
     return `
-      <div class="${itemClass}" data-criteria="${escapeHtml(item.criteria || '')}">
+      <div class="${itemClass}" data-criteria="${escapeHtml(item.criteria || '')}" data-criteria-key="${escapeHtml(criteriaKey)}"${badgeAttr} draggable="true">
         <div class="jh-card-inner">
           <div class="jh-card-front">
             <div class="jh-breakdown-row">
@@ -707,12 +701,13 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
               <div class="jh-progress-fill ${progressClass}" style="width: ${percentage}%"></div>
             </div>
             ${extraHtml}
-            ${hasRationale ? '<div class="jh-flip-hint">↻ Hover for details</div>' : ''}
+            ${weightInline}
           </div>
           ${hasRationale ? `
           <div class="jh-card-back">
             <div class="jh-card-back-header">${escapeHtml(criteriaName)}</div>
             <div class="jh-card-back-content">${escapeHtml(rationaleText)}</div>
+            ${weightFooter}
           </div>
           ` : ''}
         </div>
@@ -1002,7 +997,7 @@ function setupJobsModeHandlers(sidebar) {
         huntBtn.classList.add('jh-success');
 
         setTimeout(() => {
-          huntBtn.textContent = 'Send to Airtable';
+          huntBtn.textContent = 'Hunt Job';
           huntBtn.classList.remove('jh-success');
           huntBtn.disabled = false;
         }, 2000);
@@ -1012,24 +1007,9 @@ function setupJobsModeHandlers(sidebar) {
         huntBtn.classList.remove('jh-loading');
 
         setTimeout(() => {
-          huntBtn.textContent = 'Send to Airtable';
+          huntBtn.textContent = 'Hunt Job';
           huntBtn.disabled = false;
         }, 2000);
-      }
-    });
-  }
-
-  // View Details button
-  const detailsBtn = sidebar.querySelector('.jh-btn-details');
-  if (detailsBtn) {
-    detailsBtn.addEventListener('click', () => {
-      if (window.JobHunterResults && sidebarState.currentScore && sidebarState.currentJobData) {
-        window.JobHunterResults.showResultsModal(
-          sidebarState.currentScore,
-          sidebarState.currentJobData,
-          window.sendJobToAirtable,
-          window.openProfileSetup
-        );
       }
     });
   }
@@ -1209,23 +1189,15 @@ function getJobsSidebarHTML() {
             <span class="jh-stat-value jh-stat-employees">--</span>
           </div>
           <div class="jh-stat-item-compact">
-            <span class="jh-stat-label">Followers</span>
-            <span class="jh-stat-value jh-stat-followers">--</span>
-          </div>
-          <div class="jh-stat-item-compact">
-            <span class="jh-stat-label">Applicants</span>
-            <span class="jh-stat-value jh-stat-applicants">--</span>
+            <span class="jh-stat-label">Tenure</span>
+            <span class="jh-stat-value jh-stat-tenure">--</span>
           </div>
           <div class="jh-stat-item-compact">
             <span class="jh-stat-label">2Y Growth</span>
             <span class="jh-stat-value jh-stat-growth">--</span>
           </div>
-          <div class="jh-stat-item-compact">
-            <span class="jh-stat-label">Tenure</span>
-            <span class="jh-stat-value jh-stat-tenure">--</span>
-          </div>
-          <div class="jh-stat-item-compact">
-            <span class="jh-stat-label">Hiring Mgr</span>
+          <div class="jh-stat-item-compact jh-stat-full">
+            <span class="jh-stat-label">Hiring Manager</span>
             <span class="jh-stat-value jh-stat-hiring-manager">--</span>
           </div>
         </div>
@@ -1234,17 +1206,8 @@ function getJobsSidebarHTML() {
       <!-- Score Breakdown - Consolidated -->
       <div class="jh-score-breakdown">
         <div class="jh-breakdown-section">
-          <div class="jh-breakdown-section-header">
-            <span class="jh-breakdown-section-title">Criteria Assessment</span>
-            <div class="jh-section-progress">
-              <div class="jh-progress-bar-container">
-                <div class="jh-progress-fill"></div>
-              </div>
-              <span class="jh-progress-text">--/100</span>
-            </div>
-          </div>
           <div class="jh-breakdown-list">
-            <!-- Populated dynamically with all criteria sorted by importance -->
+            <!-- Populated dynamically with all criteria in the preferred display order -->
           </div>
         </div>
       </div>
@@ -1254,8 +1217,7 @@ function getJobsSidebarHTML() {
 
       <!-- Actions -->
       <div class="jh-actions">
-        <button class="jh-btn jh-btn-hunt jh-btn-primary">Send to Airtable</button>
-        <button class="jh-btn jh-btn-details">View Details</button>
+        <button class="jh-btn jh-btn-hunt jh-btn-primary">Hunt Job</button>
       </div>
     </div>
   `;
@@ -1393,31 +1355,38 @@ function getSidebarStyles() {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 14px 16px;
-      background: #1F2937;
+      padding: 10px 12px;
+      background: #EEF2FF;
+      border-bottom: 1px solid #C7D2FE;
       flex-shrink: 0;
+      cursor: grab;
+      user-select: none;
+    }
+
+    .jh-sidebar-header.jh-dragging {
+      cursor: grabbing;
     }
 
     .jh-header-brand {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
     .jh-brand-text {
       font-family: 'Roboto', sans-serif;
-      font-weight: 900;
-      font-size: 20px;
-      color: #ffffff;
+      font-weight: 800;
+      font-size: 17px;
+      color: #5856D6;
       letter-spacing: -0.3px;
     }
 
     .jh-mode-badge {
       font-size: 11px;
       font-weight: 600;
-      padding: 3px 10px;
-      background: #5856D6;
-      color: white;
+      padding: 2px 8px;
+      background: #C7D2FE;
+      color: #4F46E5;
       border-radius: 12px;
     }
 
@@ -1427,14 +1396,14 @@ function getSidebarStyles() {
     }
 
     .jh-header-controls button {
-      width: 32px;
-      height: 32px;
+      width: 28px;
+      height: 28px;
       border: none;
-      background: rgba(255, 255, 255, 0.1);
+      background: #E0E7FF;
       border-radius: 6px;
       cursor: pointer;
-      color: rgba(255, 255, 255, 0.8);
-      font-size: 16px;
+      color: #5856D6;
+      font-size: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1442,8 +1411,8 @@ function getSidebarStyles() {
     }
 
     .jh-header-controls button:hover {
-      background: rgba(255, 255, 255, 0.2);
-      color: #ffffff;
+      background: #C7D2FE;
+      color: #4F46E5;
     }
 
     /* ========================================
@@ -1529,9 +1498,9 @@ function getSidebarStyles() {
       font-weight: 700;
       font-size: 18px;
       color: #1F2937;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      white-space: normal;
+      overflow: visible;
+      text-overflow: unset;
       margin-bottom: 4px;
     }
 
@@ -1595,7 +1564,7 @@ function getSidebarStyles() {
     .jh-score-breakdown {
       flex: 1;
       overflow-y: auto;
-      padding: 16px;
+      padding: 12px;
     }
 
     .jh-breakdown-section {
@@ -1663,26 +1632,62 @@ function getSidebarStyles() {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 10px;
+      grid-auto-rows: 110px;
+      grid-auto-flow: row;
+      align-content: start;
     }
 
     .jh-breakdown-item {
       background: transparent;
       border: none;
       position: relative;
-      cursor: pointer;
+      cursor: grab;
+      user-select: none;
       perspective: 1000px;
-      min-height: 120px;
+      min-height: 110px;
+      height: 100%;
+      resize: both;
+      overflow: visible;
+      box-sizing: border-box;
     }
 
     .jh-breakdown-item.jh-full-width {
       grid-column: span 2;
+      resize: vertical;
+    }
+
+    .jh-size-1 {
+      grid-row-end: span 1;
+    }
+
+    .jh-size-2 {
+      grid-row-end: span 2;
+    }
+
+    .jh-size-4 {
+      grid-row-end: span 4;
+    }
+
+    .jh-size-6 {
+      grid-row-end: span 6;
+    }
+
+    .jh-breakdown-item.jh-no-flip .jh-card-inner {
+      transform: none;
+    }
+
+    .jh-breakdown-item.jh-no-flip:hover .jh-card-inner {
+      transform: none;
+    }
+
+    .jh-breakdown-item.jh-no-flip .jh-card-back {
+      display: none;
     }
 
     .jh-card-inner {
       position: relative;
       width: 100%;
       height: 100%;
-      min-height: 120px;
       transition: transform 0.6s;
       transform-style: preserve-3d;
     }
@@ -1696,18 +1701,25 @@ function getSidebarStyles() {
       position: absolute;
       width: 100%;
       height: 100%;
-      min-height: 120px;
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
       border-radius: 8px;
-      padding: 12px;
+      padding: 10px;
       box-sizing: border-box;
+    }
+
+    .jh-breakdown-item.jh-dragging {
+      opacity: 0.65;
+      cursor: grabbing;
     }
 
     .jh-card-front {
       background: #ffffff;
       border: 1px solid #E5E7EB;
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
 
     .jh-breakdown-item:hover .jh-card-front {
@@ -1721,25 +1733,38 @@ function getSidebarStyles() {
       transform: rotateY(180deg);
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
+      justify-content: flex-start;
+      align-items: flex-start;
+      text-align: left;
       padding: 16px;
     }
 
     .jh-card-back-header {
       font-size: 13px;
       font-weight: 700;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       opacity: 0.9;
     }
 
     .jh-card-back-content {
-      font-size: 12px;
-      line-height: 1.6;
+      font-size: 11px;
+      line-height: 1.4;
       opacity: 0.95;
+      flex: 1;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 6;
+      -webkit-box-orient: vertical;
+      min-height: 32px;
+    }
+
+    .jh-card-back-weight {
+      margin-top: auto;
+      padding-top: 6px;
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.75);
     }
 
     .jh-flip-hint {
@@ -1794,7 +1819,7 @@ function getSidebarStyles() {
     }
 
     .jh-progress-fill.jh-low {
-      background: #E5E7EB;
+      background: #F97316;
     }
 
     .jh-actual-value {
@@ -1849,6 +1874,25 @@ function getSidebarStyles() {
       border: 1px dashed #D1D9E0;
     }
 
+    .jh-more-badge {
+      position: relative;
+      cursor: pointer;
+    }
+
+    .jh-badge-tooltip {
+      position: fixed;
+      z-index: 999999;
+      max-width: 240px;
+      background: #111827;
+      color: #F9FAFB;
+      font-size: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+      white-space: normal;
+      pointer-events: none;
+    }
+
     /* Matched skills/benefits - light indigo background */
     .jh-skill-tag.jh-matched,
     .jh-benefit-tag.jh-matched {
@@ -1873,78 +1917,65 @@ function getSidebarStyles() {
       margin-top: 6px;
     }
 
+    .jh-weight-inline {
+      margin-top: auto;
+      padding-top: 6px;
+      font-size: 10px;
+      color: #9CA3AF;
+    }
+
+
     /* ========================================
        SALARY COMPARISON DISPLAY
        ======================================== */
 
     .jh-salary-comparison {
-      margin-top: 10px;
+      margin-top: 6px;
       background: #F9FAFB;
       border-radius: 8px;
-      padding: 10px;
+      padding: 8px;
     }
 
     .jh-salary-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
 
     .jh-salary-row:last-of-type {
-      margin-bottom: 10px;
+      margin-bottom: 0;
+    }
+
+    .jh-salary-row + .jh-salary-row {
+      border-top: 1px solid #E5E7EB;
+      padding-top: 4px;
+      margin-top: 4px;
     }
 
     .jh-salary-label-text {
-      font-size: 11px;
+      font-size: 10px;
       color: #6B7280;
       font-weight: 500;
     }
 
     .jh-salary-value {
-      font-size: 12px;
+      font-size: 11px;
       color: #1F2937;
       font-weight: 600;
     }
 
-    .jh-salary-status {
-      padding: 8px 10px;
-      border-radius: 6px;
-      margin-top: 4px;
+    .jh-salary-value.jh-salary-muted {
+      font-weight: 500;
+      color: #4B5563;
     }
 
-    .jh-salary-status-label {
-      font-size: 12px;
-      font-weight: 600;
-      margin-bottom: 2px;
+    .jh-compact-card .jh-card-front {
+      padding: 8px;
     }
 
-    .jh-salary-gap {
-      font-size: 11px;
-      opacity: 0.8;
-    }
-
-    .jh-status-excellent {
-      background: #D1FAE5;
-      color: #065F46;
-    }
-
-    .jh-status-good {
-      background: #DBEAFE;
-      color: #1E40AF;
-    }
-
-    .jh-status-below {
-      background: #FEF3C7;
-      color: #92400E;
-    }
-
-    .jh-status-unknown {
-      background: #F3F4F6;
-      color: #6B7280;
-      font-size: 11px;
-      text-align: center;
-      padding: 6px;
+    .jh-compact-card .jh-breakdown-row {
+      margin-bottom: 4px;
     }
 
     /* ========================================
@@ -2049,15 +2080,16 @@ function getSidebarStyles() {
 
     .jh-actions {
       display: flex;
-      gap: 10px;
-      padding: 16px;
+      justify-content: center;
+      padding: 12px;
       background: #ffffff;
       border-top: 1px solid #E5E7EB;
       flex-shrink: 0;
     }
 
     .jh-btn {
-      flex: 1;
+      width: 100%;
+      max-width: 260px;
       padding: 12px 16px;
       font-size: 14px;
       font-weight: 600;
@@ -2083,18 +2115,6 @@ function getSidebarStyles() {
 
     .jh-btn-primary.jh-success {
       background: #059669;
-    }
-
-    .jh-btn-details {
-      background: #ffffff;
-      color: #1F2937;
-      border: 1px solid #D1D9E0;
-    }
-
-    .jh-btn-details:hover {
-      background: #F4F7FA;
-      border-color: #5856D6;
-      color: #5856D6;
     }
 
     .jh-btn-sm {
@@ -2419,6 +2439,9 @@ function getSidebarStyles() {
       font-size: 14px;
       font-weight: 700;
       margin-bottom: 2px;
+      white-space: normal;
+      overflow: visible;
+      text-overflow: unset;
     }
 
     .jh-header-meta {
@@ -2451,6 +2474,10 @@ function getSidebarStyles() {
       background: #ffffff;
     }
 
+    .jh-stat-item-compact.jh-stat-full {
+      grid-column: span 3;
+    }
+
     .jh-stat-item-compact .jh-stat-label {
       font-size: 9px;
       margin-bottom: 1px;
@@ -2459,6 +2486,21 @@ function getSidebarStyles() {
     .jh-stat-item-compact .jh-stat-value {
       font-size: 12px;
       font-weight: 600;
+    }
+
+    .jh-hm-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: #111827;
+      line-height: 1.2;
+    }
+
+    .jh-hm-title {
+      font-size: 10px;
+      font-weight: 400;
+      color: #6B7280;
+      line-height: 1.2;
+      margin-top: 2px;
     }
 
     /* ========================================
@@ -2521,6 +2563,12 @@ function formatDate(dateStr) {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+function formatBadgeLabel(label) {
+  return (label || '')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 function truncateText(text, maxLength) {
   if (!text || text.length <= maxLength) return text;
   return text.substring(0, maxLength - 3) + '...';
@@ -2531,6 +2579,360 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+function getCriteriaKey(criteria) {
+  const raw = (criteria || '').toLowerCase();
+  const map = {
+    'base salary': 'base salary',
+    'bonus & equity': 'bonus & equity',
+    'title match': 'title match',
+    'title alignment': 'title match',
+    'experience level': 'experience',
+    'experience': 'experience',
+    'location match': 'location',
+    'location': 'location',
+    'industry experience': 'industry',
+    'industry': 'industry',
+    'skills overlap': 'skills',
+    'skills': 'skills',
+    'benefits package': 'benefits',
+    'benefits': 'benefits',
+    'lifecycle stage': 'lifecycle',
+    'lifecycle': 'lifecycle',
+    'org stability': 'org stability',
+    'organization stability': 'org stability'
+  };
+  return map[raw] || raw;
+}
+
+function sortCriteriaByOrder(criteriaList, customOrder) {
+  const defaultOrder = [
+    'base salary',
+    'bonus & equity',
+    'title match',
+    'experience',
+    'location',
+    'industry',
+    'skills',
+    'benefits',
+    'lifecycle',
+    'org stability'
+  ];
+
+  const order = Array.isArray(customOrder) && customOrder.length > 0 ? customOrder : defaultOrder;
+  const orderIndex = new Map(order.map((key, idx) => [key, idx]));
+
+  return [...criteriaList].sort((a, b) => {
+    const keyA = getCriteriaKey(a.criteria);
+    const keyB = getCriteriaKey(b.criteria);
+    const orderA = orderIndex.has(keyA) ? orderIndex.get(keyA) : Number.MAX_SAFE_INTEGER;
+    const orderB = orderIndex.has(keyB) ? orderIndex.get(keyB) : Number.MAX_SAFE_INTEGER;
+
+    if (orderA !== orderB) return orderA - orderB;
+
+    const weightA = a.weight || 0;
+    const weightB = b.weight || 0;
+    if (weightA !== weightB) return weightB - weightA;
+
+    return keyA.localeCompare(keyB);
+  });
+}
+
+function enableCriteriaReorder(breakdownList) {
+  if (!breakdownList || breakdownList.dataset.reorderEnabled === 'true') {
+    return;
+  }
+
+  breakdownList.dataset.reorderEnabled = 'true';
+
+  breakdownList.addEventListener('dragstart', (event) => {
+    const item = event.target.closest('.jh-breakdown-item');
+    if (!item) return;
+    item.classList.add('jh-dragging');
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', item.dataset.criteriaKey || '');
+  });
+
+  breakdownList.addEventListener('dragend', () => {
+    breakdownList.querySelectorAll('.jh-dragging').forEach((el) => {
+      el.classList.remove('jh-dragging');
+    });
+    saveCriteriaOrder(breakdownList);
+    applyGridLayout(breakdownList);
+  });
+
+  breakdownList.addEventListener('dragover', (event) => {
+    event.preventDefault();
+    const dragging = breakdownList.querySelector('.jh-dragging');
+    const target = event.target.closest('.jh-breakdown-item');
+    if (!dragging || !target || dragging === target) return;
+
+    const rect = target.getBoundingClientRect();
+    const shouldInsertAfter = (event.clientY - rect.top) > rect.height / 2;
+    breakdownList.insertBefore(dragging, shouldInsertAfter ? target.nextSibling : target);
+  });
+
+  breakdownList.addEventListener('drop', (event) => {
+    event.preventDefault();
+    saveCriteriaOrder(breakdownList);
+    applyGridLayout(breakdownList);
+  });
+}
+
+function saveCriteriaOrder(breakdownList) {
+  const order = Array.from(breakdownList.querySelectorAll('.jh-breakdown-item'))
+    .map((item) => item.dataset.criteriaKey)
+    .filter(Boolean);
+
+  if (chrome?.storage?.local) {
+    chrome.storage.local.set({ [CRITERIA_ORDER_STORAGE_KEY]: order });
+  }
+}
+
+const GRID_ROW_HEIGHT = 110;
+const GRID_ALLOWED_SPANS = [1, 2, 4, 6];
+
+function getSpanForHeight(height) {
+  const rawSpan = Math.max(GRID_ALLOWED_SPANS[0], Math.ceil(height / GRID_ROW_HEIGHT));
+  return GRID_ALLOWED_SPANS.find(span => span >= rawSpan) || GRID_ALLOWED_SPANS[GRID_ALLOWED_SPANS.length - 1];
+}
+
+function setItemSize(item, span) {
+  GRID_ALLOWED_SPANS.forEach(size => item.classList.remove(`jh-size-${size}`));
+  item.classList.add(`jh-size-${span}`);
+  item.dataset.sizeSpan = String(span);
+}
+
+function applyItemGridSpan(item, breakdownList) {
+  const styles = window.getComputedStyle(breakdownList);
+  const columnGap = parseFloat(styles.columnGap || styles.gap || 0);
+  const listWidth = breakdownList.clientWidth;
+  const columnWidth = (listWidth - columnGap) / 2;
+  const desiredColSpan = item.classList.contains('jh-full-width')
+    ? 2
+    : (item.offsetWidth > columnWidth * 1.1 ? 2 : 1);
+  const span = parseInt(item.dataset.sizeSpan || '1', 10);
+
+  item.style.gridColumnEnd = `span ${desiredColSpan}`;
+  item.style.gridRowEnd = `span ${span}`;
+  item.style.width = '100%';
+  item.style.height = '100%';
+}
+
+function adjustCriteriaCardHeights(breakdownList) {
+  if (!breakdownList) return;
+
+  const items = Array.from(breakdownList.querySelectorAll('.jh-breakdown-item'));
+
+  items.forEach((item) => {
+    if (item.dataset.userResized === 'true') return;
+    const front = item.querySelector('.jh-card-front');
+    if (!front) return;
+    const minSpan = 1;
+    const requiredSpan = getSpanForHeight(front.scrollHeight);
+    const badgeCount = parseInt(item.dataset.badgeCount || '0', 10);
+    const isBadgeCard = item.dataset.criteriaKey === 'skills' || item.dataset.criteriaKey === 'benefits';
+    let targetSpan = Math.max(minSpan, requiredSpan);
+
+    if (isBadgeCard) {
+      targetSpan = badgeCount <= 10 ? 1 : 2;
+    }
+
+    setItemSize(item, targetSpan);
+  });
+}
+
+function enableCardResizing(breakdownList) {
+  if (!breakdownList || breakdownList.dataset.resizeEnabled === 'true') {
+    return;
+  }
+
+  breakdownList.dataset.resizeEnabled = 'true';
+
+  breakdownList.querySelectorAll('.jh-breakdown-item').forEach((item) => {
+    applyItemGridSpan(item, breakdownList);
+    item.addEventListener('mouseup', () => {
+      item.dataset.userResized = 'true';
+      const span = getSpanForHeight(item.offsetHeight);
+      const minSpan = item.classList.contains('jh-full-width') ? 2 : 1;
+      setItemSize(item, Math.max(minSpan, span));
+      applyItemGridSpan(item, breakdownList);
+    });
+  });
+}
+
+function applyGridLayout(breakdownList) {
+  if (!breakdownList) return;
+  adjustCriteriaCardHeights(breakdownList);
+  breakdownList.querySelectorAll('.jh-breakdown-item').forEach((item) => {
+    applyItemGridSpan(item, breakdownList);
+  });
+  updateBadgeOverflow(breakdownList);
+}
+
+function updateBadgeOverflow(breakdownList) {
+  if (!breakdownList) return;
+
+  const tagSections = breakdownList.querySelectorAll('.jh-skill-tags, .jh-benefits-tags');
+  tagSections.forEach((section) => {
+    const badges = Array.from(section.querySelectorAll('span'));
+    if (badges.length === 0) return;
+
+    // Remove existing "+ more" badge if any
+    badges.forEach((badge) => {
+      if (badge.classList.contains('jh-more-badge')) {
+        badge.remove();
+      } else {
+        badge.style.display = '';
+      }
+    });
+
+    const card = section.closest('.jh-card-front');
+    if (!card) return;
+
+    const cardRect = card.getBoundingClientRect();
+    const sectionRect = section.getBoundingClientRect();
+    const weightEl = card.querySelector('.jh-weight-inline');
+    const reserved = weightEl ? (weightEl.getBoundingClientRect().height + 6) : 0;
+    const availableHeight = Math.max(0, cardRect.bottom - sectionRect.top - 10 - reserved);
+
+    let lastVisibleIndex = badges.length - 1;
+    for (let i = 0; i < badges.length; i += 1) {
+      const badgeRect = badges[i].getBoundingClientRect();
+      if ((badgeRect.bottom - sectionRect.top) > availableHeight) {
+        lastVisibleIndex = Math.max(0, i - 1);
+        break;
+      }
+    }
+
+    if (badges.length > 1) {
+      const firstRowBottom = badges[0].getBoundingClientRect().bottom + 1;
+      const firstRowLastIndex = badges.reduce((idx, badge, i) => (
+        badge.getBoundingClientRect().top <= firstRowBottom ? i : idx
+      ), 0);
+      lastVisibleIndex = Math.max(lastVisibleIndex, firstRowLastIndex);
+    }
+
+    if (lastVisibleIndex < badges.length - 1) {
+      const remaining = badges.slice(lastVisibleIndex + 1);
+      remaining.forEach(badge => {
+        badge.style.display = 'none';
+      });
+
+      const remainingLabels = remaining.map(badge => badge.textContent.trim()).filter(Boolean);
+      const moreBadge = document.createElement('span');
+      moreBadge.className = `${section.classList.contains('jh-skill-tags') ? 'jh-skill-tag' : 'jh-benefit-tag'} jh-ghost jh-more-badge`;
+      moreBadge.dataset.remaining = remainingLabels.join(', ');
+      moreBadge.textContent = `+${remainingLabels.length} more`;
+      section.appendChild(moreBadge);
+      attachBadgeTooltip(moreBadge);
+    }
+  });
+}
+
+function attachBadgeTooltip(badge) {
+  if (!badge || badge.dataset.tooltipBound === 'true') return;
+  badge.dataset.tooltipBound = 'true';
+
+  let tooltip = null;
+
+  const show = () => {
+    const text = badge.dataset.remaining || '';
+    if (!text) return;
+    tooltip = document.createElement('div');
+    tooltip.className = 'jh-badge-tooltip';
+    tooltip.textContent = text;
+    document.body.appendChild(tooltip);
+
+    const rect = badge.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const top = Math.max(8, rect.top - tooltipRect.height - 8);
+    const left = Math.min(window.innerWidth - tooltipRect.width - 8, rect.left);
+    tooltip.style.top = `${top}px`;
+    tooltip.style.left = `${left}px`;
+  };
+
+  const hide = () => {
+    if (tooltip) {
+      tooltip.remove();
+      tooltip = null;
+    }
+  };
+
+  badge.addEventListener('mouseenter', show);
+  badge.addEventListener('mouseleave', hide);
+  badge.addEventListener('blur', hide);
+}
+
+function applySavedSidebarPosition(sidebar) {
+  if (!chrome?.storage?.local || !sidebar) return;
+
+  chrome.storage.local.get([SIDEBAR_POSITION_STORAGE_KEY], (result) => {
+    const position = result[SIDEBAR_POSITION_STORAGE_KEY];
+    if (!position) return;
+
+    sidebar.style.left = `${position.left}px`;
+    sidebar.style.top = `${position.top}px`;
+    sidebar.style.right = 'auto';
+  });
+}
+
+function enableSidebarDrag(sidebar) {
+  if (!sidebar) return;
+
+  const header = sidebar.querySelector('.jh-sidebar-header');
+  if (!header || header.dataset.dragEnabled === 'true') return;
+
+  header.dataset.dragEnabled = 'true';
+  let isDragging = false;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  const onMouseMove = (event) => {
+    if (!isDragging) return;
+    const rect = sidebar.getBoundingClientRect();
+    const maxLeft = window.innerWidth - rect.width;
+    const maxTop = window.innerHeight - rect.height;
+
+    const nextLeft = Math.min(Math.max(0, event.clientX - offsetX), Math.max(0, maxLeft));
+    const nextTop = Math.min(Math.max(0, event.clientY - offsetY), Math.max(0, maxTop));
+
+    sidebar.style.left = `${nextLeft}px`;
+    sidebar.style.top = `${nextTop}px`;
+    sidebar.style.right = 'auto';
+  };
+
+  const onMouseUp = () => {
+    if (!isDragging) return;
+    isDragging = false;
+    header.classList.remove('jh-dragging');
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+
+    if (chrome?.storage?.local) {
+      const rect = sidebar.getBoundingClientRect();
+      chrome.storage.local.set({
+        [SIDEBAR_POSITION_STORAGE_KEY]: {
+          left: rect.left,
+          top: rect.top
+        }
+      });
+    }
+  };
+
+  header.addEventListener('mousedown', (event) => {
+    if (event.target.closest('.jh-header-controls')) return;
+    isDragging = true;
+    header.classList.add('jh-dragging');
+
+    const rect = sidebar.getBoundingClientRect();
+    offsetX = event.clientX - rect.left;
+    offsetY = event.clientY - rect.top;
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  });
 }
 
 // ============================================================================
@@ -2554,7 +2956,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       huntBtn.disabled = false;
 
       setTimeout(() => {
-        huntBtn.textContent = 'Send to Airtable';
+        huntBtn.textContent = 'Hunt Job';
         huntBtn.classList.remove('jh-success');
       }, 3000);
     } else {
@@ -2563,7 +2965,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       huntBtn.disabled = false;
 
       setTimeout(() => {
-        huntBtn.textContent = 'Send to Airtable';
+        huntBtn.textContent = 'Hunt Job';
       }, 3000);
     }
 

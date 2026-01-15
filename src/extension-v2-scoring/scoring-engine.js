@@ -577,7 +577,11 @@ function scoreBenefits(jobPayload, userProfile) {
   // Icons removed for consistent text-only badge styling
   const individualBenefits = {
     medical: {
-      patterns: [/medical\s*(insurance|coverage|benefits|plan)/i, /health\s*(insurance|coverage|benefits|plan)/i],
+      patterns: [
+        /medical\s*(insurance|coverage|benefits|plan)/i,
+        /health\s*(insurance|coverage|benefits|plan)/i,
+        /disability\s*(insurance|coverage|benefits|plan)/i
+      ],
       weight: 12,
       label: 'Medical'
     },
@@ -602,17 +606,38 @@ function scoreBenefits(jobPayload, userProfile) {
       label: 'HSA/FSA'
     },
     pto: {
-      patterns: [/\bpto\b/i, /paid\s+time\s+off/i, /unlimited\s+(pto|vacation)/i, /vacation\s+(days?|time|policy)/i, /flexible\s+pto/i],
+      patterns: [
+        /\bpto\b/i,
+        /paid\s+time\s+off/i,
+        /time\s+off/i,
+        /unlimited\s+(pto|vacation)/i,
+        /vacation\s+(days?|time|policy|weeks?)/i,
+        /flexible\s+pto/i,
+        /holiday\s+program/i,
+        /life\s+care\s+days/i
+      ],
       weight: 10,
       label: 'PTO'
     },
     paid_parental: {
-      patterns: [/parental\s+leave/i, /maternity\s+leave/i, /paternity\s+leave/i, /family\s+leave/i, /paid\s+(maternity|paternity)/i],
+      patterns: [
+        /parental\s+leave/i,
+        /maternity\s+leave/i,
+        /paternity\s+leave/i,
+        /family\s+leave/i,
+        /paid\s+(maternity|paternity)/i,
+        /child\s*care\s*(support|assistance|benefits)/i,
+        /childcare\s*(support|assistance|benefits)/i
+      ],
       weight: 8,
       label: 'Paid Parental'
     },
     tuition: {
-      patterns: [/tuition\s+(reimbursement|assistance|support)/i, /education\s+(reimbursement|assistance|benefit)/i],
+      patterns: [
+        /tuition\s+(reimbursement|assistance|support)/i,
+        /education\s+(reimbursement|assistance|benefit)/i,
+        /student\s+loan\s+(assistance|support|repayment)/i
+      ],
       weight: 6,
       label: 'Tuition Reimbursement'
     },
@@ -622,7 +647,13 @@ function scoreBenefits(jobPayload, userProfile) {
       label: 'Learning Stipend'
     },
     wfh_reimbursement: {
-      patterns: [/work\s+from\s+home\s+(stipend|reimbursement|budget)/i, /home\s+office\s+(stipend|reimbursement|setup)/i, /remote\s+work\s+(stipend|budget)/i, /equipment\s+allowance/i],
+      patterns: [
+        /work\s+from\s+home\s+(stipend|reimbursement|budget)/i,
+        /home\s+office\s+(stipend|reimbursement|setup)/i,
+        /remote\s+work\s+(stipend|budget)/i,
+        /equipment\s+allowance/i,
+        /commuter\s+benefits?/i
+      ],
       weight: 6,
       label: 'WFH Reimbursement'
     },
@@ -724,29 +755,67 @@ function scoreBenefits(jobPayload, userProfile) {
     // Map user preferences to benefit labels (case-insensitive matching)
     const benefitLabelMap = {
       'medical': 'Medical',
+      'medical insurance': 'Medical',
+      'medical_insurance': 'Medical',
+      'health insurance': 'Medical',
       'dental': 'Dental',
+      'dental insurance': 'Dental',
+      'dental_insurance': 'Dental',
       'vision': 'Vision',
+      'vision insurance': 'Vision',
+      'vision_insurance': 'Vision',
       '401k': '401k',
+      '401(k)': '401k',
+      'retirement': '401k',
       'hsa': 'HSA/FSA',
       'fsa': 'HSA/FSA',
       'pto': 'PTO',
+      'paid time off': 'PTO',
       'parental': 'Paid Parental',
+      'paid parental': 'Paid Parental',
+      'paid maternity leave': 'Paid Parental',
+      'paid_maternity_leave': 'Paid Parental',
+      'paid paternity leave': 'Paid Parental',
+      'paid_paternity_leave': 'Paid Parental',
       'tuition': 'Tuition Reimbursement',
+      'tuition assistance': 'Tuition Reimbursement',
+      'tuition_assistance': 'Tuition Reimbursement',
+      'student loan assistance': 'Tuition Reimbursement',
+      'student_loan_assistance': 'Tuition Reimbursement',
       'learning': 'Learning Stipend',
+      'learning stipend': 'Learning Stipend',
+      'learning_stipend': 'Learning Stipend',
       'wfh': 'WFH Reimbursement',
+      'work from home': 'WFH Reimbursement',
+      'remote work': 'WFH Reimbursement',
+      'commuter benefits': 'WFH Reimbursement',
+      'commuter_benefits': 'WFH Reimbursement',
+      'disability insurance': 'Medical',
+      'disability_insurance': 'Medical',
+      'childcare support': 'Paid Parental',
+      'childcare_support': 'Paid Parental',
       'relocation': 'Relocation'
     };
 
+    const normalizeKey = (value) => value.toLowerCase().replace(/[_-]/g, ' ').replace(/\s+/g, ' ').trim();
+    const matchedLabelSet = new Set(allMatchedBenefits.map(label => label.toLowerCase()));
+
+    const matchedPreferredSet = new Set();
+
     // Find which of user's preferred benefits were detected
     for (const pref of preferredBenefits) {
-      const prefLower = pref.toLowerCase();
-      const matchedLabel = benefitLabelMap[prefLower];
+      const prefKey = normalizeKey(pref);
+      const matchedLabel = benefitLabelMap[prefKey];
 
       if (matchedLabel && allMatchedBenefits.includes(matchedLabel)) {
-        matchedPreferredBenefits.push(matchedLabel);
-        benefitBadges.push({ label: matchedLabel });
+        matchedPreferredSet.add(matchedLabel);
+      } else if (matchedLabel && matchedLabelSet.has(matchedLabel.toLowerCase())) {
+        matchedPreferredSet.add(matchedLabel);
       }
     }
+
+    matchedPreferredBenefits = Array.from(matchedPreferredSet);
+    benefitBadges = matchedPreferredBenefits.map(label => ({ label }));
 
     // Update count to show X/Y where X=matched preferred, Y=total preferred
     benefitsCount = `${matchedPreferredBenefits.length}/${preferredBenefits.length}`;
@@ -757,17 +826,16 @@ function scoreBenefits(jobPayload, userProfile) {
   }
 
   // Score based on match percentage of preferred benefits
-  let finalScore = totalScore;
-  if (hasPreferences && matchedPreferredBenefits.length > 0) {
-    const matchPercentage = (matchedPreferredBenefits.length / preferredBenefits.length) * 100;
-    if (matchPercentage >= 80) {
-      finalScore = Math.min(100, totalScore * 1.2); // 20% bonus
-    } else if (matchPercentage >= 50) {
-      finalScore = Math.min(100, totalScore * 1.1); // 10% bonus
-    }
+  let normalizedScore = 0;
+  if (hasPreferences) {
+    const matchPercentage = preferredBenefits.length > 0
+      ? (matchedPreferredBenefits.length / preferredBenefits.length)
+      : 0;
+    normalizedScore = Math.round(matchPercentage * 50);
+  } else {
+    const finalScore = totalScore;
+    normalizedScore = Math.min(50, Math.round(finalScore / 2));
   }
-
-  const normalizedScore = Math.min(50, Math.round(finalScore / 2)); // Normalize to 0-50 scale
 
   // Build actual value
   let actualValue = 'Not specified';
@@ -1332,13 +1400,33 @@ function scoreSkillMatch(jobPayload, userProfile) {
   // Normalize user skills for matching
   const normalizedUserSkills = userSkills.map(s => s.toLowerCase().replace(/[_-]/g, ' '));
 
+  const normalizeText = (text) => (text || '').toLowerCase();
+  const isSkillMatch = (skill, text) => {
+    const normalized = normalizeText(skill).trim();
+    if (!normalized) return false;
+
+    const variations = [
+      normalized,
+      normalized.replace(/\s+/g, ''),
+      normalized.replace(/\s+/g, '-')
+    ];
+    if (variations.some(v => v && text.includes(v))) {
+      return true;
+    }
+
+    const tokens = normalized.split(/\s+/).filter(token => token.length >= 4);
+    if (tokens.length >= 2) {
+      const matchedTokens = tokens.filter(token => text.includes(token));
+      return (matchedTokens.length / tokens.length) >= 0.5;
+    }
+
+    return false;
+  };
+
   // Check matches in description
   let matchedSkills = [];
   normalizedUserSkills.forEach(skill => {
-    // Create variations of the skill for matching
-    const variations = [skill, skill.replace(/\s+/g, ''), skill.replace(/\s+/g, '-')];
-    const hasMatch = variations.some(v => description.includes(v));
-    if (hasMatch) {
+    if (isSkillMatch(skill, description)) {
       matchedSkills.push(skill);
     }
   });
@@ -1347,7 +1435,7 @@ function scoreSkillMatch(jobPayload, userProfile) {
   if (roleRequirements.length > 0) {
     const reqText = roleRequirements.join(' ').toLowerCase();
     normalizedUserSkills.forEach(skill => {
-      if (!matchedSkills.includes(skill) && reqText.includes(skill)) {
+      if (!matchedSkills.includes(skill) && isSkillMatch(skill, reqText)) {
         matchedSkills.push(skill);
       }
     });
@@ -1423,12 +1511,44 @@ function scoreIndustryAlignment(jobPayload, userProfile) {
     'saas': ['saas', 'software as a service', 'b2b software', 'enterprise software', 'cloud software'],
     'd2c_ecommerce': ['d2c', 'dtc', 'ecommerce', 'e-commerce', 'retail', 'consumer goods', 'cpg'],
     'fintech': ['fintech', 'financial technology', 'payments', 'banking', 'lending'],
-    'healthtech': ['healthtech', 'healthcare', 'health tech', 'medical', 'wellness'],
+    'healthtech': ['healthtech', 'healthcare', 'health tech', 'medical', 'wellness', 'hospital', 'hospitals', 'medical center', 'medical centers', 'clinic', 'clinical', 'patient', 'providers'],
     'edtech': ['edtech', 'education', 'learning', 'training'],
     'martech': ['martech', 'marketing technology', 'adtech', 'advertising']
   };
 
+  const industryLabels = {
+    telecom: 'Telecom',
+    insurance: 'Insurance',
+    consumer_electronics: 'Consumer Electronics',
+    saas: 'SaaS',
+    d2c_ecommerce: 'D2C / E-commerce',
+    fintech: 'Fintech',
+    healthtech: 'Health',
+    edtech: 'EdTech',
+    martech: 'MarTech'
+  };
+
+  const detectIndustryFromText = (text) => {
+    if (!text) return null;
+    let best = null;
+    let bestScore = 0;
+    for (const [key, keywords] of Object.entries(industryKeywords)) {
+      let score = 0;
+      keywords.forEach(keyword => {
+        if (text.includes(keyword)) {
+          score += 1;
+        }
+      });
+      if (score > bestScore) {
+        bestScore = score;
+        best = key;
+      }
+    }
+    return best;
+  };
+
   // Detect industry from description
+  const jobIndustry = (jobPayload.industry || jobPayload.company_industry || '').trim();
   let detectedIndustry = 'Unknown';
   let isExactMatch = false;
   let isAdjacentMatch = false;
@@ -1484,12 +1604,20 @@ function scoreIndustryAlignment(jobPayload, userProfile) {
     detectedIndustry = 'New vertical';
   }
 
+  let displayIndustry = jobIndustry ? jobIndustry : detectedIndustry.charAt(0).toUpperCase() + detectedIndustry.slice(1);
+  if (!jobIndustry) {
+    const inferred = detectIndustryFromText(description);
+    if (inferred) {
+      displayIndustry = industryLabels[inferred] || inferred;
+    }
+  }
+
   return {
     criteria: 'Industry Experience',
     criteria_description: 'Whether the company\'s industry matches your background (exact match, adjacent, or new vertical)',
-    actual_value: detectedIndustry.charAt(0).toUpperCase() + detectedIndustry.slice(1),
+    actual_value: displayIndustry,
     score: Math.round(score),
-    rationale
+    rationale: jobIndustry ? `${rationale} (Job industry: ${jobIndustry})` : rationale
   };
 }
 
