@@ -285,6 +285,37 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
+
+  // ============================================================================
+  // SKILL EXTRACTION - Message Handlers
+  // ============================================================================
+
+  // Handle skill extraction request
+  if (request.action === 'jobHunter.extractSkills' || request.type === 'JH_EXTRACT_SKILLS') {
+    console.log('[Job Hunter BG] Skill extraction request received');
+    handleSkillExtractionRequest(request.payload || request)
+      .then(result => sendResponse({ success: true, data: result }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+
+  // Handle skill analysis (extraction + matching) request
+  if (request.action === 'jobHunter.analyzeSkills' || request.type === 'JH_ANALYZE_SKILLS') {
+    console.log('[Job Hunter BG] Full skill analysis request received');
+    handleFullSkillAnalysis(request.payload || request)
+      .then(result => sendResponse({ success: true, data: result }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+
+  // Handle updating job record with skill data
+  if (request.action === 'jobHunter.updateJobSkills' || request.type === 'JH_UPDATE_JOB_SKILLS') {
+    console.log('[Job Hunter BG] Update job skills request:', request.payload?.jobRecordId);
+    handleUpdateJobSkills(request.payload || request)
+      .then(result => sendResponse({ success: true, data: result }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
 });
 
 /**
@@ -1358,5 +1389,176 @@ async function handleCreateOutreachLogEntry(payload) {
   };
 }
 
+// ============================================================================
+// SKILL EXTRACTION - Handler Functions
+// ============================================================================
+
+/**
+ * Handle skill extraction request (extraction only, no matching)
+ * Used when you just want to see what skills are in a job description
+ *
+ * @param {Object} request - { jobDescription, jobUrl }
+ * @returns {Promise<Object>} Extraction result
+ */
+async function handleSkillExtractionRequest(request) {
+  const { jobDescription, jobUrl } = request;
+
+  if (!jobDescription) {
+    throw new Error('Job description is required');
+  }
+
+  console.log('[Job Hunter BG] Extracting skills from job description...');
+
+  // Use the skill extractor module
+  // Note: These modules are loaded as content scripts, not available in service worker
+  // We'll need to send a message to the content script to do the actual extraction
+  // For now, return a basic extraction result
+
+  // This is a fallback in case skill modules aren't loaded in service worker context
+  const result = {
+    required: [],
+    desired: [],
+    timestamp: Date.now(),
+    jobUrl: jobUrl || '',
+    confidence: 0,
+    message: 'Skill extraction handled by content script'
+  };
+
+  return result;
+}
+
+/**
+ * Handle full skill analysis (extraction + matching against user profile)
+ *
+ * @param {Object} request - { jobDescription, jobUrl, userSkills }
+ * @returns {Promise<Object>} Full analysis result
+ */
+async function handleFullSkillAnalysis(request) {
+  const { jobDescription, jobUrl, userSkills } = request;
+
+  if (!jobDescription) {
+    throw new Error('Job description is required');
+  }
+
+  console.log('[Job Hunter BG] Performing full skill analysis...');
+
+  // Get user skills from storage if not provided
+  let profileSkills = userSkills || [];
+  if (!profileSkills || profileSkills.length === 0) {
+    try {
+      const profile = await chrome.storage.local.get('jh_user_profile');
+      profileSkills = profile?.jh_user_profile?.background?.core_skills || [];
+      console.log('[Job Hunter BG] Loaded', profileSkills.length, 'skills from user profile');
+    } catch (e) {
+      console.warn('[Job Hunter BG] Could not load user profile:', e);
+    }
+  }
+
+  // Since skill modules run in content script context, return a basic result
+  // The actual analysis should be done by the content script using SkillExtractionService
+  return {
+    extraction: { required: [], desired: [], confidence: 0 },
+    match: { matched: [], missing: [], matchRatio: 0 },
+    desired: { has: [], missing: [] },
+    skillFitScore: 0,
+    skillFitLabel: 'Analysis pending',
+    userSkillCount: profileSkills.length,
+    airtablePayload: {},
+    message: 'Full analysis should be performed by content script'
+  };
+}
+
+/**
+ * Update a job record in Airtable with skill extraction results
+ *
+ * @param {Object} request - { jobRecordId, skillData }
+ * @returns {Promise<Object>} Update result
+ */
+async function handleUpdateJobSkills(request) {
+  const { jobRecordId, skillData } = request;
+
+  if (!jobRecordId) {
+    throw new Error('Job record ID is required');
+  }
+
+  if (!skillData) {
+    throw new Error('Skill data is required');
+  }
+
+  const credentials = await getCredentials();
+
+  if (!credentials.baseId || !credentials.pat) {
+    throw new Error('Airtable credentials not configured');
+  }
+
+  console.log('[Job Hunter BG] Updating job record with skill data:', jobRecordId);
+
+  // Build update payload
+  const updateFields = {};
+
+  if (skillData.matched && skillData.matched.length > 0) {
+    updateFields['Matched Skills'] = skillData.matched.join(', ');
+  }
+
+  if (skillData.missing && skillData.missing.length > 0) {
+    updateFields['Missing Skills'] = skillData.missing.join(', ');
+  }
+
+  if (skillData.matchRatio !== undefined) {
+    // Format as percentage string for Airtable
+    updateFields['Skill Match Ratio'] = `${(skillData.matchRatio * 100).toFixed(1)}%`;
+  }
+
+  if (skillData.desiredMissing && skillData.desiredMissing.length > 0) {
+    updateFields['Desired Skills Missing'] = skillData.desiredMissing.join(', ');
+  }
+
+  if (skillData.requiredSkillCount !== undefined) {
+    updateFields['Required Skills Count'] = skillData.requiredSkillCount;
+  }
+
+  if (skillData.skillFitScore !== undefined) {
+    updateFields['Skill Fit Score'] = skillData.skillFitScore;
+  }
+
+  // Only update if we have fields to update
+  if (Object.keys(updateFields).length === 0) {
+    console.log('[Job Hunter BG] No skill fields to update');
+    return { success: true, message: 'No changes needed' };
+  }
+
+  // Update the job record
+  const updateUrl = `${AIRTABLE_API_BASE}/${credentials.baseId}/${TABLES.JOBS_PIPELINE}/${jobRecordId}`;
+
+  console.log('[Job Hunter BG] Updating with fields:', updateFields);
+
+  const updateResponse = await fetchWithRetry(updateUrl, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${credentials.pat}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ fields: updateFields })
+  });
+
+  if (!updateResponse.ok) {
+    const errorBody = await updateResponse.json().catch(() => ({}));
+    console.error('[Job Hunter BG] ❌ Job skill update failed:', {
+      status: updateResponse.status,
+      error: errorBody.error
+    });
+    throw new Error(`Failed to update job skills: ${updateResponse.status}`);
+  }
+
+  const updateData = await updateResponse.json();
+  console.log('[Job Hunter BG] ✓ Job skills updated successfully');
+
+  return {
+    success: true,
+    recordId: updateData.id,
+    updatedFields: Object.keys(updateFields)
+  };
+}
+
 // Log when service worker starts
-console.log('[Job Hunter BG] Background service worker initialized with CRM support + Outreach Mode');
+console.log('[Job Hunter BG] Background service worker initialized with CRM support + Outreach Mode + Skill Extraction');

@@ -1,0 +1,367 @@
+/**
+ * Job Hunter OS - Skill Match Display Styles
+ *
+ * Styles for the skill match UI components in the sidebar/results dashboard.
+ */
+
+/* ============================================================================
+   SKILL MATCH SUMMARY
+   ============================================================================ */
+
+.skill-match-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.skill-match-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.skill-match-score .score-value {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.skill-match-score .score-label {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Score color states */
+.skill-match-score.good .score-value {
+  color: #10b981;
+}
+
+.skill-match-score.moderate .score-value {
+  color: #f59e0b;
+}
+
+.skill-match-score.weak .score-value {
+  color: #ef4444;
+}
+
+.skill-match-counts {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  font-size: 13px;
+}
+
+.skill-match-counts .matched {
+  color: #10b981;
+  font-weight: 500;
+}
+
+.skill-match-counts .missing {
+  color: #ef4444;
+  font-weight: 500;
+}
+
+/* ============================================================================
+   SKILL SECTIONS
+   ============================================================================ */
+
+.skill-section {
+  margin-bottom: 16px;
+}
+
+.skill-section h4 {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.skill-section.matched-skills h4 {
+  color: #059669;
+}
+
+.skill-section.missing-skills h4 {
+  color: #dc2626;
+}
+
+/* ============================================================================
+   SKILL TAGS
+   ============================================================================ */
+
+.skill-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.skill-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 100px;
+  white-space: nowrap;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.skill-tag.matched {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.skill-tag.missing {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.skill-tag.desired {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.skill-tag.more {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  font-style: italic;
+}
+
+/* ============================================================================
+   SKILL MATCH CARD (for sidebar rail)
+   ============================================================================ */
+
+.skill-match-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 16px;
+}
+
+.skill-match-card .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.skill-match-card .card-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.skill-match-card .card-header .badge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 100px;
+}
+
+.skill-match-card .badge.excellent {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.skill-match-card .badge.strong {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.skill-match-card .badge.good {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.skill-match-card .badge.moderate {
+  background: #fed7aa;
+  color: #9a3412;
+}
+
+.skill-match-card .badge.weak {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* ============================================================================
+   SKILL MATCH BREAKDOWN (detailed view)
+   ============================================================================ */
+
+.skill-match-breakdown {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 12px;
+  margin-top: 12px;
+}
+
+.skill-match-breakdown .breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 13px;
+}
+
+.skill-match-breakdown .breakdown-row:not(:last-child) {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.skill-match-breakdown .breakdown-label {
+  color: #64748b;
+}
+
+.skill-match-breakdown .breakdown-value {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* ============================================================================
+   SKILL ANALYSIS LOADING
+   ============================================================================ */
+
+.skill-analysis-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.skill-analysis-loading .spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #e2e8f0;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================================================
+   SKILL MATCH ERROR
+   ============================================================================ */
+
+.skill-match-error {
+  padding: 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #991b1b;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ============================================================================
+   SKILL CATEGORY BADGES
+   ============================================================================ */
+
+.skill-category-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 4px;
+  margin-left: 6px;
+}
+
+.skill-category-badge.growth {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.skill-category-badge.marketing {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.skill-category-badge.analytics {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.skill-category-badge.lifecycle {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.skill-category-badge.technical {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.skill-category-badge.operations {
+  background: #fce7f3;
+  color: #9d174d;
+}
+
+.skill-category-badge.leadership {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.skill-category-badge.ecommerce {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
+.skill-category-badge.product {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+/* ============================================================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================================================ */
+
+@media (max-width: 400px) {
+  .skill-match-score .score-value {
+    font-size: 28px;
+  }
+
+  .skill-tag {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  .skill-match-summary {
+    padding: 12px;
+  }
+}
+
+/* ============================================================================
+   DARK MODE SUPPORT (if needed in future)
+   ============================================================================ */
+
+@media (prefers-color-scheme: dark) {
+  /* Placeholder for dark mode styles */
+}

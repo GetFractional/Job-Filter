@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skill Extraction Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 { color: #333; }
+    h2 { color: #666; margin-top: 24px; }
+    .container { display: flex; gap: 20px; flex-wrap: wrap; }
+    .panel {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      flex: 1;
+      min-width: 300px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 200px;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 14px;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+    button:hover { background: #2563eb; }
+    button:disabled { background: #9ca3af; cursor: not-allowed; }
+    .results {
+      margin-top: 20px;
+      padding: 16px;
+      background: #f8fafc;
+      border-radius: 8px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .skill-tag {
+      display: inline-block;
+      padding: 4px 10px;
+      margin: 4px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .skill-tag.matched { background: #d1fae5; color: #065f46; }
+    .skill-tag.missing { background: #fee2e2; color: #991b1b; }
+    .skill-tag.required { background: #dbeafe; color: #1e40af; }
+    .skill-tag.desired { background: #fef3c7; color: #92400e; }
+    .stat { margin: 8px 0; }
+    .stat-label { color: #666; }
+    .stat-value { font-weight: 600; color: #333; }
+    .score {
+      font-size: 48px;
+      font-weight: 700;
+      text-align: center;
+      margin: 20px 0;
+    }
+    .score.high { color: #10b981; }
+    .score.medium { color: #f59e0b; }
+    .score.low { color: #ef4444; }
+    pre {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+    .status { padding: 8px 16px; border-radius: 4px; margin: 12px 0; }
+    .status.loading { background: #fef3c7; color: #92400e; }
+    .status.success { background: #d1fae5; color: #065f46; }
+    .status.error { background: #fee2e2; color: #991b1b; }
+    #module-status { margin-bottom: 20px; }
+    .module-item { display: inline-block; margin: 4px; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+    .module-item.loaded { background: #d1fae5; color: #065f46; }
+    .module-item.missing { background: #fee2e2; color: #991b1b; }
+  </style>
+</head>
+<body>
+  <h1>Skill Extraction Test</h1>
+
+  <div id="module-status">
+    <strong>Module Status:</strong>
+    <div id="module-list"></div>
+  </div>
+
+  <div class="container">
+    <div class="panel">
+      <h2>Job Description</h2>
+      <textarea id="job-description" placeholder="Paste a job description here...">Required Skills:
+- 5+ years of experience in conversion rate optimization (CRO)
+- Expert in A/B testing and experimentation
+- Strong SQL skills for analytics
+- Experience with customer segmentation
+- Knowledge of lifecycle marketing and retention strategies
+- Proficiency in data analysis and business intelligence
+
+Nice to have:
+- Python or R programming
+- Machine learning experience
+- Understanding of statistical significance
+
+We use HubSpot, Salesforce, and Tableau for our tech stack.</textarea>
+
+      <h2>Your Skills (comma-separated)</h2>
+      <textarea id="user-skills" placeholder="Enter your skills...">conversion rate optimization, A/B testing, SQL, data analysis, email marketing, customer segmentation, marketing automation</textarea>
+
+      <button id="extract-btn" onclick="runExtraction()">Extract & Analyze Skills</button>
+    </div>
+
+    <div class="panel">
+      <h2>Results</h2>
+      <div id="status" class="status loading">Click "Extract & Analyze Skills" to run</div>
+      <div id="score-display"></div>
+      <div id="results"></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top: 20px;">
+    <h2>Raw Output</h2>
+    <pre id="raw-output">No results yet</pre>
+  </div>
+
+  <!-- Load skill modules -->
+  <script src="skill-taxonomy.js"></script>
+  <script src="skill-constants.js"></script>
+  <script src="fuzzy-matcher.js"></script>
+  <script src="skill-normalizer.js"></script>
+  <script src="skill-extractor.js"></script>
+  <script src="skill-matcher.js"></script>
+  <script src="skill-integration.js"></script>
+  <script src="index.js"></script>
+
+  <script>
+    // Check module status on load
+    document.addEventListener('DOMContentLoaded', () => {
+      updateModuleStatus();
+    });
+
+    function updateModuleStatus() {
+      const modules = [
+        { name: 'Taxonomy', loaded: !!window.SkillTaxonomy?.SKILL_TAXONOMY },
+        { name: 'Constants', loaded: !!window.SkillConstants?.TOOLS_DENY_LIST },
+        { name: 'FuzzyMatcher', loaded: !!window.SkillFuzzyMatcher },
+        { name: 'Normalizer', loaded: !!window.SkillNormalizer },
+        { name: 'Extractor', loaded: !!window.SkillExtractor },
+        { name: 'Matcher', loaded: !!window.SkillMatcher },
+        { name: 'Service', loaded: !!window.SkillExtractionService }
+      ];
+
+      const list = document.getElementById('module-list');
+      list.innerHTML = modules.map(m =>
+        `<span class="module-item ${m.loaded ? 'loaded' : 'missing'}">${m.name}: ${m.loaded ? '✓' : '✗'}</span>`
+      ).join('');
+
+      const allLoaded = modules.every(m => m.loaded);
+      document.getElementById('extract-btn').disabled = !allLoaded;
+
+      if (allLoaded) {
+        document.getElementById('status').className = 'status success';
+        document.getElementById('status').textContent = 'All modules loaded. Ready to extract!';
+
+        // Initialize service
+        if (window.SkillExtractionService?.initialize) {
+          window.SkillExtractionService.initialize();
+        }
+      } else {
+        document.getElementById('status').className = 'status error';
+        document.getElementById('status').textContent = 'Some modules failed to load. Check console.';
+      }
+    }
+
+    async function runExtraction() {
+      const jobDesc = document.getElementById('job-description').value;
+      const userSkillsText = document.getElementById('user-skills').value;
+      const userSkills = userSkillsText.split(',').map(s => s.trim()).filter(s => s);
+
+      const statusEl = document.getElementById('status');
+      const resultsEl = document.getElementById('results');
+      const scoreEl = document.getElementById('score-display');
+      const rawEl = document.getElementById('raw-output');
+
+      statusEl.className = 'status loading';
+      statusEl.textContent = 'Analyzing skills...';
+
+      try {
+        const startTime = performance.now();
+
+        // Run full analysis
+        const result = await window.SkillExtractionService.analyzeJobSkills(jobDesc, {
+          userSkills: userSkills,
+          jobUrl: 'test-page'
+        });
+
+        const elapsed = (performance.now() - startTime).toFixed(2);
+
+        if (result.error) {
+          statusEl.className = 'status error';
+          statusEl.textContent = `Error: ${result.message}`;
+          return;
+        }
+
+        statusEl.className = 'status success';
+        statusEl.textContent = `Analysis complete in ${elapsed}ms`;
+
+        // Display score
+        const score = result.skillFitScore || 0;
+        const scoreClass = score >= 70 ? 'high' : score >= 40 ? 'medium' : 'low';
+        scoreEl.innerHTML = `
+          <div class="score ${scoreClass}">${score}%</div>
+          <div style="text-align: center; color: #666;">${result.skillFitLabel || 'Skill Fit Score'}</div>
+        `;
+
+        // Display results
+        let html = `
+          <div class="stat">
+            <span class="stat-label">Required Skills Found:</span>
+            <span class="stat-value">${result.extraction?.required?.length || 0}</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Desired Skills Found:</span>
+            <span class="stat-value">${result.extraction?.desired?.length || 0}</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Match Ratio:</span>
+            <span class="stat-value">${((result.match?.matchRatio || 0) * 100).toFixed(1)}%</span>
+          </div>
+        `;
+
+        if (result.match?.matched?.length > 0) {
+          html += `<h3>Your Matched Skills (${result.match.matched.length})</h3>`;
+          html += result.match.matched.map(s => `<span class="skill-tag matched">${s}</span>`).join('');
+        }
+
+        if (result.match?.missing?.length > 0) {
+          html += `<h3>Missing Skills (${result.match.missing.length})</h3>`;
+          html += result.match.missing.map(s => `<span class="skill-tag missing">${s}</span>`).join('');
+        }
+
+        if (result.extraction?.required?.length > 0) {
+          html += `<h3>All Required Skills</h3>`;
+          html += result.extraction.required.map(s =>
+            `<span class="skill-tag required" title="Confidence: ${(s.confidence * 100).toFixed(0)}%">${s.name}</span>`
+          ).join('');
+        }
+
+        if (result.extraction?.desired?.length > 0) {
+          html += `<h3>All Desired Skills</h3>`;
+          html += result.extraction.desired.map(s =>
+            `<span class="skill-tag desired" title="Confidence: ${(s.confidence * 100).toFixed(0)}%">${s.name}</span>`
+          ).join('');
+        }
+
+        resultsEl.innerHTML = html;
+
+        // Show raw output
+        rawEl.textContent = JSON.stringify(result, null, 2);
+
+      } catch (error) {
+        statusEl.className = 'status error';
+        statusEl.textContent = `Error: ${error.message}`;
+        console.error('Extraction error:', error);
+      }
+    }
+
+    // Retry module loading after a short delay
+    setTimeout(updateModuleStatus, 500);
+  </script>
+</body>
+</html>
