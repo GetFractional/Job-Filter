@@ -175,6 +175,45 @@ async function updateSidebarScore(scoreResult, jobData) {
     console.warn('[Job Hunter Sidebar] Could not load user profile:', error);
   }
 
+  // ========================================================================
+  // ENHANCED SKILL EXTRACTION - Use new SkillExtractionService if available
+  // ========================================================================
+  if (window.SkillExtractionService && jobData.descriptionText) {
+    try {
+      console.log('[Job Hunter Sidebar] Running enhanced skill extraction...');
+      const userSkills = userProfile?.background?.core_skills || [];
+
+      const skillAnalysis = await window.SkillExtractionService.analyzeJobSkills(
+        jobData.descriptionText,
+        { userSkills, jobUrl: jobData.jobUrl }
+      );
+
+      if (skillAnalysis && !skillAnalysis.error) {
+        // Enhance scoreResult with better skill data
+        const userToJobBreakdown = scoreResult.user_to_job_fit?.breakdown || [];
+        const skillsItem = userToJobBreakdown.find(b => b.criteria === 'Skills Overlap');
+
+        if (skillsItem) {
+          // Update with enhanced extraction results
+          skillsItem.matched_skills = skillAnalysis.match?.matched || skillsItem.matched_skills || [];
+          skillsItem.unmatched_skills = skillAnalysis.match?.missing || skillsItem.unmatched_skills || [];
+          skillsItem.match_percentage = Math.round((skillAnalysis.match?.matchRatio || 0) * 100);
+
+          console.log('[Job Hunter Sidebar] Enhanced skills:', {
+            matched: skillsItem.matched_skills.length,
+            missing: skillsItem.unmatched_skills.length,
+            ratio: skillsItem.match_percentage + '%'
+          });
+        }
+
+        // Store skill analysis for potential Airtable sync
+        sidebarState.skillAnalysis = skillAnalysis;
+      }
+    } catch (error) {
+      console.warn('[Job Hunter Sidebar] Skill extraction failed, using default:', error.message);
+    }
+  }
+
   // Update header section
   updateHeaderSection(sidebar, jobData, scoreResult);
 
