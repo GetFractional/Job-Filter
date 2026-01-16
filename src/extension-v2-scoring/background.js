@@ -868,6 +868,47 @@ async function createJob(credentials, jobData, scoreData, companyRecordId, conta
       jobFields['Missing Skills'] = skillsBreakdown.unmatched_skills.join(', ');
     }
 
+    // Map matched benefits to Airtable multi-select values (Jobs Pipeline "Benefits")
+    const benefitsBreakdown = scoreData.job_to_user_fit?.breakdown?.find(b => b.criteria === 'Benefits Package');
+    if (benefitsBreakdown?.matched_benefits && benefitsBreakdown.matched_benefits.length > 0) {
+      const normalizeBenefit = (value) => (value || '').toLowerCase().replace(/[_-]/g, ' ').replace(/\s+/g, ' ').trim();
+      const benefitMap = {
+        '401k': '401k',
+        '401(k)': '401k',
+        'medical': 'Medical insurance',
+        'medical insurance': 'Medical insurance',
+        'health insurance': 'Medical insurance',
+        'dental': 'Dental insurance',
+        'dental insurance': 'Dental insurance',
+        'vision': 'Vision insurance',
+        'vision insurance': 'Vision insurance',
+        'disability': 'Disability insurance',
+        'disability insurance': 'Disability insurance',
+        'paid maternity': 'Paid maternity leave',
+        'paid maternity leave': 'Paid maternity leave',
+        'paid paternity': 'Paid paternity leave',
+        'paid paternity leave': 'Paid paternity leave',
+        'child care': 'Child care support',
+        'child care support': 'Child care support',
+        'childcare support': 'Child care support',
+        'commuter': 'Commuter benefits',
+        'commuter benefits': 'Commuter benefits',
+        'relocation': 'Relocation',
+        'student loan': 'Student loan assistance',
+        'student loan assistance': 'Student loan assistance',
+        'tuition': 'Tuition assistance',
+        'tuition assistance': 'Tuition assistance'
+      };
+
+      const mapped = benefitsBreakdown.matched_benefits
+        .map(label => benefitMap[normalizeBenefit(label)] || null)
+        .filter(Boolean);
+
+      if (mapped.length > 0) {
+        jobFields['Benefits'] = Array.from(new Set(mapped));
+      }
+    }
+
     // Store deal-breaker reason if triggered
     if (scoreData.deal_breaker_triggered) {
       // Convert to comma-separated string for Long text field

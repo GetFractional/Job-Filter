@@ -706,6 +706,7 @@ function scoreBenefits(jobPayload, userProfile) {
   // PRIORITY 2: Fall back to regex matching in job description
   const allMatchedBenefits = [];
   let totalScore = 0;
+  const genericBenefitsMentioned = /\bbenefits?\b/i.test(description) || /\bcompensation\b/i.test(description);
 
   // Map LinkedIn Featured Benefits to our standard labels
   const featuredBenefitMapping = {
@@ -780,13 +781,21 @@ function scoreBenefits(jobPayload, userProfile) {
   }
 
   // Get user's preferred benefits (if available)
-  const preferredBenefits = userProfile?.preferences?.benefits || [];
+  const rawPreferredBenefits = userProfile?.preferences?.benefits || [];
+  const preferredBenefits = rawPreferredBenefits.map((pref) => {
+    if (typeof pref === 'string') return pref;
+    if (pref && typeof pref === 'object') {
+      return pref.label || pref.name || pref.value || '';
+    }
+    return '';
+  }).filter(Boolean);
   const hasPreferences = preferredBenefits.length > 0;
 
   // NEW LOGIC: Track preferred matches but show all detected benefits
   let matchedPreferredBenefits = [];
   let benefitBadges = [];
   let benefitsCount = `${allMatchedBenefits.length}/11`; // Default: total detected / total tracked
+  let missingPreferredBenefits = [];
 
   if (hasPreferences) {
     // Map user preferences to benefit labels (case-insensitive matching)
@@ -856,6 +865,13 @@ function scoreBenefits(jobPayload, userProfile) {
 
     // Update count to show X/Y where X=matched preferred, Y=total preferred
     benefitsCount = `${matchedPreferredBenefits.length}/${preferredBenefits.length}`;
+    missingPreferredBenefits = preferredBenefits
+      .map(pref => {
+        const prefKey = normalizeKey(pref);
+        return benefitLabelMap[prefKey];
+      })
+      .filter(Boolean)
+      .filter(label => !matchedPreferredSet.has(label));
   } else {
     // No preferences: show all matched benefits
     matchedPreferredBenefits = allMatchedBenefits;
@@ -885,6 +901,10 @@ function scoreBenefits(jobPayload, userProfile) {
   if (hasPreferences) {
     const matchPct = Math.round((matchedPreferredBenefits.length / preferredBenefits.length) * 100);
     rationale = `${matchedPreferredBenefits.length}/${preferredBenefits.length} of your preferred benefits mentioned (${matchPct}%)`;
+    if (matchedPreferredBenefits.length === 0 && genericBenefitsMentioned) {
+      normalizedScore = Math.max(normalizedScore, 25);
+      rationale = 'Benefits mentioned but not specified; assuming partial alignment';
+    }
   } else {
     // No preferences: use default rationale
     if (allMatchedBenefits.length >= 8) {
@@ -896,7 +916,12 @@ function scoreBenefits(jobPayload, userProfile) {
     } else if (allMatchedBenefits.length >= 1) {
       rationale = `Limited benefits: ${allMatchedBenefits.length}/11 benefits mentioned`;
     } else {
-      rationale = 'No benefits information provided (common for job listings)';
+      rationale = genericBenefitsMentioned
+        ? 'Benefits mentioned but not specified; assuming partial alignment'
+        : 'No benefits information provided (common for job listings)';
+      if (genericBenefitsMentioned) {
+        normalizedScore = Math.max(normalizedScore, 25);
+      }
     }
   }
 
@@ -908,6 +933,7 @@ function scoreBenefits(jobPayload, userProfile) {
     rationale,
     matched_benefits: allMatchedBenefits,
     matched_preferred_benefits: matchedPreferredBenefits,
+    missing_preferred_benefits: missingPreferredBenefits,
     preferred_benefits_total: hasPreferences ? preferredBenefits.length : 0,
     benefit_badges: benefitBadges, // Preferred benefits only
     benefits_count: benefitsCount, // "X/Y" format for UI display
@@ -1363,7 +1389,8 @@ function scoreRoleType(jobPayload, userProfile) {
 
   // Check if it matches any target roles
   const matchesTargetRole = targetRoles.some(role => {
-    const normalizedRole = role.toLowerCase().replace(/[_-]/g, ' ');
+    const normalizedRole = role.toLowerCase().replace(/[_-]/g, ' ').trim();
+    if (!normalizedRole) return false;
     return jobTitle.includes(normalizedRole) || normalizedRole.includes(jobTitle.split(' ')[0]);
   });
 
@@ -1376,7 +1403,7 @@ function scoreRoleType(jobPayload, userProfile) {
     rationale = 'Head-level role is strong match';
   } else if (isDirectorLevel) {
     if (jobTitle.includes('senior')) {
-      score = 40;
+      score = 42;
       rationale = 'Senior Director role - strong match for your experience';
     } else {
       score = 35;
@@ -1385,9 +1412,12 @@ function scoreRoleType(jobPayload, userProfile) {
   } else if (isManagerLevel) {
     score = 20;
     rationale = 'Manager-level may be below your target seniority';
-  } else if (matchesTargetRole) {
-    score = 35;
-    rationale = 'Role matches one of your target positions';
+  }
+
+  if (matchesTargetRole) {
+    const roleBoost = isDirectorLevel ? 6 : 4;
+    score = Math.min(50, score + roleBoost);
+    rationale += '; matches one of your target roles';
   }
 
   // Check for growth/revops focus

@@ -640,7 +640,7 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
         const missingTooltip = unmatchedSkills.map(s => escapeHtml(s)).join(', ');
         extraHtml += `
           <div class="jh-missing-skills-container">
-            <span class="jh-skill-tag jh-missing" title="${missingTooltip}" data-missing-count="${unmatchedSkills.length}">
+            <span class="jh-skill-tag jh-missing" data-missing-count="${unmatchedSkills.length}">
               Missing (${unmatchedSkills.length})
             </span>
             <div class="jh-missing-tooltip">
@@ -659,21 +659,48 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
     // Benefits display - matched badges highlighted, "Missing" shows unmatched on hover
     if (item.criteria === 'Benefits Package' || item.criteria === 'Benefits') {
       const matchedBenefits = item.matched_benefits || [];
-      const preferredMatched = item.matched_preferred_benefits || [];
-      const missingBenefits = item.missing_preferred_benefits || [];
-      const preferredTotal = Number.isFinite(item.preferred_benefits_total) ? item.preferred_benefits_total : totalUserBenefits;
-      const matchCount = preferredMatched.length > 0 ? preferredMatched.length : matchedBenefits.length;
-      const totalCount = preferredTotal > 0 ? preferredTotal : totalUserBenefits;
+      const rawPreferredBenefits = userProfile?.preferences?.benefits || [];
+      const preferredBenefits = rawPreferredBenefits.map((pref) => {
+        if (typeof pref === 'string') return pref;
+        if (pref && typeof pref === 'object') {
+          return pref.label || pref.name || pref.value || '';
+        }
+        return '';
+      }).filter(Boolean);
+      const totalCount = preferredBenefits.length;
+
+      const normalizeBenefitName = (value) => (value || '')
+        .toLowerCase()
+        .replace(/[_-]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      const matchedSet = new Set(matchedBenefits.map(b => normalizeBenefitName(b)));
+      const isPreferredMatched = (pref) => {
+        const prefKey = normalizeBenefitName(pref);
+        for (const matched of matchedSet) {
+          if (prefKey.includes(matched) || matched.includes(prefKey)) {
+            return true;
+          }
+        }
+        return false;
+      };
+
+      const matchedPreferred = preferredBenefits.filter(isPreferredMatched);
+      const missingPreferred = preferredBenefits.filter(pref => !isPreferredMatched(pref));
+
+      const displayMatched = matchedPreferred.length > 0 ? matchedPreferred : matchedBenefits;
+      const matchCount = matchedPreferred.length;
 
       extraHtml += totalCount > 0
         ? `<div class="jh-benefits-summary">${matchCount}/${totalCount} benefits matched</div>`
-        : `<div class="jh-benefits-summary">${matchCount} benefits matched</div>`;
+        : `<div class="jh-benefits-summary">${displayMatched.length} benefits matched</div>`;
 
-      // Show ALL matched benefits (highlighted)
-      if (matchedBenefits.length > 0) {
+      // Show matched benefits (highlighted)
+      if (displayMatched.length > 0) {
         extraHtml += `
           <div class="jh-benefits-tags jh-responsive-tags">
-            ${matchedBenefits.map(b =>
+            ${displayMatched.map(b =>
               `<span class="jh-benefit-tag jh-matched">${escapeHtml(formatBadgeLabel(b))}</span>`
             ).join('')}
           </div>
@@ -681,24 +708,23 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
       }
 
       // Show "Missing" label for benefits user wants but job doesn't have
-      if (missingBenefits.length > 0) {
-        const missingTooltip = missingBenefits.map(b => escapeHtml(b)).join(', ');
+      if (missingPreferred.length > 0) {
         extraHtml += `
           <div class="jh-missing-benefits-container">
-            <span class="jh-benefit-tag jh-missing" title="${missingTooltip}" data-missing-count="${missingBenefits.length}">
-              Missing (${missingBenefits.length})
+            <span class="jh-benefit-tag jh-missing" data-missing-count="${missingPreferred.length}">
+              Missing (${missingPreferred.length})
             </span>
             <div class="jh-missing-tooltip">
               <div class="jh-missing-tooltip-header">Missing Benefits:</div>
               <div class="jh-missing-tooltip-content">
-                ${missingBenefits.map(b => `<span class="jh-missing-benefit-item">${escapeHtml(b)}</span>`).join('')}
+                ${missingPreferred.map(b => `<span class="jh-missing-benefit-item">${escapeHtml(b)}</span>`).join('')}
               </div>
             </div>
           </div>
         `;
       }
 
-      badgeCount = matchedBenefits.length + (missingBenefits.length > 0 ? 1 : 0);
+      badgeCount = displayMatched.length + (missingPreferred.length > 0 ? 1 : 0);
     }
 
     // Bonus & Equity combined display
@@ -775,9 +801,10 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
     const isFullWidth = ['skills', 'benefits'].includes(criteriaKey);
     const sizeClass = isFullWidth ? 'jh-size-2' : 'jh-size-1';
     const compactClass = criteriaKey === 'base salary' ? 'jh-compact-card' : '';
+    const badgeClass = isFullWidth ? 'jh-badge-card' : '';
     const itemClass = isFullWidth
-      ? `jh-breakdown-item jh-full-width jh-no-flip ${sizeClass} ${compactClass}`
-      : `jh-breakdown-item ${sizeClass} ${compactClass}`;
+      ? `jh-breakdown-item jh-full-width jh-no-flip ${badgeClass} ${sizeClass} ${compactClass}`
+      : `jh-breakdown-item ${badgeClass} ${sizeClass} ${compactClass}`;
 
     // Build fit assessment text for card flip back
     const rationaleText = item.rationale || 'Assessment details not available';
@@ -1849,6 +1876,11 @@ function getSidebarStyles() {
       display: none;
     }
 
+    .jh-breakdown-item.jh-badge-card {
+      height: 100%;
+      resize: none;
+    }
+
     .jh-card-inner {
       position: relative;
       width: 100%;
@@ -1885,6 +1917,17 @@ function getSidebarStyles() {
       display: flex;
       flex-direction: column;
       overflow: hidden;
+    }
+
+    .jh-breakdown-item.jh-badge-card .jh-card-inner {
+      height: auto;
+      position: static;
+    }
+
+    .jh-breakdown-item.jh-badge-card .jh-card-front {
+      position: static;
+      height: auto;
+      overflow: visible;
     }
 
     .jh-breakdown-item:hover .jh-card-front {
@@ -2126,7 +2169,7 @@ function getSidebarStyles() {
       position: absolute;
       bottom: 100%;
       left: 0;
-      z-index: 999999;
+      z-index: 10002;
       min-width: 200px;
       max-width: 300px;
       background: #1F2937;
@@ -2772,6 +2815,8 @@ function getSidebarStyles() {
 
     #jh-sidebar-rail.jh-minimized {
       height: auto;
+      min-height: 0;
+      max-height: none;
       overflow: hidden;
     }
 
@@ -2954,7 +2999,7 @@ function saveCriteriaOrder(breakdownList) {
 }
 
 const GRID_ROW_HEIGHT = 110;
-const GRID_ALLOWED_SPANS = [1, 2, 4, 6];
+const GRID_ALLOWED_SPANS = [1, 2, 3, 4, 5, 6];
 
 function getSpanForHeight(height) {
   const rawSpan = Math.max(GRID_ALLOWED_SPANS[0], Math.ceil(height / GRID_ROW_HEIGHT));
@@ -2994,12 +3039,11 @@ function adjustCriteriaCardHeights(breakdownList) {
     if (!front) return;
     const minSpan = 1;
     const requiredSpan = getSpanForHeight(front.scrollHeight);
-    const badgeCount = parseInt(item.dataset.badgeCount || '0', 10);
     const isBadgeCard = item.dataset.criteriaKey === 'skills' || item.dataset.criteriaKey === 'benefits';
     let targetSpan = Math.max(minSpan, requiredSpan);
 
     if (isBadgeCard) {
-      targetSpan = badgeCount <= 10 ? 1 : 2;
+      targetSpan = Math.max(minSpan, requiredSpan);
     }
 
     setItemSize(item, targetSpan);
@@ -3039,7 +3083,7 @@ function updateBadgeOverflow(breakdownList) {
 
   const tagSections = breakdownList.querySelectorAll('.jh-skill-tags, .jh-benefits-tags');
   tagSections.forEach((section) => {
-    if (section.classList.contains('jh-benefits-tags')) {
+    if (section.classList.contains('jh-benefits-tags') || section.classList.contains('jh-skill-tags')) {
       return;
     }
     const badges = Array.from(section.querySelectorAll('span'));

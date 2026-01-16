@@ -171,6 +171,24 @@ const SKILL_TAXONOMY = [
     aliases: ["paid media", "paid acquisition", "digital advertising", "media buying"]
   },
   {
+    name: "Paid Media Strategy",
+    canonical: "paid_media_strategy",
+    category: "Marketing",
+    aliases: ["paid media strategy", "performance media", "media strategy", "channel strategy"]
+  },
+  {
+    name: "Marketing Measurement",
+    canonical: "marketing_measurement",
+    category: "Analytics",
+    aliases: ["measurement", "marketing measurement", "incrementality", "incrementality testing", "marketing experimentation"]
+  },
+  {
+    name: "Media Mix Modeling",
+    canonical: "media_mix_modeling",
+    category: "Analytics",
+    aliases: ["MMM", "media mix modeling", "marketing mix modeling", "mix modeling"]
+  },
+  {
     name: "Brand Marketing",
     canonical: "brand_marketing",
     category: "Marketing",
@@ -303,6 +321,12 @@ const SKILL_TAXONOMY = [
     aliases: ["market analysis", "competitive research", "market intelligence", "consumer research"]
   },
   {
+    name: "Competitive Intelligence",
+    canonical: "competitive_intelligence",
+    category: "Marketing",
+    aliases: ["competitive intelligence", "competitor tracking", "market intel"]
+  },
+  {
     name: "Competitive Analysis",
     canonical: "competitive_analysis",
     category: "Marketing",
@@ -335,6 +359,12 @@ const SKILL_TAXONOMY = [
     canonical: "attribution_modeling",
     category: "Analytics",
     aliases: ["marketing attribution", "multi-touch attribution", "MTA", "attribution analysis"]
+  },
+  {
+    name: "Experimentation",
+    canonical: "experimentation",
+    category: "Analytics",
+    aliases: ["experimentation strategy", "test and learn", "incrementality testing", "measurement experiments"]
   },
   {
     name: "Predictive Analytics",
@@ -458,7 +488,7 @@ const SKILL_TAXONOMY = [
     name: "Customer Success",
     canonical: "customer_success",
     category: "Lifecycle",
-    aliases: ["CS", "customer success management", "client success", "account management"]
+    aliases: ["CS", "customer success management", "client success", "client success management", "account management"]
   },
   {
     name: "Loyalty Programs",
@@ -513,7 +543,7 @@ const SKILL_TAXONOMY = [
     aliases: ["python programming", "python scripting", "python development"]
   },
   {
-    name: "R",
+    name: "R Programming",
     canonical: "r_programming",
     category: "Technical",
     aliases: ["R programming", "R language", "R statistics"]
@@ -692,7 +722,7 @@ const SKILL_TAXONOMY = [
     name: "Budget Management",
     canonical: "budget_management",
     category: "Leadership",
-    aliases: ["budget planning", "financial management", "P&L management", "cost management"]
+    aliases: ["budget planning", "financial management", "P&L management", "cost management", "budget allocation", "media budget"]
   },
   {
     name: "Vendor Management",
@@ -860,6 +890,11 @@ const SKILL_SYNONYM_GROUPS = new Map([
   ["answer_engine_optimization", ["aeo", "answer engine optimization", "ai search optimization", "llm optimization"]],
   ["messaging_positioning", ["messaging", "positioning", "value proposition", "market positioning"]],
   ["b2b_marketing", ["b2b", "b2b saas", "b2b marketing", "business to business", "business-to-business"]],
+  ["paid_media_strategy", ["paid media strategy", "performance media", "media strategy", "channel strategy"]],
+  ["marketing_measurement", ["marketing measurement", "measurement", "incrementality", "incrementality testing", "marketing experimentation"]],
+  ["media_mix_modeling", ["mmm", "media mix modeling", "marketing mix modeling", "mix modeling"]],
+  ["experimentation", ["experimentation strategy", "test and learn", "incrementality testing", "measurement experiments"]],
+  ["competitive_intelligence", ["competitive intelligence", "competitor tracking", "market intel"]],
   ["marketing_strategy", ["marketing strategy", "marketing planning", "marketing roadmap"]],
   ["market_sizing", ["tam", "sam", "som", "total addressable market", "market sizing"]],
   ["pipeline_analytics", ["pipeline analytics", "pipeline metrics", "pipeline velocity", "pipeline analysis"]],
@@ -994,7 +1029,6 @@ const CANONICAL_RULES = new Map([
   ["data pipelines", "etl"],
   ["data integration", "etl"],
   ["python", "python"],
-  ["r", "r programming"],
   ["javascript", "javascript"],
   ["html", "html/css"],
   ["css", "html/css"],

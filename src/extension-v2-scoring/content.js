@@ -1546,6 +1546,8 @@ function detectEquityWithContext(text) {
     /employee\s+stock\s+purchase/i,
     /stock\s+(grant|award|compensation|package)/i,
     /equity\s+(grant|package|compensation|award|incentive|stake)/i,
+    /meaningful\s+equity/i,
+    /equity\s+opportunit/i,
     /ownership\s+(stake|interest|percentage)/i,
     /vesting\s+schedule/i,
     /(\d+\.?\d*)\s*%?\s*(equity|ownership)/i,  // "0.5% equity"
