@@ -1,0 +1,770 @@
+{
+  "version": "1.0",
+  "description": "Tools and platforms dictionary for Job Filter extension. These are NOT skills - they are software, platforms, and tools.",
+  "lastUpdated": "2026-01-16",
+  "tools": [
+    {
+      "canonical": "salesforce",
+      "name": "Salesforce",
+      "aliases": ["SFDC", "SF", "Salesforce.com", "Salesforce CRM"],
+      "category": "CRM",
+      "type": "tool"
+    },
+    {
+      "canonical": "hubspot",
+      "name": "HubSpot",
+      "aliases": ["Hubspot", "HubSpot CRM", "HubSpot Marketing Hub", "HubSpot Sales Hub"],
+      "category": "CRM",
+      "type": "tool"
+    },
+    {
+      "canonical": "google_analytics_4",
+      "name": "Google Analytics 4",
+      "aliases": ["GA4", "Google Analytics", "Universal Analytics", "GA"],
+      "category": "Analytics",
+      "type": "tool"
+    },
+    {
+      "canonical": "looker",
+      "name": "Looker",
+      "aliases": ["Looker Studio", "Google Data Studio"],
+      "category": "BI",
+      "type": "tool"
+    },
+    {
+      "canonical": "tableau",
+      "name": "Tableau",
+      "aliases": ["Tableau Desktop", "Tableau Server", "Tableau Online"],
+      "category": "BI",
+      "type": "tool"
+    },
+    {
+      "canonical": "power_bi",
+      "name": "Power BI",
+      "aliases": ["PowerBI", "Microsoft Power BI"],
+      "category": "BI",
+      "type": "tool"
+    },
+    {
+      "canonical": "snowflake",
+      "name": "Snowflake",
+      "aliases": ["Snowflake Data Cloud", "Snowflake DB"],
+      "category": "Data Warehouse",
+      "type": "tool"
+    },
+    {
+      "canonical": "bigquery",
+      "name": "BigQuery",
+      "aliases": ["Google BigQuery", "GCP BigQuery", "BQ"],
+      "category": "Data Warehouse",
+      "type": "tool"
+    },
+    {
+      "canonical": "redshift",
+      "name": "Redshift",
+      "aliases": ["Amazon Redshift", "AWS Redshift"],
+      "category": "Data Warehouse",
+      "type": "tool"
+    },
+    {
+      "canonical": "databricks",
+      "name": "Databricks",
+      "aliases": ["Databricks Platform", "Databricks Lakehouse"],
+      "category": "Data Platform",
+      "type": "tool"
+    },
+    {
+      "canonical": "marketo",
+      "name": "Marketo",
+      "aliases": ["Adobe Marketo", "Marketo Engage"],
+      "category": "Marketing Automation",
+      "type": "tool"
+    },
+    {
+      "canonical": "eloqua",
+      "name": "Eloqua",
+      "aliases": ["Oracle Eloqua"],
+      "category": "Marketing Automation",
+      "type": "tool"
+    },
+    {
+      "canonical": "pardot",
+      "name": "Pardot",
+      "aliases": ["Salesforce Pardot", "Marketing Cloud Account Engagement"],
+      "category": "Marketing Automation",
+      "type": "tool"
+    },
+    {
+      "canonical": "braze",
+      "name": "Braze",
+      "aliases": ["Braze Platform"],
+      "category": "Marketing Automation",
+      "type": "tool"
+    },
+    {
+      "canonical": "iterable",
+      "name": "Iterable",
+      "aliases": ["Iterable Platform"],
+      "category": "Marketing Automation",
+      "type": "tool"
+    },
+    {
+      "canonical": "klaviyo",
+      "name": "Klaviyo",
+      "aliases": [],
+      "category": "Marketing Automation",
+      "type": "tool"
+    },
+    {
+      "canonical": "mailchimp",
+      "name": "Mailchimp",
+      "aliases": ["Intuit Mailchimp"],
+      "category": "Email Marketing",
+      "type": "tool"
+    },
+    {
+      "canonical": "customer_io",
+      "name": "Customer.io",
+      "aliases": ["CustomerIO"],
+      "category": "Marketing Automation",
+      "type": "tool"
+    },
+    {
+      "canonical": "sendgrid",
+      "name": "SendGrid",
+      "aliases": ["Twilio SendGrid"],
+      "category": "Email Marketing",
+      "type": "tool"
+    },
+    {
+      "canonical": "optimizely",
+      "name": "Optimizely",
+      "aliases": ["Optimizely Experimentation"],
+      "category": "A/B Testing",
+      "type": "tool"
+    },
+    {
+      "canonical": "vwo",
+      "name": "VWO",
+      "aliases": ["Visual Website Optimizer"],
+      "category": "A/B Testing",
+      "type": "tool"
+    },
+    {
+      "canonical": "ab_tasty",
+      "name": "AB Tasty",
+      "aliases": ["ABTasty", "AB Tasty"],
+      "category": "A/B Testing",
+      "type": "tool"
+    },
+    {
+      "canonical": "google_optimize",
+      "name": "Google Optimize",
+      "aliases": ["Optimize 360"],
+      "category": "A/B Testing",
+      "type": "tool"
+    },
+    {
+      "canonical": "mixpanel",
+      "name": "Mixpanel",
+      "aliases": [],
+      "category": "Analytics",
+      "type": "tool"
+    },
+    {
+      "canonical": "amplitude",
+      "name": "Amplitude",
+      "aliases": ["Amplitude Analytics"],
+      "category": "Analytics",
+      "type": "tool"
+    },
+    {
+      "canonical": "heap",
+      "name": "Heap",
+      "aliases": ["Heap Analytics"],
+      "category": "Analytics",
+      "type": "tool"
+    },
+    {
+      "canonical": "pendo",
+      "name": "Pendo",
+      "aliases": [],
+      "category": "Product Analytics",
+      "type": "tool"
+    },
+    {
+      "canonical": "fullstory",
+      "name": "FullStory",
+      "aliases": [],
+      "category": "Session Replay",
+      "type": "tool"
+    },
+    {
+      "canonical": "hotjar",
+      "name": "Hotjar",
+      "aliases": [],
+      "category": "Session Replay",
+      "type": "tool"
+    },
+    {
+      "canonical": "segment",
+      "name": "Segment",
+      "aliases": ["Twilio Segment"],
+      "category": "CDP",
+      "type": "tool"
+    },
+    {
+      "canonical": "rudderstack",
+      "name": "RudderStack",
+      "aliases": [],
+      "category": "CDP",
+      "type": "tool"
+    },
+    {
+      "canonical": "mparticle",
+      "name": "mParticle",
+      "aliases": [],
+      "category": "CDP",
+      "type": "tool"
+    },
+    {
+      "canonical": "tealium",
+      "name": "Tealium",
+      "aliases": ["Tealium AudienceStream"],
+      "category": "CDP",
+      "type": "tool"
+    },
+    {
+      "canonical": "fivetran",
+      "name": "Fivetran",
+      "aliases": [],
+      "category": "Data Integration",
+      "type": "tool"
+    },
+    {
+      "canonical": "stitch",
+      "name": "Stitch",
+      "aliases": ["Stitch Data"],
+      "category": "Data Integration",
+      "type": "tool"
+    },
+    {
+      "canonical": "dbt",
+      "name": "dbt",
+      "aliases": ["dbt Core", "dbt Cloud", "data build tool"],
+      "category": "Data Transformation",
+      "type": "tool"
+    },
+    {
+      "canonical": "airflow",
+      "name": "Airflow",
+      "aliases": ["Apache Airflow"],
+      "category": "Data Orchestration",
+      "type": "tool"
+    },
+    {
+      "canonical": "jira",
+      "name": "Jira",
+      "aliases": ["Atlassian Jira", "Jira Software"],
+      "category": "Project Management",
+      "type": "tool"
+    },
+    {
+      "canonical": "asana",
+      "name": "Asana",
+      "aliases": [],
+      "category": "Project Management",
+      "type": "tool"
+    },
+    {
+      "canonical": "monday",
+      "name": "Monday.com",
+      "aliases": ["Monday", "monday"],
+      "category": "Project Management",
+      "type": "tool"
+    },
+    {
+      "canonical": "trello",
+      "name": "Trello",
+      "aliases": [],
+      "category": "Project Management",
+      "type": "tool"
+    },
+    {
+      "canonical": "notion",
+      "name": "Notion",
+      "aliases": [],
+      "category": "Productivity",
+      "type": "tool"
+    },
+    {
+      "canonical": "airtable",
+      "name": "Airtable",
+      "aliases": [],
+      "category": "Database",
+      "type": "tool"
+    },
+    {
+      "canonical": "slack",
+      "name": "Slack",
+      "aliases": [],
+      "category": "Communication",
+      "type": "tool"
+    },
+    {
+      "canonical": "microsoft_teams",
+      "name": "Microsoft Teams",
+      "aliases": ["Teams", "MS Teams"],
+      "category": "Communication",
+      "type": "tool"
+    },
+    {
+      "canonical": "zoom",
+      "name": "Zoom",
+      "aliases": [],
+      "category": "Communication",
+      "type": "tool"
+    },
+    {
+      "canonical": "figma",
+      "name": "Figma",
+      "aliases": [],
+      "category": "Design",
+      "type": "tool"
+    },
+    {
+      "canonical": "sketch",
+      "name": "Sketch",
+      "aliases": [],
+      "category": "Design",
+      "type": "tool"
+    },
+    {
+      "canonical": "adobe_xd",
+      "name": "Adobe XD",
+      "aliases": ["XD"],
+      "category": "Design",
+      "type": "tool"
+    },
+    {
+      "canonical": "zendesk",
+      "name": "Zendesk",
+      "aliases": ["Zendesk Support", "Zendesk Suite"],
+      "category": "Customer Support",
+      "type": "tool"
+    },
+    {
+      "canonical": "intercom",
+      "name": "Intercom",
+      "aliases": [],
+      "category": "Customer Support",
+      "type": "tool"
+    },
+    {
+      "canonical": "freshdesk",
+      "name": "Freshdesk",
+      "aliases": [],
+      "category": "Customer Support",
+      "type": "tool"
+    },
+    {
+      "canonical": "gong",
+      "name": "Gong",
+      "aliases": ["Gong.io"],
+      "category": "Sales Intelligence",
+      "type": "tool"
+    },
+    {
+      "canonical": "chorus",
+      "name": "Chorus",
+      "aliases": ["Chorus.ai", "ZoomInfo Chorus"],
+      "category": "Sales Intelligence",
+      "type": "tool"
+    },
+    {
+      "canonical": "outreach",
+      "name": "Outreach",
+      "aliases": ["Outreach.io"],
+      "category": "Sales Engagement",
+      "type": "tool"
+    },
+    {
+      "canonical": "salesloft",
+      "name": "SalesLoft",
+      "aliases": ["Salesloft"],
+      "category": "Sales Engagement",
+      "type": "tool"
+    },
+    {
+      "canonical": "zoominfo",
+      "name": "ZoomInfo",
+      "aliases": [],
+      "category": "Sales Intelligence",
+      "type": "tool"
+    },
+    {
+      "canonical": "6sense",
+      "name": "6sense",
+      "aliases": [],
+      "category": "ABM",
+      "type": "tool"
+    },
+    {
+      "canonical": "demandbase",
+      "name": "Demandbase",
+      "aliases": [],
+      "category": "ABM",
+      "type": "tool"
+    },
+    {
+      "canonical": "terminus",
+      "name": "Terminus",
+      "aliases": [],
+      "category": "ABM",
+      "type": "tool"
+    },
+    {
+      "canonical": "clearbit",
+      "name": "Clearbit",
+      "aliases": [],
+      "category": "Data Enrichment",
+      "type": "tool"
+    },
+    {
+      "canonical": "shopify",
+      "name": "Shopify",
+      "aliases": ["Shopify Plus"],
+      "category": "E-commerce",
+      "type": "tool"
+    },
+    {
+      "canonical": "magento",
+      "name": "Magento",
+      "aliases": ["Adobe Commerce"],
+      "category": "E-commerce",
+      "type": "tool"
+    },
+    {
+      "canonical": "bigcommerce",
+      "name": "BigCommerce",
+      "aliases": [],
+      "category": "E-commerce",
+      "type": "tool"
+    },
+    {
+      "canonical": "woocommerce",
+      "name": "WooCommerce",
+      "aliases": [],
+      "category": "E-commerce",
+      "type": "tool"
+    },
+    {
+      "canonical": "stripe",
+      "name": "Stripe",
+      "aliases": [],
+      "category": "Payment",
+      "type": "tool"
+    },
+    {
+      "canonical": "paypal",
+      "name": "PayPal",
+      "aliases": [],
+      "category": "Payment",
+      "type": "tool"
+    },
+    {
+      "canonical": "square",
+      "name": "Square",
+      "aliases": [],
+      "category": "Payment",
+      "type": "tool"
+    },
+    {
+      "canonical": "google_ads",
+      "name": "Google Ads",
+      "aliases": ["AdWords", "Google AdWords"],
+      "category": "Advertising",
+      "type": "tool"
+    },
+    {
+      "canonical": "facebook_ads",
+      "name": "Facebook Ads",
+      "aliases": ["Meta Ads", "Facebook Ads Manager"],
+      "category": "Advertising",
+      "type": "tool"
+    },
+    {
+      "canonical": "linkedin_ads",
+      "name": "LinkedIn Ads",
+      "aliases": ["LinkedIn Campaign Manager"],
+      "category": "Advertising",
+      "type": "tool"
+    },
+    {
+      "canonical": "tiktok_ads",
+      "name": "TikTok Ads",
+      "aliases": ["TikTok Ads Manager"],
+      "category": "Advertising",
+      "type": "tool"
+    },
+    {
+      "canonical": "pinterest_ads",
+      "name": "Pinterest Ads",
+      "aliases": [],
+      "category": "Advertising",
+      "type": "tool"
+    },
+    {
+      "canonical": "the_trade_desk",
+      "name": "The Trade Desk",
+      "aliases": ["TTD"],
+      "category": "Programmatic",
+      "type": "tool"
+    },
+    {
+      "canonical": "dv360",
+      "name": "Display & Video 360",
+      "aliases": ["DV360", "Google DV360"],
+      "category": "Programmatic",
+      "type": "tool"
+    },
+    {
+      "canonical": "google_tag_manager",
+      "name": "Google Tag Manager",
+      "aliases": ["GTM"],
+      "category": "Tag Management",
+      "type": "tool"
+    },
+    {
+      "canonical": "adobe_launch",
+      "name": "Adobe Launch",
+      "aliases": ["Adobe Experience Platform Launch"],
+      "category": "Tag Management",
+      "type": "tool"
+    },
+    {
+      "canonical": "qualtrics",
+      "name": "Qualtrics",
+      "aliases": [],
+      "category": "Survey",
+      "type": "tool"
+    },
+    {
+      "canonical": "surveymonkey",
+      "name": "SurveyMonkey",
+      "aliases": [],
+      "category": "Survey",
+      "type": "tool"
+    },
+    {
+      "canonical": "typeform",
+      "name": "Typeform",
+      "aliases": [],
+      "category": "Survey",
+      "type": "tool"
+    },
+    {
+      "canonical": "zapier",
+      "name": "Zapier",
+      "aliases": [],
+      "category": "Automation",
+      "type": "tool"
+    },
+    {
+      "canonical": "make",
+      "name": "Make",
+      "aliases": ["Integromat"],
+      "category": "Automation",
+      "type": "tool"
+    },
+    {
+      "canonical": "n8n",
+      "name": "n8n",
+      "aliases": [],
+      "category": "Automation",
+      "type": "tool"
+    },
+    {
+      "canonical": "workato",
+      "name": "Workato",
+      "aliases": [],
+      "category": "Automation",
+      "type": "tool"
+    },
+    {
+      "canonical": "github",
+      "name": "GitHub",
+      "aliases": [],
+      "category": "Developer Tools",
+      "type": "tool"
+    },
+    {
+      "canonical": "gitlab",
+      "name": "GitLab",
+      "aliases": [],
+      "category": "Developer Tools",
+      "type": "tool"
+    },
+    {
+      "canonical": "bitbucket",
+      "name": "Bitbucket",
+      "aliases": [],
+      "category": "Developer Tools",
+      "type": "tool"
+    },
+    {
+      "canonical": "docker",
+      "name": "Docker",
+      "aliases": [],
+      "category": "DevOps",
+      "type": "tool"
+    },
+    {
+      "canonical": "kubernetes",
+      "name": "Kubernetes",
+      "aliases": ["K8s"],
+      "category": "DevOps",
+      "type": "tool"
+    },
+    {
+      "canonical": "jenkins",
+      "name": "Jenkins",
+      "aliases": [],
+      "category": "CI/CD",
+      "type": "tool"
+    },
+    {
+      "canonical": "circleci",
+      "name": "CircleCI",
+      "aliases": [],
+      "category": "CI/CD",
+      "type": "tool"
+    },
+    {
+      "canonical": "postman",
+      "name": "Postman",
+      "aliases": [],
+      "category": "API Testing",
+      "type": "tool"
+    },
+    {
+      "canonical": "looker_studio",
+      "name": "Looker Studio",
+      "aliases": ["Google Looker Studio", "Data Studio"],
+      "category": "BI",
+      "type": "tool"
+    },
+    {
+      "canonical": "metabase",
+      "name": "Metabase",
+      "aliases": [],
+      "category": "BI",
+      "type": "tool"
+    },
+    {
+      "canonical": "mode",
+      "name": "Mode",
+      "aliases": ["Mode Analytics"],
+      "category": "BI",
+      "type": "tool"
+    },
+    {
+      "canonical": "sisense",
+      "name": "Sisense",
+      "aliases": [],
+      "category": "BI",
+      "type": "tool"
+    },
+    {
+      "canonical": "domo",
+      "name": "Domo",
+      "aliases": [],
+      "category": "BI",
+      "type": "tool"
+    },
+    {
+      "canonical": "qlik",
+      "name": "Qlik",
+      "aliases": ["Qlik Sense", "QlikView"],
+      "category": "BI",
+      "type": "tool"
+    },
+    {
+      "canonical": "thoughtspot",
+      "name": "ThoughtSpot",
+      "aliases": [],
+      "category": "BI",
+      "type": "tool"
+    },
+    {
+      "canonical": "sigma",
+      "name": "Sigma",
+      "aliases": ["Sigma Computing"],
+      "category": "BI",
+      "type": "tool"
+    },
+    {
+      "canonical": "census",
+      "name": "Census",
+      "aliases": [],
+      "category": "Reverse ETL",
+      "type": "tool"
+    },
+    {
+      "canonical": "hightouch",
+      "name": "Hightouch",
+      "aliases": [],
+      "category": "Reverse ETL",
+      "type": "tool"
+    },
+    {
+      "canonical": "prefect",
+      "name": "Prefect",
+      "aliases": [],
+      "category": "Data Orchestration",
+      "type": "tool"
+    },
+    {
+      "canonical": "dagster",
+      "name": "Dagster",
+      "aliases": [],
+      "category": "Data Orchestration",
+      "type": "tool"
+    },
+    {
+      "canonical": "zoho",
+      "name": "Zoho",
+      "aliases": ["Zoho CRM", "Zoho One"],
+      "category": "CRM",
+      "type": "tool"
+    },
+    {
+      "canonical": "pipedrive",
+      "name": "Pipedrive",
+      "aliases": [],
+      "category": "CRM",
+      "type": "tool"
+    },
+    {
+      "canonical": "dynamics_365",
+      "name": "Dynamics 365",
+      "aliases": ["Microsoft Dynamics", "Dynamics CRM"],
+      "category": "CRM",
+      "type": "tool"
+    },
+    {
+      "canonical": "freshsales",
+      "name": "Freshsales",
+      "aliases": [],
+      "category": "CRM",
+      "type": "tool"
+    },
+    {
+      "canonical": "copper",
+      "name": "Copper",
+      "aliases": ["Copper CRM"],
+      "category": "CRM",
+      "type": "tool"
+    }
+  ]
+}

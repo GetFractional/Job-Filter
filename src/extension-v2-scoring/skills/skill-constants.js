@@ -254,6 +254,189 @@ const EXTRACTION_CONFIG = {
 };
 
 // ============================================================================
+// FIT SCORE CONFIGURATION (v2 Upgrade)
+// Configurable weights for dual-bucket scoring system
+// ============================================================================
+
+const FIT_SCORE_CONFIG = {
+  // Weight distribution between core skills and tools
+  CORE_SKILLS_WEIGHT: 0.70,  // 70% of overall score
+  TOOLS_WEIGHT: 0.30,         // 30% of overall score
+
+  // Multipliers for required vs desired items
+  REQUIRED_MULTIPLIER: 2.0,   // Required items count 2x
+  DESIRED_MULTIPLIER: 1.0,    // Desired items count 1x
+
+  // Penalty values for missing items
+  PENALTY_MISSING_REQUIRED_SKILL: -0.10,
+  PENALTY_MISSING_REQUIRED_TOOL_EXPERT: -0.15,  // When "expert required" language detected
+  PENALTY_MISSING_REQUIRED_TOOL_STANDARD: -0.12,
+  PENALTY_MISSING_DESIRED_TOOL: -0.05,
+
+  // Maximum total penalty cap
+  MAX_TOTAL_PENALTY: -0.50,
+
+  // Confidence thresholds for classification
+  HIGH_CONFIDENCE_THRESHOLD: 0.85,
+  MEDIUM_CONFIDENCE_THRESHOLD: 0.65,
+  LOW_CONFIDENCE_THRESHOLD: 0.45
+};
+
+// ============================================================================
+// FORCED CORE SKILLS
+// These are ALWAYS classified as CORE_SKILLS, never tools
+// ============================================================================
+
+const FORCED_CORE_SKILLS = new Set([
+  "sql",
+  "python",
+  "r",
+  "javascript",
+  "java",
+  "c++",
+  "c#",
+  "ruby",
+  "go",
+  "rust",
+  "scala",
+  "kotlin",
+  "swift",
+  "typescript",
+  "php",
+  "html",
+  "css",
+  "data analysis",
+  "data modeling",
+  "statistical analysis",
+  "machine learning",
+  "deep learning",
+  "natural language processing",
+  "nlp",
+  "computer vision",
+  "experimentation",
+  "a/b testing",
+  "lifecycle marketing",
+  "customer segmentation",
+  "funnel optimization",
+  "conversion rate optimization",
+  "growth strategy",
+  "product strategy",
+  "go-to-market strategy",
+  "revenue operations",
+  "revops",
+  "salesops",
+  "marketing operations",
+  "crm strategy"
+]);
+
+// ============================================================================
+// SOFT SKILLS PATTERNS (v2 Upgrade)
+// Regex patterns to identify and reject soft skills
+// ============================================================================
+
+const SOFT_SKILLS_PATTERNS = [
+  // Generic soft skills
+  /\b(communication|leadership|teamwork|collaboration|problem[\s-]solving)\b/i,
+  /\b(motivated|enthusiastic|passionate|proactive|driven)\b/i,
+  /\b(detail[\s-]oriented|results[\s-]oriented|goal[\s-]oriented)\b/i,
+  /\b(team\s+player|self[\s-]starter|fast[\s-]learner|quick[\s-]learner)\b/i,
+
+  // Ability/skills phrases
+  /\b(strong|excellent|good|great)\s+(communication|interpersonal|organizational)\b/i,
+  /\bability\s+to\s+/i,
+  /\b\w+\s+skills?$/i,  // Generic "X skills"
+
+  // Thinking/mindset phrases
+  /\b(analytical|critical|strategic|creative)\s+thinking\b/i,
+  /\b(growth|entrepreneurial|startup)\s+mindset\b/i,
+
+  // Work style phrases
+  /\bwork\s+(independently|under\s+pressure)\b/i,
+  /\b(attention\s+to\s+detail|time\s+management|multitasking)\b/i,
+  /\b(flexible|adaptable|resilient)\b/i
+];
+
+// ============================================================================
+// SKILL ALIASES (v2 Upgrade)
+// Maps common abbreviations and variations to canonical skill names
+// ============================================================================
+
+const SKILL_ALIASES = new Map([
+  // Analytics & BI Tools
+  ["ga4", "google analytics 4"],
+  ["ga", "google analytics"],
+  ["gtm", "google tag manager"],
+
+  // CRM Systems
+  ["sfdc", "salesforce"],
+  ["sf", "salesforce"],
+  ["hubspot crm", "hubspot"],
+
+  // Data Platforms
+  ["bq", "bigquery"],
+  ["aws", "amazon web services"],
+  ["gcp", "google cloud platform"],
+
+  // Programming & Databases
+  ["js", "javascript"],
+  ["ts", "typescript"],
+  ["py", "python"],
+  ["postgres", "postgresql"],
+  ["mongo", "mongodb"],
+
+  // Marketing Automation
+  ["sfmc", "salesforce marketing cloud"],
+  ["mcae", "marketing cloud account engagement"],
+
+  // Skills & Concepts
+  ["cro", "conversion rate optimization"],
+  ["seo", "search engine optimization"],
+  ["sem", "search engine marketing"],
+  ["ppc", "pay per click"],
+  ["cpa", "cost per acquisition"],
+  ["ltv", "lifetime value"],
+  ["cac", "customer acquisition cost"],
+  ["mrr", "monthly recurring revenue"],
+  ["arr", "annual recurring revenue"],
+  ["kpi", "key performance indicator"],
+  ["okr", "objectives and key results"],
+  ["roi", "return on investment"],
+  ["roas", "return on ad spend"],
+  ["abm", "account based marketing"],
+  ["plg", "product led growth"],
+  ["slg", "sales led growth"],
+  ["gtm", "go to market"],
+  ["mvp", "minimum viable product"],
+  ["pmf", "product market fit"],
+
+  // Data & Analytics
+  ["etl", "extract transform load"],
+  ["elt", "extract load transform"],
+  ["cdp", "customer data platform"],
+  ["dwh", "data warehouse"],
+  ["bi", "business intelligence"],
+  ["ml", "machine learning"],
+  ["ai", "artificial intelligence"],
+  ["nlp", "natural language processing"],
+
+  // Operations
+  ["revops", "revenue operations"],
+  ["salesops", "sales operations"],
+  ["marketingops", "marketing operations"],
+  ["bizops", "business operations"],
+  ["devops", "development operations"],
+  ["secops", "security operations"],
+
+  // Business Concepts
+  ["b2b", "business to business"],
+  ["b2c", "business to consumer"],
+  ["d2c", "direct to consumer"],
+  ["saas", "software as a service"],
+  ["paas", "platform as a service"],
+  ["iaas", "infrastructure as a service"]
+]);
+
+// ============================================================================
 // SKILL PHRASE PATTERNS
 // Regex patterns to extract potential skill phrases from text
 // ============================================================================
@@ -289,7 +472,11 @@ if (typeof window !== 'undefined') {
     REQUIRED_SECTION_PATTERNS,
     DESIRED_SECTION_PATTERNS,
     EXTRACTION_CONFIG,
-    SKILL_PHRASE_PATTERNS
+    SKILL_PHRASE_PATTERNS,
+    FIT_SCORE_CONFIG,
+    FORCED_CORE_SKILLS,
+    SOFT_SKILLS_PATTERNS,
+    SKILL_ALIASES
   };
 }
 
@@ -300,6 +487,10 @@ if (typeof module !== 'undefined' && module.exports) {
     REQUIRED_SECTION_PATTERNS,
     DESIRED_SECTION_PATTERNS,
     EXTRACTION_CONFIG,
-    SKILL_PHRASE_PATTERNS
+    SKILL_PHRASE_PATTERNS,
+    FIT_SCORE_CONFIG,
+    FORCED_CORE_SKILLS,
+    SOFT_SKILLS_PATTERNS,
+    SKILL_ALIASES
   };
 }
