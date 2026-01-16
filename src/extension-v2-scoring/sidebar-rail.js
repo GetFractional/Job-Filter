@@ -749,7 +749,10 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
     const criteriaKey = getCriteriaKey(item.criteria);
     // Determine if this item should be full-width (Skills and Benefits) or can be in grid
     const isFullWidth = ['skills', 'benefits'].includes(criteriaKey);
-    const sizeClass = isFullWidth ? 'jh-size-2' : 'jh-size-1';
+    // Make size responsive based on badge count to avoid blank space
+    const sizeClass = isFullWidth
+      ? (badgeCount !== null && badgeCount <= 10 ? 'jh-size-1' : 'jh-size-2')
+      : 'jh-size-1';
     const compactClass = criteriaKey === 'base salary' ? 'jh-compact-card' : '';
     const itemClass = isFullWidth
       ? `jh-breakdown-item jh-full-width jh-no-flip ${sizeClass} ${compactClass}`
@@ -2855,7 +2858,12 @@ function enableCardResizing(breakdownList) {
     item.addEventListener('mouseup', () => {
       item.dataset.userResized = 'true';
       const span = getSpanForHeight(item.offsetHeight);
-      const minSpan = item.classList.contains('jh-full-width') ? 2 : 1;
+      // Badge cards (skills/benefits) can be size 1 if they have ≤10 items
+      const badgeCount = parseInt(item.dataset.badgeCount || '0', 10);
+      const isBadgeCard = item.dataset.criteriaKey === 'skills' || item.dataset.criteriaKey === 'benefits';
+      const minSpan = isBadgeCard
+        ? (badgeCount <= 10 ? 1 : 2)
+        : (item.classList.contains('jh-full-width') ? 2 : 1);
       setItemSize(item, Math.max(minSpan, span));
       applyItemGridSpan(item, breakdownList);
     });
