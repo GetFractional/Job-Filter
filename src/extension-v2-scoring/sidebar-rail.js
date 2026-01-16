@@ -799,7 +799,7 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
     const criteriaKey = getCriteriaKey(item.criteria);
     // Determine if this item should be full-width (Skills and Benefits) or can be in grid
     const isFullWidth = ['skills', 'benefits'].includes(criteriaKey);
-    const sizeClass = isFullWidth ? 'jh-size-2' : 'jh-size-1';
+    const sizeClass = 'jh-size-1';
     const compactClass = criteriaKey === 'base salary' ? 'jh-compact-card' : '';
     const badgeClass = isFullWidth ? 'jh-badge-card' : '';
     const itemClass = isFullWidth
@@ -1757,10 +1757,13 @@ function getSidebarStyles() {
       flex: 1;
       overflow-y: auto;
       padding: 12px;
+      box-shadow:
+        inset 0 8px 8px -8px rgba(15, 23, 42, 0.18),
+        inset 0 -8px 8px -8px rgba(15, 23, 42, 0.18);
     }
 
     .jh-breakdown-section {
-      margin-bottom: 20px;
+      margin-bottom: 10px;
     }
 
     .jh-breakdown-section:last-child {
@@ -1824,7 +1827,7 @@ function getSidebarStyles() {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 10px;
-      grid-auto-rows: 110px;
+      grid-auto-rows: minmax(110px, auto);
       grid-auto-flow: row;
       align-content: start;
     }
@@ -1877,8 +1880,9 @@ function getSidebarStyles() {
     }
 
     .jh-breakdown-item.jh-badge-card {
-      height: 100%;
+      height: auto;
       resize: none;
+      align-self: start;
     }
 
     .jh-card-inner {
@@ -2288,12 +2292,13 @@ function getSidebarStyles() {
        ======================================== */
 
     .jh-mismatch-warnings {
-      padding: 0 16px;
-      margin-bottom: 12px;
+      padding: 6px 12px;
+      margin-bottom: 0;
+      background: #FFFFFF;
     }
 
     .jh-mismatch-alert {
-      padding: 10px 12px;
+      padding: 8px 10px;
       background: #FEF3C7;
       border: 1px solid #FDE68A;
       border-radius: 8px;
@@ -2342,6 +2347,7 @@ function getSidebarStyles() {
     .jh-dealbreakers {
       padding: 0 16px 16px;
       flex-shrink: 0;
+      background: #FFFFFF;
     }
 
     .jh-dealbreaker-alert {
@@ -2387,8 +2393,8 @@ function getSidebarStyles() {
       display: flex;
       justify-content: center;
       padding: 12px;
-      background: #ffffff;
-      border-top: 1px solid #E5E7EB;
+      background: #EEF2FF;
+      border-top: 1px solid #C7D2FE;
       flex-shrink: 0;
     }
 
@@ -2922,8 +2928,8 @@ function sortCriteriaByOrder(criteriaList, customOrder) {
     'experience',
     'location',
     'industry',
-    'skills',
     'benefits',
+    'skills',
     'lifecycle',
     'org stability'
   ];
@@ -3021,11 +3027,13 @@ function applyItemGridSpan(item, breakdownList) {
     ? 2
     : (item.offsetWidth > columnWidth * 1.1 ? 2 : 1);
   const span = parseInt(item.dataset.sizeSpan || '1', 10);
+  const isBadgeCard = item.dataset.criteriaKey === 'skills' || item.dataset.criteriaKey === 'benefits';
 
   item.style.gridColumnEnd = `span ${desiredColSpan}`;
   item.style.gridRowEnd = `span ${span}`;
   item.style.width = '100%';
-  item.style.height = '100%';
+  item.style.height = isBadgeCard ? 'auto' : '100%';
+  item.style.alignSelf = isBadgeCard ? 'start' : 'stretch';
 }
 
 function adjustCriteriaCardHeights(breakdownList) {
@@ -3037,14 +3045,11 @@ function adjustCriteriaCardHeights(breakdownList) {
     if (item.dataset.userResized === 'true') return;
     const front = item.querySelector('.jh-card-front');
     if (!front) return;
+    const isBadgeCard = item.dataset.criteriaKey === 'skills' || item.dataset.criteriaKey === 'benefits';
+    if (isBadgeCard) return;
     const minSpan = 1;
     const requiredSpan = getSpanForHeight(front.scrollHeight);
-    const isBadgeCard = item.dataset.criteriaKey === 'skills' || item.dataset.criteriaKey === 'benefits';
     let targetSpan = Math.max(minSpan, requiredSpan);
-
-    if (isBadgeCard) {
-      targetSpan = Math.max(minSpan, requiredSpan);
-    }
 
     setItemSize(item, targetSpan);
   });
