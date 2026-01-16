@@ -1,105 +1,101 @@
 /**
  * Job Filter - Fit Score Calculator (v2 Upgrade)
  *
- * Implements dual-bucket scoring system:
- * - Core Skills: 70% of overall score
- * - Tools: 30% of overall score
+ * Dual-bucket scoring system: 70% core skills, 30% tools
+ * Penalty system for missing required items
  *
  * Formula:
- * coreSkillsScore = (requiredMatched*2.0 + desiredMatched*1.0) / (requiredTotal*2.0 + desiredTotal*1.0)
- * toolsScore = (same calculation for tools)
- * overallScore = (coreSkillsScore * 0.70) + (toolsScore * 0.30) + penalties
- *
- * Penalties:
- * - Missing required skill: -0.10
- * - Missing required tool (expert): -0.15
- * - Missing required tool (standard): -0.12
- * - Missing desired tool: -0.05
- * - Max total penalty: -0.50
+ * - Core Skills Score = (requiredMatched*2.0 + desiredMatched*1.0) / (requiredTotal*2.0 + desiredTotal*1.0)
+ * - Tools Score = same formula for tools
+ * - Overall Score = (coreSkillsScore * 0.70) + (toolsScore * 0.30) + penalties
+ * - Penalties capped at -0.50
  */
 
 // ============================================================================
-// MAIN SCORING FUNCTION
+// MAIN CALCULATION FUNCTION
 // ============================================================================
 
 /**
- * Calculate fit score using dual-bucket approach
- * @param {Object} extractedSkills - Extracted and classified skills
- * @param {Object} userProfile - User's skills and tools from profile
- * @param {Object} options - Scoring options
+ * Calculate fit score using dual-bucket system
+ * @param {Object} jobSkills - Job requirements
+ * @param {Object} userProfile - User profile with skills
+ * @param {Object} config - Scoring configuration
  * @returns {Object} Fit score result
  */
-function calculateFitScore(extractedSkills, userProfile, options = {}) {
-  const config = window.SkillConstants?.FIT_SCORE_CONFIG || {
-    CORE_SKILLS_WEIGHT: 0.70,
-    TOOLS_WEIGHT: 0.30,
-    REQUIRED_MULTIPLIER: 2.0,
-    DESIRED_MULTIPLIER: 1.0,
-    MAX_TOTAL_PENALTY: -0.50
+function calculateFitScore(jobSkills, userProfile, config = null) {
+  const scoringConfig = config || window.SkillConstants?.FIT_SCORE_CONFIG || getDefaultConfig();
+
+  // Validate inputs
+  if (!jobSkills || !userProfile) {
+    return createEmptyResult();
+  }
+
+  // Extract buckets
+  const jobRequired = {
+    coreSkills: jobSkills.requiredCoreSkills || [],
+    tools: jobSkills.requiredTools || []
   };
 
-  const {
-    weightsOverride = null
-  } = options;
-
-  // Use custom weights if provided
-  const weights = weightsOverride || {
-    coreSkillsWeight: config.CORE_SKILLS_WEIGHT,
-    toolsWeight: config.TOOLS_WEIGHT
+  const jobDesired = {
+    coreSkills: jobSkills.desiredCoreSkills || [],
+    tools: jobSkills.desiredTools || []
   };
 
-  // Step 1: Calculate core skills score
-  const coreSkillsScore = calculateBucketScore(
-    extractedSkills.requiredCoreSkills || [],
-    extractedSkills.desiredCoreSkills || [],
-    userProfile.coreSkills || [],
-    config
+  const userSkillsSet = new Set((userProfile.skills || []).map(s => s.canonical || s.toLowerCase()));
+  const userToolsSet = new Set((userProfile.tools || []).map(t => t.canonical || t.toLowerCase()));
+
+  // Calculate core skills score
+  const coreSkillsResult = calculateBucketScore(
+    jobRequired.coreSkills,
+    jobDesired.coreSkills,
+    userSkillsSet,
+    scoringConfig
   );
 
-  // Step 2: Calculate tools score
-  const toolsScore = calculateBucketScore(
-    extractedSkills.requiredTools || [],
-    extractedSkills.desiredTools || [],
-    userProfile.tools || [],
-    config
+  // Calculate tools score
+  const toolsResult = calculateBucketScore(
+    jobRequired.tools,
+    jobDesired.tools,
+    userToolsSet,
+    scoringConfig
   );
 
-  // Step 3: Calculate penalties
+  // Calculate penalties for missing items
   const penalties = calculatePenalties(
-    extractedSkills,
-    userProfile,
-    coreSkillsScore,
-    toolsScore,
-    config
+    jobSkills,
+    userSkillsSet,
+    userToolsSet,
+    scoringConfig
   );
 
-  // Step 4: Calculate overall score
-  const rawScore =
-    (coreSkillsScore.score * weights.coreSkillsWeight) +
-    (toolsScore.score * weights.toolsWeight);
+  // Compute overall score
+  const rawOverallScore = 
+    (coreSkillsResult.score * scoringConfig.CORE_SKILLS_WEIGHT) +
+    (toolsResult.score * scoringConfig.TOOLS_WEIGHT);
 
-  const totalPenalty = Math.max(penalties.totalPenalty, config.MAX_TOTAL_PENALTY);
-  const overallScore = Math.max(0, Math.min(1, rawScore + totalPenalty));
+  const totalPenalty = Math.max(
+    penalties.reduce((sum, p) => sum + p.value, 0),
+    scoringConfig.MAX_TOTAL_PENALTY
+  );
 
-  // Step 5: Build result
+  const overallScore = Math.max(0, Math.min(1, rawOverallScore + totalPenalty));
+
   return {
     overallScore,
     breakdown: {
-      coreSkillsScore: coreSkillsScore.score,
-      toolsScore: toolsScore.score,
-      coreSkillsWeighted: coreSkillsScore.score * weights.coreSkillsWeight,
-      toolsWeighted: toolsScore.score * weights.toolsWeight,
-      rawScore,
-      totalPenalty,
-      finalScore: overallScore
+      coreSkills: coreSkillsResult,
+      tools: toolsResult,
+      penalties
     },
-    coreSkillsDetails: coreSkillsScore,
-    toolsDetails: toolsScore,
-    penalties: penalties.items,
-    weightsUsed: weights,
+    weightsUsed: {
+      coreSkillsWeight: scoringConfig.CORE_SKILLS_WEIGHT,
+      toolsWeight: scoringConfig.TOOLS_WEIGHT,
+      requiredMultiplier: scoringConfig.REQUIRED_MULTIPLIER,
+      desiredMultiplier: scoringConfig.DESIRED_MULTIPLIER
+    },
     metadata: {
-      calculatedAt: Date.now(),
-      version: '2.0'
+      timestamp: Date.now(),
+      configVersion: '2.0'
     }
   };
 }
@@ -109,95 +105,43 @@ function calculateFitScore(extractedSkills, userProfile, options = {}) {
 // ============================================================================
 
 /**
- * Calculate score for a single bucket (core skills or tools)
- * @param {Array} requiredItems - Required items
- * @param {Array} desiredItems - Desired items
- * @param {Array} userItems - User's skills/tools
+ * Calculate score for a single bucket (skills or tools)
+ * @param {Array} required - Required items
+ * @param {Array} desired - Desired items
+ * @param {Set} userItems - User's items
  * @param {Object} config - Scoring config
- * @returns {Object} Bucket score
+ * @returns {Object} Bucket score result
  */
-function calculateBucketScore(requiredItems, desiredItems, userItems, config) {
-  const result = {
-    score: 0,
-    requiredMatched: 0,
-    requiredTotal: requiredItems.length,
-    requiredMissing: [],
-    desiredMatched: 0,
-    desiredTotal: desiredItems.length,
-    desiredMissing: [],
-    matchedItems: [],
-    details: []
+function calculateBucketScore(required, desired, userItems, config) {
+  const requiredMultiplier = config.REQUIRED_MULTIPLIER;
+  const desiredMultiplier = config.DESIRED_MULTIPLIER;
+
+  // Count matches
+  const requiredMatched = required.filter(item => 
+    userItems.has(item.canonical || item.toLowerCase())
+  ).length;
+
+  const desiredMatched = desired.filter(item =>
+    userItems.has(item.canonical || item.toLowerCase())
+  ).length;
+
+  const requiredTotal = required.length;
+  const desiredTotal = desired.length;
+
+  // Calculate weighted score
+  const numerator = (requiredMatched * requiredMultiplier) + (desiredMatched * desiredMultiplier);
+  const denominator = (requiredTotal * requiredMultiplier) + (desiredTotal * desiredMultiplier);
+
+  const score = denominator > 0 ? numerator / denominator : 0;
+
+  return {
+    score: Math.max(0, Math.min(1, score)),
+    requiredMatched,
+    requiredTotal,
+    desiredMatched,
+    desiredTotal,
+    matchRate: requiredTotal > 0 ? requiredMatched / requiredTotal : 0
   };
-
-  // Normalize user items for comparison
-  const userCanonicals = new Set(
-    userItems.map(item =>
-      typeof item === 'string'
-        ? item.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
-        : item.canonical || item.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
-    )
-  );
-
-  // Match required items
-  for (const reqItem of requiredItems) {
-    const canonical = reqItem.canonical || reqItem.raw.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-    const matched = userCanonicals.has(canonical);
-
-    if (matched) {
-      result.requiredMatched++;
-      result.matchedItems.push({
-        item: reqItem.raw || reqItem.canonical,
-        type: 'required',
-        userHasSkill: true
-      });
-    } else {
-      result.requiredMissing.push(reqItem);
-    }
-
-    result.details.push({
-      item: reqItem.raw || reqItem.canonical,
-      requirement: 'required',
-      matched,
-      multiplier: config.REQUIRED_MULTIPLIER
-    });
-  }
-
-  // Match desired items
-  for (const desItem of desiredItems) {
-    const canonical = desItem.canonical || desItem.raw.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-    const matched = userCanonicals.has(canonical);
-
-    if (matched) {
-      result.desiredMatched++;
-      result.matchedItems.push({
-        item: desItem.raw || desItem.canonical,
-        type: 'desired',
-        userHasSkill: true
-      });
-    } else {
-      result.desiredMissing.push(desItem);
-    }
-
-    result.details.push({
-      item: desItem.raw || desItem.canonical,
-      requirement: 'desired',
-      matched,
-      multiplier: config.DESIRED_MULTIPLIER
-    });
-  }
-
-  // Calculate score using weighted formula
-  const numerator =
-    (result.requiredMatched * config.REQUIRED_MULTIPLIER) +
-    (result.desiredMatched * config.DESIRED_MULTIPLIER);
-
-  const denominator =
-    (result.requiredTotal * config.REQUIRED_MULTIPLIER) +
-    (result.desiredTotal * config.DESIRED_MULTIPLIER);
-
-  result.score = denominator > 0 ? numerator / denominator : 0;
-
-  return result;
 }
 
 // ============================================================================
@@ -205,221 +149,97 @@ function calculateBucketScore(requiredItems, desiredItems, userItems, config) {
 // ============================================================================
 
 /**
- * Calculate penalties for missing required/desired items
- * @param {Object} extractedSkills - Extracted skills
- * @param {Object} userProfile - User profile
- * @param {Object} coreSkillsScore - Core skills score details
- * @param {Object} toolsScore - Tools score details
+ * Calculate penalties for missing required items
+ * @param {Object} jobSkills - Job requirements
+ * @param {Set} userSkills - User skills set
+ * @param {Set} userTools - User tools set
  * @param {Object} config - Scoring config
- * @returns {Object} Penalties
+ * @returns {Array} Penalties
  */
-function calculatePenalties(extractedSkills, userProfile, coreSkillsScore, toolsScore, config) {
-  const penalties = {
-    items: [],
-    totalPenalty: 0
-  };
+function calculatePenalties(jobSkills, userSkills, userTools, config) {
+  const penalties = [];
 
-  // Penalty for missing required core skills
-  for (const missingSkill of coreSkillsScore.requiredMissing) {
-    const penalty = config.PENALTY_MISSING_REQUIRED_SKILL || -0.10;
-    penalties.items.push({
-      item: missingSkill.raw || missingSkill.canonical,
-      type: 'CORE_SKILL',
-      requirement: 'required',
-      penalty,
-      reason: 'Missing required core skill'
+  // Missing required core skills
+  const missingRequiredSkills = (jobSkills.requiredCoreSkills || []).filter(skill =>
+    !userSkills.has(skill.canonical || skill.toLowerCase())
+  );
+
+  for (const skill of missingRequiredSkills) {
+    penalties.push({
+      type: 'missing_required_skill',
+      item: skill.name || skill,
+      value: config.PENALTY_MISSING_REQUIRED_SKILL,
+      reason: `Missing required core skill: ${skill.name || skill}`
     });
-    penalties.totalPenalty += penalty;
   }
 
-  // Penalty for missing required tools (check for "expert" language)
-  for (const missingTool of toolsScore.requiredMissing) {
-    const hasExpertLanguage = missingTool.languageSignal === 'expert_required';
-    const penalty = hasExpertLanguage
-      ? (config.PENALTY_MISSING_REQUIRED_TOOL_EXPERT || -0.15)
-      : (config.PENALTY_MISSING_REQUIRED_TOOL_STANDARD || -0.12);
+  // Missing required tools
+  const missingRequiredTools = (jobSkills.requiredTools || []).filter(tool =>
+    !userTools.has(tool.canonical || tool.toLowerCase())
+  );
 
-    penalties.items.push({
-      item: missingTool.raw || missingTool.canonical,
-      type: 'TOOL',
-      requirement: 'required',
-      penalty,
-      reason: hasExpertLanguage
-        ? 'Missing required tool (expert level)'
-        : 'Missing required tool'
+  for (const tool of missingRequiredTools) {
+    const isExpertRequired = tool.languageSignal === 'expert_required';
+    const penalty = isExpertRequired
+      ? config.PENALTY_MISSING_REQUIRED_TOOL_EXPERT
+      : config.PENALTY_MISSING_REQUIRED_TOOL_STANDARD;
+
+    penalties.push({
+      type: 'missing_required_tool',
+      item: tool.name || tool,
+      value: penalty,
+      reason: `Missing required tool: ${tool.name || tool}${isExpertRequired ? ' (expert level)' : ''}`
     });
-    penalties.totalPenalty += penalty;
   }
 
-  // Penalty for missing desired tools
-  for (const missingTool of toolsScore.desiredMissing) {
-    const penalty = config.PENALTY_MISSING_DESIRED_TOOL || -0.05;
-    penalties.items.push({
-      item: missingTool.raw || missingTool.canonical,
-      type: 'TOOL',
-      requirement: 'desired',
-      penalty,
-      reason: 'Missing desired tool'
-    });
-    penalties.totalPenalty += penalty;
-  }
+  // Missing desired tools (smaller penalty)
+  const missingDesiredTools = (jobSkills.desiredTools || []).filter(tool =>
+    !userTools.has(tool.canonical || tool.toLowerCase())
+  );
 
-  // Cap total penalty
-  if (penalties.totalPenalty < config.MAX_TOTAL_PENALTY) {
-    penalties.totalPenalty = config.MAX_TOTAL_PENALTY;
-    penalties.capped = true;
+  for (const tool of missingDesiredTools.slice(0, 3)) { // Cap at 3 to avoid over-penalizing
+    penalties.push({
+      type: 'missing_desired_tool',
+      item: tool.name || tool,
+      value: config.PENALTY_MISSING_DESIRED_TOOL,
+      reason: `Missing desired tool: ${tool.name || tool}`
+    });
   }
 
   return penalties;
 }
 
 // ============================================================================
-// SCORE INTERPRETATION
+// UTILITIES
 // ============================================================================
 
-/**
- * Get label for overall fit score
- * @param {number} score - Fit score (0-1)
- * @returns {string} Fit label
- */
-function getFitLabel(score) {
-  if (score >= 0.90) return 'Excellent Match';
-  if (score >= 0.75) return 'Strong Match';
-  if (score >= 0.60) return 'Good Match';
-  if (score >= 0.45) return 'Moderate Match';
-  if (score >= 0.30) return 'Partial Match';
-  return 'Weak Match';
-}
-
-/**
- * Get color for score display
- * @param {number} score - Fit score (0-1)
- * @returns {string} Color code
- */
-function getScoreColor(score) {
-  if (score >= 0.75) return '#22c55e'; // Green
-  if (score >= 0.60) return '#84cc16'; // Lime
-  if (score >= 0.45) return '#eab308'; // Yellow
-  if (score >= 0.30) return '#f97316'; // Orange
-  return '#ef4444'; // Red
-}
-
-/**
- * Get recommendations based on score breakdown
- * @param {Object} scoreResult - Full score result from calculateFitScore
- * @returns {Array} Array of recommendation strings
- */
-function getRecommendations(scoreResult) {
-  const recommendations = [];
-
-  // Check core skills
-  if (scoreResult.coreSkillsDetails.score < 0.60) {
-    const missingCount = scoreResult.coreSkillsDetails.requiredMissing.length;
-    if (missingCount > 0) {
-      recommendations.push(
-        `You're missing ${missingCount} required core skill${missingCount > 1 ? 's' : ''}. Consider highlighting transferable skills.`
-      );
-    }
-  }
-
-  // Check tools
-  if (scoreResult.toolsDetails.score < 0.60) {
-    const missingCount = scoreResult.toolsDetails.requiredMissing.length;
-    if (missingCount > 0) {
-      recommendations.push(
-        `You're missing ${missingCount} required tool${missingCount > 1 ? 's' : ''}. Mention similar platforms you've used.`
-      );
-    }
-  }
-
-  // Check penalties
-  if (scoreResult.penalties.length > 5) {
-    recommendations.push(
-      'Multiple gaps detected. Focus applications on roles with stronger alignment.'
-    );
-  }
-
-  // Strong match
-  if (scoreResult.overallScore >= 0.75) {
-    recommendations.push(
-      'Strong fit! Prioritize this application and tailor your resume to highlight matched skills.'
-    );
-  }
-
-  return recommendations;
-}
-
-// ============================================================================
-// BATCH SCORING
-// ============================================================================
-
-/**
- * Calculate fit scores for multiple jobs
- * @param {Array} jobs - Array of {extractedSkills, jobInfo}
- * @param {Object} userProfile - User profile
- * @param {Object} options - Scoring options
- * @returns {Array} Array of score results
- */
-function scoreBatch(jobs, userProfile, options = {}) {
-  return jobs.map(job => ({
-    jobId: job.jobInfo?.jobId || job.jobInfo?.job_id,
-    jobTitle: job.jobInfo?.jobTitle || job.jobInfo?.job_title,
-    company: job.jobInfo?.company || job.jobInfo?.company_name,
-    fitScore: calculateFitScore(job.extractedSkills, userProfile, options),
-    extractedAt: job.extractedAt || Date.now()
-  }));
-}
-
-// ============================================================================
-// GUARDRAILS & EDGE CASES
-// ============================================================================
-
-/**
- * Validate inputs and provide warnings
- * @param {Object} extractedSkills - Extracted skills
- * @param {Object} userProfile - User profile
- * @returns {Object} Validation result
- */
-function validateInputs(extractedSkills, userProfile) {
-  const warnings = [];
-  const errors = [];
-
-  // Check extracted skills
-  if (!extractedSkills) {
-    errors.push('Missing extractedSkills object');
-  } else {
-    const totalExtracted =
-      (extractedSkills.requiredCoreSkills?.length || 0) +
-      (extractedSkills.desiredCoreSkills?.length || 0) +
-      (extractedSkills.requiredTools?.length || 0) +
-      (extractedSkills.desiredTools?.length || 0);
-
-    if (totalExtracted === 0) {
-      warnings.push('No skills extracted from job description');
-    }
-
-    if (totalExtracted > 100) {
-      warnings.push('Unusually high number of extracted skills - may indicate extraction issues');
-    }
-  }
-
-  // Check user profile
-  if (!userProfile) {
-    errors.push('Missing userProfile object');
-  } else {
-    const totalUserSkills =
-      (userProfile.coreSkills?.length || 0) +
-      (userProfile.tools?.length || 0);
-
-    if (totalUserSkills === 0) {
-      warnings.push('User profile has no skills - score will be 0');
-    }
-  }
-
+function getDefaultConfig() {
   return {
-    valid: errors.length === 0,
-    warnings,
-    errors
+    CORE_SKILLS_WEIGHT: 0.70,
+    TOOLS_WEIGHT: 0.30,
+    REQUIRED_MULTIPLIER: 2.0,
+    DESIRED_MULTIPLIER: 1.0,
+    PENALTY_MISSING_REQUIRED_SKILL: -0.10,
+    PENALTY_MISSING_REQUIRED_TOOL_EXPERT: -0.15,
+    PENALTY_MISSING_REQUIRED_TOOL_STANDARD: -0.12,
+    PENALTY_MISSING_DESIRED_TOOL: -0.05,
+    MAX_TOTAL_PENALTY: -0.50
+  };
+}
+
+function createEmptyResult() {
+  return {
+    overallScore: 0,
+    breakdown: {
+      coreSkills: { score: 0, requiredMatched: 0, requiredTotal: 0, desiredMatched: 0, desiredTotal: 0 },
+      tools: { score: 0, requiredMatched: 0, requiredTotal: 0, desiredMatched: 0, desiredTotal: 0 },
+      penalties: []
+    },
+    weightsUsed: getDefaultConfig(),
+    metadata: {
+      timestamp: Date.now(),
+      configVersion: '2.0'
+    }
   };
 }
 
@@ -432,11 +252,7 @@ if (typeof window !== 'undefined') {
     calculateFitScore,
     calculateBucketScore,
     calculatePenalties,
-    getFitLabel,
-    getScoreColor,
-    getRecommendations,
-    scoreBatch,
-    validateInputs
+    getDefaultConfig
   };
 }
 
@@ -445,10 +261,6 @@ if (typeof module !== 'undefined' && module.exports) {
     calculateFitScore,
     calculateBucketScore,
     calculatePenalties,
-    getFitLabel,
-    getScoreColor,
-    getRecommendations,
-    scoreBatch,
-    validateInputs
+    getDefaultConfig
   };
 }
