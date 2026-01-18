@@ -619,6 +619,10 @@ function parseSections(text) {
     fullText: text
   };
 
+  if (!text || typeof text !== 'string') {
+    return result;
+  }
+
   // Required section patterns - expanded to catch more job posting formats
   const requiredPatterns = [
     // Explicit "Required" headers
@@ -632,19 +636,28 @@ function parseSections(text) {
     // "Requirements" section
     /(?:^|\n)\s*requirements?\s*:?\s*([\s\S]*?)(?=(?:preferred|desired|nice[\s-]to[\s-]have|bonus|about|benefits|responsibilities|$))/gi,
     // "Skills" section without qualifier (assume required)
-    /(?:^|\n)\s*(?:key\s+)?skills?\s*:?\s*([\s\S]*?)(?=(?:preferred|desired|nice[\s-]to[\s-]have|bonus|about|benefits|responsibilities|$))/gi
+    /(?:^|\n)\s*(?:key\s+)?skills?\s*:?\s*([\s\S]*?)(?=(?:preferred|desired|nice[\s-]to[\s-]have|bonus|about|benefits|responsibilities|$))/gi,
+    // "What you'll bring" style (common on Indeed)
+    /what\s+you(?:'ll)?\s+bring\s*:?\s*([\s\S]*?)(?=(?:preferred|desired|nice|bonus|about|benefits|what\s+we|$))/gi,
+    // "Responsibilities" often contains skill indicators too
+    /(?:^|\n)\s*responsibilities\s*:?\s*([\s\S]*?)(?=(?:qualifications|requirements|skills|preferred|about|benefits|$))/gi,
+    // "About the role" sometimes has skills
+    /about\s+(?:the\s+)?role\s*:?\s*([\s\S]*?)(?=(?:qualifications|requirements|skills|preferred|about\s+us|benefits|$))/gi,
+    // "Experience" section
+    /(?:^|\n)\s*experience\s*:?\s*([\s\S]*?)(?=(?:qualifications|requirements|skills|preferred|about|benefits|$))/gi
   ];
 
   // Desired section patterns
   const desiredPatterns = [
     /(?:preferred|desired|nice[\s-]to[\s-]have|bonus|additional|plus)\s*(?:skills?|qualifications?|requirements?|experience)?\s*:?\s*([\s\S]*?)(?=(?:about\s+(?:us|the\s+company)|benefits|what\s+we\s+offer|responsibilities|$))/gi,
-    /it(?:'s)?\s+a\s+plus\s+if\s*:?\s*([\s\S]*?)(?=(?:about|benefits|what\s+we|$))/gi
+    /it(?:'s)?\s+a\s+plus\s+if\s*:?\s*([\s\S]*?)(?=(?:about|benefits|what\s+we|$))/gi,
+    /would\s+be\s+(?:nice|great|a\s+plus)\s*:?\s*([\s\S]*?)(?=(?:about|benefits|$))/gi
   ];
 
-  // Try to extract required section
+  // Try to extract required section - lowered minimum to 30 chars
   for (const pattern of requiredPatterns) {
     const match = pattern.exec(text);
-    if (match && match[1] && match[1].trim().length > 50) {
+    if (match && match[1] && match[1].trim().length > 30) {
       result.requiredSection = match[1].trim();
       break;
     }
@@ -654,7 +667,7 @@ function parseSections(text) {
   // Try to extract desired section
   for (const pattern of desiredPatterns) {
     const match = pattern.exec(text);
-    if (match && match[1] && match[1].trim().length > 20) {
+    if (match && match[1] && match[1].trim().length > 15) {
       result.desiredSection = match[1].trim();
       break;
     }
@@ -665,6 +678,8 @@ function parseSections(text) {
   // the full text as required (this is the conservative/safe approach)
   // Most job postings list core skills without explicit "Required:" headers
   if (!result.requiredSection) {
+    // Log for debugging
+    console.log('[SkillExtractor] No required section found, using full text');
     result.requiredSection = text;
   }
 
