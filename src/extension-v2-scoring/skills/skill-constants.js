@@ -14,136 +14,25 @@
 // ============================================================================
 
 const TOOLS_DENY_LIST = new Set([
-  // CRM & Sales Tools
-  "salesforce", "hubspot", "zoho", "pipedrive", "dynamics 365", "microsoft dynamics",
-  "freshsales", "copper", "insightly", "close.io", "close", "zendesk sell",
-  "sugar crm", "sugarcrm", "keap", "infusionsoft", "nimble", "nutshell",
-  "salesforce.com", "sf", "sfdc",
-
-  // Marketing Automation
-  "marketo", "eloqua", "pardot", "mailchimp", "klaviyo", "braze", "iterable",
-  "customer.io", "customerio", "sendgrid", "activecampaign", "drip", "convertkit",
-  "constant contact", "sendinblue", "brevo", "mailerlite", "aweber", "getresponse",
-  "campaign monitor", "moosend", "omnisend", "autopilot", "moengage",
-  "onesignal", "pushwoosh", "airship", "leanplum", "clevertap",
-
-  // Analytics Platforms
-  "google analytics", "ga4", "google analytics 4", "universal analytics",
-  "adobe analytics", "mixpanel", "amplitude", "heap", "pendo", "fullstory",
-  "hotjar", "crazy egg", "mouseflow", "lucky orange", "clicktale", "quantum metric",
-  "contentsquare", "glassbox", "logrocket", "smartlook", "inspectlet",
-
-  // BI & Visualization Tools
-  "tableau", "power bi", "powerbi", "looker", "metabase", "mode", "sisense",
-  "domo", "qlik", "qlikview", "qlik sense", "thoughtspot", "sigma",
-  "periscope data", "chartio", "redash", "superset", "apache superset",
-  "google data studio", "looker studio", "databox",
-
-  // Data Platforms & Warehouses
-  "snowflake", "bigquery", "redshift", "databricks", "fivetran", "stitch",
-  "segment", "rudderstack", "mparticle", "tealium", "google cloud platform",
-  "gcp", "aws", "amazon web services", "azure", "microsoft azure",
-  "dbt", "airflow", "apache airflow", "prefect", "dagster", "census", "hightouch",
-
-  // A/B Testing Tools
-  "optimizely", "vwo", "visual website optimizer", "ab tasty", "abtasty",
-  "google optimize", "split.io", "launchdarkly", "statsig", "eppo",
-  "kameleoon", "convert", "omniconvert",
-
-  // Social Media Platforms
-  "facebook", "meta", "instagram", "linkedin", "twitter", "x", "tiktok",
-  "pinterest", "snapchat", "youtube", "reddit", "threads",
-
-  // Social Media Management
-  "hootsuite", "sprout social", "sprinklr", "buffer", "later", "planoly",
-  "socialbee", "agorapulse", "sendible", "brandwatch", "talkwalker",
-  "mention", "meltwater", "cision", "muck rack",
-
-  // Ad Platforms
-  "google ads", "facebook ads", "meta ads", "linkedin ads", "twitter ads",
-  "tiktok ads", "pinterest ads", "snapchat ads", "amazon ads",
-  "dv360", "display & video 360", "the trade desk", "ttd", "mediamath",
-  "criteo", "taboola", "outbrain", "adroll", "perfect audience",
-
-  // E-commerce Platforms
-  "shopify", "shopify plus", "magento", "adobe commerce", "bigcommerce",
-  "woocommerce", "squarespace", "wix", "weebly", "volusion", "prestashop",
-  "salesforce commerce cloud", "demandware", "commercetools", "vtex",
-  "shopware", "sap commerce", "hybris", "episerver", "optimizely commerce",
-
-  // Payment & Fintech
-  "stripe", "square", "paypal", "braintree", "adyen", "worldpay",
-  "authorize.net", "checkout.com", "plaid", "finicity", "yodlee",
-  "affirm", "klarna", "afterpay", "sezzle", "zip",
-
-  // Customer Support
-  "zendesk", "intercom", "freshdesk", "helpscout", "help scout", "kayako",
-  "zoho desk", "happyfox", "groove", "front", "gorgias", "kustomer", "gladly",
-  "dixa", "ada", "drift", "qualified", "chili piper",
-
-  // Project Management
-  "jira", "asana", "monday.com", "monday", "trello", "basecamp", "clickup",
-  "notion", "airtable", "smartsheet", "wrike", "teamwork", "podio",
-  "linear", "shortcut", "productboard", "aha!", "aha", "roadmunk",
-
-  // Design Tools
-  "figma", "sketch", "adobe xd", "invision", "zeplin", "marvel", "framer",
-  "canva", "adobe creative suite", "photoshop", "illustrator", "indesign",
-  "after effects", "premiere pro",
-
-  // Communication Tools
-  "slack", "microsoft teams", "teams", "zoom", "google meet", "webex",
-  "discord", "workplace", "yammer", "miro", "mural", "figjam", "lucidchart",
-  "loom", "vidyard", "wistia", "vimeo",
-
-  // Survey & Feedback Tools
-  "qualtrics", "surveymonkey", "typeform", "google forms", "delighted",
-  "medallia", "usertesting", "usabilla", "userzoom", "userlytics",
-
-  // CDP & Identity
-  "treasure data", "blueconic", "lytics", "zeotap", "amperity",
-  "twilio", "auth0", "okta",
-
-  // AI/ML Platforms (tools, not skills)
-  "chatgpt", "openai", "anthropic", "claude", "bard", "gemini", "gpt-4", "gpt-3",
-  "midjourney", "dall-e", "stable diffusion", "jasper ai", "jasper", "copy.ai",
-  "writesonic", "grammarly",
-
-  // Developer Tools
-  "github", "gitlab", "bitbucket", "jira software", "confluence",
-  "docker", "kubernetes", "jenkins", "circleci", "travis ci",
-  "vercel", "netlify", "heroku", "render",
-
-  // Document & Productivity
-  "google docs", "google sheets", "microsoft office", "word", "excel", "powerpoint",
-  "google workspace", "g suite", "dropbox", "box", "google drive", "onedrive",
-  "evernote", "onenote",
-
-  // ABM & Sales Intelligence
-  "zoominfo", "clearbit", "6sense", "demandbase", "terminus", "rollworks",
-  "bombora", "madison logic", "intentsify", "leadiq", "apollo.io", "apollo",
-  "outreach", "salesloft", "gong", "chorus", "clari", "people.ai",
-  "seismic", "highspot", "showpad", "guru",
-
-  // Attribution Tools
-  "rockerbox", "northbeam", "triple whale", "triplewhale", "measured",
-  "windsor.ai", "funnel.io", "funnel", "supermetrics", "agency analytics",
-
-  // Affiliate & Partner
-  "impact", "impact.com", "partnerstack", "partnerize", "tune", "everflow",
-  "refersion", "leaddyno", "post affiliate pro",
-
-  // SMS & Mobile
-  "twilio", "bandwidth", "plivo", "vonage", "sinch", "attentive", "postscript",
-  "yotpo sms", "smsbump", "recart",
-
-  // Reviews & UGC
-  "yotpo", "bazaarvoice", "powerreviews", "trustpilot", "g2", "capterra",
-  "okendo", "loox", "stamped.io", "junip",
-
-  // Misc Tools
-  "zapier", "workato", "tray.io", "make", "integromat", "automate.io",
-  "n8n", "power automate", "pabbly connect"
+  "salesforce", "salesforce.com", "sfdc", "sf", "salesforce crm",
+  "hubspot", "hubspot crm", "marketo", "adobe marketo", "pardot",
+  "salesforce account engagement", "eloqua", "oracle eloqua",
+  "braze", "iterable", "customer.io", "customer io",
+  "mailchimp", "klaviyo",
+  "segment", "twilio segment", "rudderstack", "rudder stack", "mparticle", "tealium",
+  "google analytics 4", "ga4", "google analytics", "google tag manager", "gtm",
+  "mixpanel", "amplitude", "heap",
+  "looker", "looker studio", "google data studio", "tableau", "power bi", "powerbi", "mode", "mode analytics",
+  "snowflake", "bigquery", "google bigquery", "redshift", "amazon redshift", "databricks",
+  "fivetran", "dbt", "data build tool", "airflow", "apache airflow",
+  "optimizely", "vwo", "visual website optimizer", "launchdarkly", "launch darkly",
+  "unbounce", "hotjar", "fullstory", "full story",
+  "google ads", "adwords", "meta ads", "facebook ads", "instagram ads",
+  "linkedin ads", "tiktok ads",
+  "hootsuite", "sprout social", "sproutsocial",
+  "zapier", "shopify", "shopify plus", "wordpress", "wp",
+  "salesforce marketing cloud", "sfmc", "semrush", "ahrefs",
+  "typeform", "canva"
 ]);
 
 // ============================================================================
@@ -293,45 +182,7 @@ const FIT_SCORE_CONFIG = {
 
 const FORCED_CORE_SKILLS = new Set([
   "sql",
-  "python",
-  // REMOVED: "r" - single char causes too many false positives
-  // R programming is handled with explicit context matching in skill-extractor.js
-  "javascript",
-  "java",
-  "c++",
-  "c#",
-  "ruby",
-  "go",
-  "rust",
-  "scala",
-  "kotlin",
-  "swift",
-  "typescript",
-  "php",
-  "html",
-  "css",
-  "data analysis",
-  "data modeling",
-  "statistical analysis",
-  "machine learning",
-  "deep learning",
-  "natural language processing",
-  "nlp",
-  "computer vision",
-  "experimentation",
-  "a/b testing",
-  "lifecycle marketing",
-  "customer segmentation",
-  "funnel optimization",
-  "conversion rate optimization",
-  "growth strategy",
-  "product strategy",
-  "go-to-market strategy",
-  "revenue operations",
-  "revops",
-  "salesops",
-  "marketing operations",
-  "crm strategy"
+  "python"
 ]);
 
 // ============================================================================

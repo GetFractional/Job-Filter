@@ -237,7 +237,19 @@
       "specialist",
       "analyst",
       "coordinator",
-      "representative"
+      "representative",
+      "c-level role",
+      "c suite",
+      "c-suite",
+      "executive role",
+      "high growth consumer",
+      "high-growth consumer",
+      "high growth",
+      "high-growth",
+      "b2b saas",
+      "scaling b2b saas",
+      "internal teams",
+      "external teams"
     ],
     "patterns": [
       {
@@ -259,6 +271,26 @@
         "pattern": "^(and|or|with|for|from)\\s+.*",
         "description": "Phrases starting with conjunctions/prepositions",
         "examples": ["and more", "or similar", "with experience"]
+      },
+      {
+        "pattern": "^(c[-\\s]?suite|c[-\\s]?level)\\s+.*",
+        "description": "C-level role phrases",
+        "examples": ["C-suite role", "C-level role"]
+      },
+      {
+        "pattern": "^(high|fast)\\s+growth\\s+.*",
+        "description": "Company growth descriptors",
+        "examples": ["high growth consumer", "fast growth company"]
+      },
+      {
+        "pattern": ".*\\bsaas\\b.*",
+        "description": "SaaS industry descriptors (not skills)",
+        "examples": ["B2B SaaS", "Scaling B2B SaaS"]
+      },
+      {
+        "pattern": ".*\\bteams?\\b.*",
+        "description": "Team descriptors (not tools)",
+        "examples": ["internal teams", "external teams"]
       }
     ]
   },

@@ -283,6 +283,22 @@ function checkExactDictionaryMatch(cleaned, skillsTaxonomy, toolsDictionary) {
         item: skill
       };
     }
+
+    // Substring match for skill names within longer phrases
+    if (
+      matchesSubstring(cleaned, skill.name) ||
+      matchesSubstring(cleaned, skill.canonical?.replace(/_/g, ' ')) ||
+      (skill.aliases && skill.aliases.some(alias => matchesSubstring(cleaned, alias)))
+    ) {
+      return {
+        matched: true,
+        type: 'CORE_SKILL',
+        canonical: skill.canonical,
+        dictionary: 'skills',
+        item: skill,
+        evidence: 'Skill name substring match'
+      };
+    }
   }
 
   return { matched: false };
@@ -329,6 +345,72 @@ function checkForcedCoreSkills(cleaned, forcedCoreSkills) {
  * @returns {Object} Classification result
  */
 function checkPatternRules(cleaned) {
+  const marketingModifiers = [
+    'digital',
+    'growth',
+    'content',
+    'email',
+    'performance',
+    'product',
+    'partner',
+    'field',
+    'influencer',
+    'community',
+    'brand'
+  ];
+  const marketingPhrasePattern = new RegExp(`^(${marketingModifiers.join('|')})\\s+marketing$`);
+  if (marketingPhrasePattern.test(cleaned)) {
+    return {
+      matched: true,
+      type: 'CORE_SKILL',
+      canonical: cleaned.replace(/\s+/g, '_'),
+      confidence: 0.70,
+      evidence: 'Recognized marketing specialization'
+    };
+  }
+
+  const nonSkillTerms = [
+    'role',
+    'roles',
+    'consumer',
+    'consumers',
+    'company',
+    'companies',
+    'business',
+    'team',
+    'teams',
+    'high growth',
+    'fast growth',
+    'growth consumer',
+    'saas',
+    'b2b',
+    'b2c'
+  ];
+  if (nonSkillTerms.some(term => cleaned.includes(term))) {
+    return {
+      matched: true,
+      type: 'REJECTED',
+      canonical: cleaned.replace(/\s+/g, '_'),
+      confidence: 0,
+      evidence: 'Non-skill business phrase'
+    };
+  }
+
+  const gerundAllowList = new Set([
+    'marketing',
+    'modeling',
+    'testing',
+    'forecasting',
+    'reporting',
+    'profiling',
+    'segmenting',
+    'targeting',
+    'positioning',
+    'budgeting',
+    'planning',
+    'analyzing'
+  ]);
+
   // Rule 1: Brand names with numbers → TOOL (GA4, Salesforce360, etc.)
   if (/^[a-z]+\d+$/i.test(cleaned) || /\d+$/.test(cleaned)) {
     return {
@@ -354,6 +436,26 @@ function checkPatternRules(cleaned) {
 
   // Rule 3: Phrases with "ing" often indicate skills (marketing, segmenting, analyzing)
   if (/ing\s|ing$/i.test(cleaned)) {
+    const words = cleaned.split(/\s+/).filter(Boolean);
+    const singleWord = words.length === 1;
+    if (singleWord && !gerundAllowList.has(cleaned)) {
+      return {
+        matched: true,
+        type: 'CANDIDATE',
+        canonical: cleaned.replace(/\s+/g, '_'),
+        confidence: 0.45,
+        evidence: 'Gerund form is ambiguous without context'
+      };
+    }
+    if (!singleWord) {
+      return {
+        matched: true,
+        type: 'CANDIDATE',
+        canonical: cleaned.replace(/\s+/g, '_'),
+        confidence: 0.45,
+        evidence: 'Multi-word gerund phrase needs verification'
+      };
+    }
     return {
       matched: true,
       type: 'CORE_SKILL',
@@ -379,10 +481,10 @@ function checkPatternRules(cleaned) {
   if (wordCount >= 2 && wordCount <= 4) {
     return {
       matched: true,
-      type: 'CORE_SKILL',
+      type: 'CANDIDATE',
       canonical: cleaned.replace(/\s+/g, '_'),
-      confidence: 0.65,
-      evidence: 'Multi-word phrase without brand indicators'
+      confidence: 0.45,
+      evidence: 'Multi-word phrase needs verification'
     };
   }
 

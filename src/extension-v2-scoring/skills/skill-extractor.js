@@ -677,6 +677,36 @@ async function extractAndClassifySkills(jobDescriptionText, options = {}) {
   }
 
   // Step 5: Deduplicate across buckets (required wins over desired)
+  const dedupeByCanonical = (items) => {
+    const seen = new Set();
+    return (items || []).filter((item) => {
+      const key = item?.canonical || item?.raw || '';
+      if (!key) return false;
+      const normalized = key.toLowerCase();
+      if (seen.has(normalized)) return false;
+      seen.add(normalized);
+      return true;
+    });
+  };
+
+  result.requiredCoreSkills = dedupeByCanonical(result.requiredCoreSkills);
+  result.desiredCoreSkills = dedupeByCanonical(result.desiredCoreSkills);
+  result.requiredTools = dedupeByCanonical(result.requiredTools);
+  result.desiredTools = dedupeByCanonical(result.desiredTools);
+  result.candidates = dedupeByCanonical(result.candidates);
+
+  const skillCanonicals = new Set((taxonomy || []).map(skill => skill.canonical));
+  if (skillCanonicals.size > 0) {
+    result.requiredCoreSkills = result.requiredCoreSkills.filter(skill => skillCanonicals.has(skill.canonical));
+    result.desiredCoreSkills = result.desiredCoreSkills.filter(skill => skillCanonicals.has(skill.canonical));
+  }
+
+  const toolCanonicals = new Set((toolsDictionary || []).map(tool => tool.canonical));
+  if (toolCanonicals.size > 0) {
+    result.requiredTools = result.requiredTools.filter(tool => toolCanonicals.has(tool.canonical));
+    result.desiredTools = result.desiredTools.filter(tool => toolCanonicals.has(tool.canonical));
+  }
+
   const requiredCoreCanonicals = new Set(result.requiredCoreSkills.map(s => s.canonical));
   const requiredToolCanonicals = new Set(result.requiredTools.map(s => s.canonical));
 

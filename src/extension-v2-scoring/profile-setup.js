@@ -41,6 +41,7 @@ let profileData = {
     current_title: '',
     years_experience: 0,
     core_skills: [],
+    tools: [],
     industries: [],
     target_roles: []
   },
@@ -54,6 +55,7 @@ let profileData = {
 
 // Tag input state (arrays of current tags)
 let skillTags = [];
+let toolTags = [];
 let industryTags = [];
 let roleTags = [];
 let benefitsTags = [];
@@ -128,6 +130,7 @@ function setupRealTimeCountUpdates() {
  */
 function updateAllCounts() {
   updateTagCount('skills');
+  updateTagCount('tools');
   updateTagCount('industries');
   updateTagCount('roles');
   updateTagCount('benefits');
@@ -195,6 +198,8 @@ function cacheElements() {
     yearsExperience: document.getElementById('years-experience'),
     skillsInput: document.getElementById('core-skills'),
     skillsTags: document.getElementById('skills-tags'),
+    toolsInput: document.getElementById('core-tools'),
+    toolsTags: document.getElementById('tools-tags'),
     industriesInput: document.getElementById('industries'),
     industriesTags: document.getElementById('industries-tags'),
     rolesInput: document.getElementById('target-roles'),
@@ -273,6 +278,7 @@ const TAG_LIMIT = 30;
 // Maps for tracking tag input configurations
 const tagInputConfigs = {
   skills: { tags: () => skillTags, setTags: (t) => { skillTags = t; }, suggestedAttr: 'data-skill' },
+  tools: { tags: () => toolTags, setTags: (t) => { toolTags = t; }, suggestedAttr: 'data-tool' },
   industries: { tags: () => industryTags, setTags: (t) => { industryTags = t; }, suggestedAttr: 'data-industry' },
   roles: { tags: () => roleTags, setTags: (t) => { roleTags = t; }, suggestedAttr: 'data-role' },
   benefits: { tags: () => benefitsTags, setTags: (t) => { benefitsTags = t; }, suggestedAttr: 'data-benefit' }
@@ -289,6 +295,15 @@ function setupTagInputs() {
     () => skillTags,
     (tags) => { skillTags = tags; syncSuggestedTags('skills'); updateTagCount('skills'); },
     'skills'
+  );
+
+  // Tools tag input
+  setupTagInput(
+    elements.toolsInput,
+    elements.toolsTags,
+    () => toolTags,
+    (tags) => { toolTags = tags; syncSuggestedTags('tools'); updateTagCount('tools'); },
+    'tools'
   );
 
   // Industries tag input
@@ -320,6 +335,7 @@ function setupTagInputs() {
 
   // Initialize tag counts
   updateTagCount('skills');
+  updateTagCount('tools');
   updateTagCount('industries');
   updateTagCount('roles');
   updateTagCount('benefits');
@@ -335,6 +351,7 @@ function updateTagCount(category) {
 
   const tags = config.tags();
   const container = category === 'skills' ? elements.skillsTags :
+                   category === 'tools' ? elements.toolsTags :
                    category === 'industries' ? elements.industriesTags :
                    category === 'roles' ? elements.rolesTags :
                    elements.benefitsTags;
@@ -501,6 +518,7 @@ function renderTags(container, tags, updateTags, category) {
     btn.addEventListener('click', () => {
       const index = parseInt(btn.dataset.index, 10);
       const currentTags = category === 'skills' ? skillTags :
+                         category === 'tools' ? toolTags :
                          category === 'industries' ? industryTags :
                          category === 'roles' ? roleTags :
                          benefitsTags;
@@ -598,6 +616,24 @@ function setupSuggestedTags() {
         skillTags.push(skill);
         renderTags(elements.skillsTags, skillTags, (tags) => { skillTags = tags; syncSuggestedTags('skills'); updateTagCount('skills'); }, 'skills');
         updateTagCount('skills');
+      }
+    });
+  });
+
+  // Tool suggestions
+  document.querySelectorAll('.suggested-tag[data-tool]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.classList.contains('used')) return;
+      if (toolTags.length >= TAG_LIMIT) {
+        showInlineValidation(elements.toolsInput, `Maximum ${TAG_LIMIT} items reached.`);
+        return;
+      }
+
+      const tool = btn.dataset.tool;
+      if (!tagExists(toolTags, tool)) {
+        toolTags.push(tool);
+        renderTags(elements.toolsTags, toolTags, (tags) => { toolTags = tags; syncSuggestedTags('tools'); updateTagCount('tools'); }, 'tools');
+        updateTagCount('tools');
       }
     });
   });
@@ -760,6 +796,7 @@ function collectFormData() {
   profileData.background.current_title = elements.currentTitle.value.trim();
   profileData.background.years_experience = parseInt(elements.yearsExperience.value, 10) || 0;
   profileData.background.core_skills = [...skillTags];
+  profileData.background.tools = [...toolTags];
   profileData.background.industries = [...industryTags];
   profileData.background.target_roles = [...roleTags];
 
@@ -873,17 +910,23 @@ function populateFormFromProfile() {
 
   // Load tags
   skillTags = profileData.background.core_skills || [];
+  toolTags = profileData.background.tools || [];
   industryTags = profileData.background.industries || [];
   roleTags = profileData.background.target_roles || [];
 
   // Render tags
   renderTags(elements.skillsTags, skillTags, (tags) => { skillTags = tags; });
+  renderTags(elements.toolsTags, toolTags, (tags) => { toolTags = tags; });
   renderTags(elements.industriesTags, industryTags, (tags) => { industryTags = tags; });
   renderTags(elements.rolesTags, roleTags, (tags) => { roleTags = tags; });
 
   // Mark suggested tags as used
   skillTags.forEach(skill => {
     const btn = document.querySelector(`.suggested-tag[data-skill="${skill}"]`);
+    if (btn) btn.classList.add('used');
+  });
+  toolTags.forEach(tool => {
+    const btn = document.querySelector(`.suggested-tag[data-tool="${tool}"]`);
     if (btn) btn.classList.add('used');
   });
   industryTags.forEach(industry => {

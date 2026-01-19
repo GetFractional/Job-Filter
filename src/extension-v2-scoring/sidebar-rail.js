@@ -236,25 +236,70 @@ async function updateSkillCriteriaAsync(sidebar, scoreResult, jobData, userProfi
     };
 
     const match = analysis.match || {};
+    const desired = analysis.desired || {};
     const matchedDetails = uniqueByCanonical(match.matchedDetails || []);
     const missingDetails = uniqueByCanonical(match.missingDetails || []);
 
-    const matchedSkills = matchedDetails.length
-      ? matchedDetails.map(s => s.name).filter(Boolean)
-      : (match.matched || []).filter(Boolean);
-    const missingSkills = missingDetails.length
-      ? missingDetails.map(s => s.name).filter(Boolean)
-      : (match.missing || []).filter(Boolean);
+    const normalizeLabel = (value) => String(value || '')
+      .replace(/^[•\-\*\u2022\u25E6\u25AA\u25CF·]+\s*/g, '')
+      .replace(/^[()]+|[(),;:.]+$/g, '')
+      .trim();
+    const dedupeLabels = (items) => {
+      const map = new Map();
+      items.forEach((item) => {
+        const label = normalizeLabel(item);
+        if (!label) return;
+        const key = label.toLowerCase();
+        if (!map.has(key)) map.set(key, label);
+      });
+      return Array.from(map.values());
+    };
 
-    const requiredCount = (analysis.extraction?.required?.length || (matchedSkills.length + missingSkills.length) || 0);
+    const taxonomyList = window.SkillTaxonomy?.SKILL_TAXONOMY || [];
+    const skillNameByCanonical = new Map(taxonomyList.map(skill => [skill.canonical, skill.name]));
+    const normalizeDisplayName = (item) => {
+      if (!item) return '';
+      const canonical = item.canonical || '';
+      if (canonical && skillNameByCanonical.has(canonical)) {
+        return skillNameByCanonical.get(canonical);
+      }
+      if (item.name) return item.name;
+      if (item.raw) return item.raw;
+      return String(item);
+    };
+
+    const matchedRequired = matchedDetails.length
+      ? matchedDetails.map(normalizeDisplayName).filter(Boolean)
+      : (match.matched || []).filter(Boolean);
+    const missingRequired = missingDetails.length
+      ? missingDetails.map(normalizeDisplayName).filter(Boolean)
+      : (match.missing || []).filter(Boolean);
+    const normalizeDesiredLabel = (value) => {
+      const raw = normalizeDisplayName(value);
+      const canonicalKey = String(raw || '')
+        .toLowerCase()
+        .replace(/\s+/g, '_')
+        .replace(/[^a-z0-9_]/g, '');
+      return skillNameByCanonical.get(canonicalKey) || raw;
+    };
+
+    const matchedDesired = (desired.has || []).map(normalizeDesiredLabel).filter(Boolean);
+    const missingDesired = (desired.missing || []).map(normalizeDesiredLabel).filter(Boolean);
+
+    const matchedSkills = dedupeLabels([...matchedRequired, ...matchedDesired]);
+    const missingSkills = dedupeLabels([...missingRequired, ...missingDesired]);
+
+    const requiredCount = (analysis.extraction?.required?.length || 0);
+    const desiredCount = (analysis.extraction?.desired?.length || 0);
+    const totalCount = (requiredCount + desiredCount) || (matchedSkills.length + missingSkills.length) || 0;
     const matchedCount = matchedSkills.length;
-    const percentage = requiredCount > 0 ? Math.round((matchedCount / requiredCount) * 100) : 0;
+    const percentage = totalCount > 0 ? Math.round((matchedCount / totalCount) * 100) : 0;
 
     skillsItem.matched_skills = matchedSkills;
     skillsItem.unmatched_skills = missingSkills;
     skillsItem.match_percentage = percentage;
-    skillsItem.actual_value = requiredCount > 0
-      ? `${matchedCount}/${requiredCount} skills (${percentage}%)`
+    skillsItem.actual_value = totalCount > 0
+      ? `${matchedCount}/${totalCount} skills (${percentage}%)`
       : 'No skills found';
 
     const maxScore = skillsItem.max_score || 50;
@@ -292,19 +337,95 @@ async function extractAndDisplayTools(sidebar, descriptionText, userToJobBreakdo
 
     if (!extraction) return;
 
-    const normalizeToolName = (tool) => {
-      if (!tool) return '';
-      if (typeof tool === 'string') return tool;
-      return tool.name || tool.raw || tool.canonical || '';
+    const userToolList = (userProfile?.background?.tools?.length
+      ? userProfile.background.tools
+      : (userProfile?.background?.core_skills || []));
+
+    const normalizeToolKey = (value) => String(value || '')
+      .toLowerCase()
+      .replace(/^[•\-\*\u2022\u25E6\u25AA\u25CF·]+\s*/g, '')
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z0-9_]/g, '')
+      .trim();
+
+    const sanitizeToolLabel = (value) => {
+      let label = String(value || '').replace(/^[•\-\*\u2022\u25E6\u25AA\u25CF·]+\s*/g, '').trim();
+      label = label.replace(/^\(([^)]+)\)$/g, '$1').trim();
+      label = label.replace(/^[()]+|[(),;:.]+$/g, '').trim();
+      return label;
     };
 
-    const requiredTools = (extraction.requiredTools || [])
-      .map(normalizeToolName)
-      .filter(Boolean);
-    const desiredTools = (extraction.desiredTools || [])
-      .map(normalizeToolName)
-      .filter(Boolean);
+    const isValidToolLabel = (value) => {
+      const label = sanitizeToolLabel(value);
+      if (!label) return false;
+      const lower = label.toLowerCase();
+      if (/\byears?\b/.test(lower) || /\bexperience\b/.test(lower)) return false;
+      if (/^\d+(\s*-\s*\d+)?$/.test(lower)) return false;
+      if (lower === 'team' || lower === 'teams') return false;
+      if (lower.startsWith('internal team') || lower.startsWith('internal teams')) return false;
+      if (lower.startsWith('external team') || lower.startsWith('external teams')) return false;
+      if (lower.includes('external teams to deliver')) return false;
+      if (lower.includes('internal teams')) return false;
+      if (lower.includes('external teams')) return false;
+      if (lower.includes('teams to deliver')) return false;
+      if (lower.includes('teams to drive')) return false;
+      if (lower === 'teams' || lower.endsWith(' teams')) return false;
+      if (lower === 'google analytics') return true;
+      return true;
+    };
+
+    const normalizeToolItems = (items) => {
+      const mapped = items
+        .map((tool) => {
+          const raw = typeof tool === 'string' ? tool : (tool.name || tool.raw || tool.canonical || '');
+          const label = sanitizeToolLabel(raw);
+          if (!isValidToolLabel(label)) return null;
+          const canonical = normalizeToolKey(tool.canonical || label);
+          return { label, canonical };
+        })
+        .filter(Boolean);
+
+      const deduped = new Map();
+      mapped.forEach((tool) => {
+        if (!deduped.has(tool.canonical)) {
+          deduped.set(tool.canonical, tool);
+        }
+      });
+      return Array.from(deduped.values());
+    };
+
+    const toolsDictionary = window.SkillClassifier?.loadToolsDictionary
+      ? await window.SkillClassifier.loadToolsDictionary()
+      : [];
+    const validToolKeys = new Set();
+    toolsDictionary.forEach((tool) => {
+      if (!tool) return;
+      const canonical = normalizeToolKey(tool.canonical || tool.name);
+      if (canonical) validToolKeys.add(canonical);
+      (tool.aliases || []).forEach((alias) => {
+        const aliasKey = normalizeToolKey(alias);
+        if (aliasKey) validToolKeys.add(aliasKey);
+      });
+    });
+    (window.SkillConstants?.TOOLS_DENY_LIST || []).forEach((tool) => {
+      const toolKey = normalizeToolKey(tool);
+      if (toolKey) validToolKeys.add(toolKey);
+    });
+
+    const requiredTools = normalizeToolItems(extraction.requiredTools || [])
+      .filter(tool => validToolKeys.size === 0 || validToolKeys.has(tool.canonical));
+    const desiredTools = normalizeToolItems(extraction.desiredTools || [])
+      .filter(tool => validToolKeys.size === 0 || validToolKeys.has(tool.canonical));
     const allTools = [...requiredTools, ...desiredTools];
+
+    const userToolKeys = new Set(
+      userToolList
+        .map((tool) => normalizeToolKey(sanitizeToolLabel(tool)))
+        .filter(Boolean)
+    );
+
+    const matchedTools = allTools.filter(tool => userToolKeys.has(tool.canonical));
+    const missingTools = allTools.filter(tool => !userToolKeys.has(tool.canonical));
 
     // Only add Tools card if we found tools
     if (allTools.length === 0) return;
@@ -316,22 +437,32 @@ async function extractAndDisplayTools(sidebar, descriptionText, userToJobBreakdo
       toolsItem = {
         criteria: 'Required Tools',
         criteria_description: 'Software, platforms, and technologies required for this role',
-        actual_value: `${allTools.length} tools found`,
-        score: 25, // Informational - no match scoring for now
+        actual_value: userToolList.length > 0
+          ? `${matchedTools.length}/${allTools.length} tools (${Math.round((matchedTools.length / allTools.length) * 100)}%)`
+          : `${allTools.length} tools found`,
+        score: 25, // Will be overwritten by scoring engine if present
         max_score: 50,
         rationale: 'Tools extracted from job description',
-        weight: 0, // Don't affect overall score
-        required_tools: requiredTools,
-        desired_tools: desiredTools,
-        all_tools: allTools
+        weight: 0,
+        required_tools: requiredTools.map(t => t.label),
+        desired_tools: desiredTools.map(t => t.label),
+        all_tools: allTools.map(t => t.label),
+        matched_tools: matchedTools.map(t => t.label),
+        missing_tools: missingTools.map(t => t.label)
       };
       userToJobBreakdown.push(toolsItem);
     } else {
       // Update existing item
-      toolsItem.required_tools = requiredTools;
-      toolsItem.desired_tools = desiredTools;
-      toolsItem.all_tools = allTools;
-      toolsItem.actual_value = `${allTools.length} tools found`;
+      toolsItem.required_tools = requiredTools.map(t => t.label);
+      toolsItem.desired_tools = desiredTools.map(t => t.label);
+      toolsItem.all_tools = allTools.map(t => t.label);
+      toolsItem.matched_tools = matchedTools.map(t => t.label);
+      toolsItem.missing_tools = missingTools.map(t => t.label);
+      if (!toolsItem.actual_value || toolsItem.actual_value.includes('tools found')) {
+        toolsItem.actual_value = userToolList.length > 0
+          ? `${matchedTools.length}/${allTools.length} tools (${Math.round((matchedTools.length / allTools.length) * 100)}%)`
+          : `${allTools.length} tools found`;
+      }
     }
 
     console.log(`[Job Filter Sidebar] Extracted ${requiredTools.length} required tools, ${desiredTools.length} desired tools`);
@@ -497,7 +628,7 @@ function updateScoreBreakdown(sidebar, scoreResult, userProfile = null) {
     }
 
     const renderCriteria = (customOrder) => {
-      const sortedCriteria = sortCriteriaByOrder(allCriteria, customOrder);
+      const sortedCriteria = sortCriteriaByOrder(allCriteria, normalizeCriteriaOrder(customOrder));
       breakdownList.innerHTML = renderBreakdownItems(
         sortedCriteria,
         'consolidated',
@@ -687,8 +818,25 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
 
     // Skills display - matched badges highlighted, "Missing" label shows unmatched on hover
     if (item.criteria === 'Skills Overlap' && (item.matched_skills || item.unmatched_skills || totalUserSkills)) {
-      const matchedSkills = item.matched_skills || [];
-      const unmatchedSkills = item.unmatched_skills || [];
+      const cleanLabel = (value) => {
+        let label = String(value || '').replace(/^[•\-\*\u2022\u25E6\u25AA\u25CF·]+\s*/g, '').trim();
+        label = label.replace(/^[()]+|[(),;:.]+$/g, '').trim();
+        return label;
+      };
+      const normalizeKey = (value) => cleanLabel(value).toLowerCase();
+      const dedupe = (items) => {
+        const map = new Map();
+        items.forEach((item) => {
+          const label = cleanLabel(item);
+          if (!label) return;
+          const key = normalizeKey(label);
+          if (!map.has(key)) map.set(key, label);
+        });
+        return Array.from(map.values());
+      };
+
+      const matchedSkills = dedupe(item.matched_skills || []);
+      const unmatchedSkills = dedupe(item.unmatched_skills || []);
       const matchCount = matchedSkills.length;
 
       // Calculate total correctly: matched + unmatched = job's required skills
@@ -814,13 +962,19 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
       const requiredTools = item.required_tools || [];
       const desiredTools = item.desired_tools || [];
       const allTools = item.all_tools || [...requiredTools, ...desiredTools];
+      const missingTools = item.missing_tools || [];
+      const matchedTools = item.matched_tools || [];
+      const userToolCount = userProfile?.background?.tools?.length || 0;
 
-      // Show summary
-      if (requiredTools.length > 0 || desiredTools.length > 0) {
-        const summaryParts = [];
-        if (requiredTools.length > 0) summaryParts.push(`${requiredTools.length} required`);
-        if (desiredTools.length > 0) summaryParts.push(`${desiredTools.length} nice-to-have`);
-        extraHtml += `<div class="jh-tools-summary">${summaryParts.join(', ')}</div>`;
+      // Show match summary
+      if (allTools.length > 0) {
+        const percentage = userToolCount > 0
+          ? Math.round((matchedTools.length / allTools.length) * 100)
+          : 0;
+        const summaryText = userToolCount > 0
+          ? `${matchedTools.length}/${allTools.length} tools (${percentage}%)`
+          : `${allTools.length} tools found`;
+        extraHtml += `<div class="jh-tools-summary">${summaryText}</div>`;
       }
 
       // Show required tools (highlighted differently)
@@ -849,7 +1003,23 @@ function renderBreakdownItems(breakdown, type, userProfile = null) {
         `;
       }
 
-      badgeCount = allTools.length;
+      if (missingTools.length > 0) {
+        extraHtml += `
+          <div class="jh-missing-tools-container">
+            <span class="jh-tool-tag jh-missing" data-missing-count="${missingTools.length}">
+              Missing (${missingTools.length})
+            </span>
+            <div class="jh-missing-tooltip">
+              <div class="jh-missing-tooltip-header">Missing Tools:</div>
+              <div class="jh-missing-tooltip-content">
+                ${missingTools.map(t => `<span class="jh-missing-tool-item">${escapeHtml(t)}</span>`).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      badgeCount = allTools.length + (missingTools.length > 0 ? 1 : 0);
     }
 
     // Bonus & Equity combined display
@@ -2218,7 +2388,7 @@ function getSidebarStyles() {
 
     .jh-badge-tooltip {
       position: fixed;
-      z-index: 999999;
+      z-index: 2147483647;
       max-width: 240px;
       background: #111827;
       color: #F9FAFB;
@@ -2272,7 +2442,8 @@ function getSidebarStyles() {
 
     /* "Missing" badge - red/warning style with hover tooltip */
     .jh-skill-tag.jh-missing,
-    .jh-benefit-tag.jh-missing {
+    .jh-benefit-tag.jh-missing,
+    .jh-tool-tag.jh-missing {
       background: #FEF2F2;
       color: #DC2626;
       border: 1px solid #FECACA;
@@ -2280,14 +2451,16 @@ function getSidebarStyles() {
       font-weight: 500;
     }
     .jh-skill-tag.jh-missing:hover,
-    .jh-benefit-tag.jh-missing:hover {
+    .jh-benefit-tag.jh-missing:hover,
+    .jh-tool-tag.jh-missing:hover {
       background: #FEE2E2;
       border-color: #F87171;
     }
 
     /* Missing skills/benefits container with tooltip */
     .jh-missing-skills-container,
-    .jh-missing-benefits-container {
+    .jh-missing-benefits-container,
+    .jh-missing-tools-container {
       position: relative;
       display: inline-block;
       margin-top: 6px;
@@ -2298,7 +2471,7 @@ function getSidebarStyles() {
       position: absolute;
       bottom: 100%;
       left: 0;
-      z-index: 10002;
+      z-index: 2147483647;
       min-width: 200px;
       max-width: 300px;
       background: #1F2937;
@@ -2310,7 +2483,8 @@ function getSidebarStyles() {
     }
 
     .jh-missing-skills-container:hover .jh-missing-tooltip,
-    .jh-missing-benefits-container:hover .jh-missing-tooltip {
+    .jh-missing-benefits-container:hover .jh-missing-tooltip,
+    .jh-missing-tools-container:hover .jh-missing-tooltip {
       display: block;
     }
 
@@ -2328,7 +2502,8 @@ function getSidebarStyles() {
     }
 
     .jh-missing-skill-item,
-    .jh-missing-benefit-item {
+    .jh-missing-benefit-item,
+    .jh-missing-tool-item {
       font-size: 10px;
       background: #374151;
       color: #F9FAFB;
@@ -2363,27 +2538,27 @@ function getSidebarStyles() {
       font-weight: 500;
       padding: 3px 8px;
       border-radius: 12px;
-      background: transparent;
-      color: #9CA3AF;
-      border: 1px dashed #D1D9E0;
+      background: #EEF2FF;
+      color: #5856D6;
+      border: 1px solid #C7D2FE;
       max-width: 100%;
       display: inline-block;
       word-break: break-word;
       white-space: normal;
     }
 
-    /* Required tools - teal/cyan color to differentiate from skills */
+    /* Required tools - keep aligned with skills/benefits styling */
     .jh-tool-tag.jh-required {
-      background: #F0FDFA;
-      color: #0D9488;
-      border: 1px solid #99F6E4;
+      background: #EEF2FF;
+      color: #5856D6;
+      border: 1px solid #C7D2FE;
     }
 
     /* Desired/nice-to-have tools - lighter/muted style */
     .jh-tool-tag.jh-desired {
-      background: #F9FAFB;
-      color: #6B7280;
-      border: 1px dashed #D1D9E0;
+      background: #F5F3FF;
+      color: #6D28D9;
+      border: 1px solid #DDD6FE;
     }
 
     .jh-desired-tools {
@@ -3115,6 +3290,8 @@ function sortCriteriaByOrder(criteriaList, customOrder) {
   return [...criteriaList].sort((a, b) => {
     const keyA = getCriteriaKey(a.criteria);
     const keyB = getCriteriaKey(b.criteria);
+    if (keyA === 'skills' && keyB === 'tools') return -1;
+    if (keyA === 'tools' && keyB === 'skills') return 1;
     const orderA = orderIndex.has(keyA) ? orderIndex.get(keyA) : Number.MAX_SAFE_INTEGER;
     const orderB = orderIndex.has(keyB) ? orderIndex.get(keyB) : Number.MAX_SAFE_INTEGER;
 
@@ -3126,6 +3303,31 @@ function sortCriteriaByOrder(criteriaList, customOrder) {
 
     return keyA.localeCompare(keyB);
   });
+}
+
+function normalizeCriteriaOrder(order) {
+  if (!Array.isArray(order) || order.length === 0) return order;
+  const cleaned = order.map((item) => String(item || '').toLowerCase()).filter(Boolean);
+  const seen = new Set();
+  const unique = cleaned.filter((item) => {
+    if (seen.has(item)) return false;
+    seen.add(item);
+    return true;
+  });
+
+  if (!unique.includes('skills') && !unique.includes('tools')) {
+    return unique;
+  }
+
+  const withoutTools = unique.filter(item => item !== 'tools');
+  if (withoutTools.includes('skills')) {
+    const skillsIndex = withoutTools.indexOf('skills');
+    withoutTools.splice(skillsIndex + 1, 0, 'tools');
+    return withoutTools;
+  }
+
+  withoutTools.push('tools');
+  return withoutTools;
 }
 
 function enableCriteriaReorder(breakdownList) {
@@ -3202,7 +3404,9 @@ function applyItemGridSpan(item, breakdownList) {
     ? 2
     : (item.offsetWidth > columnWidth * 1.1 ? 2 : 1);
   const span = parseInt(item.dataset.sizeSpan || '1', 10);
-  const isBadgeCard = item.dataset.criteriaKey === 'skills' || item.dataset.criteriaKey === 'benefits';
+  const isBadgeCard = item.dataset.criteriaKey === 'skills'
+    || item.dataset.criteriaKey === 'benefits'
+    || item.dataset.criteriaKey === 'tools';
 
   item.style.gridColumnEnd = `span ${desiredColSpan}`;
   item.style.gridRowEnd = `span ${span}`;
@@ -3220,7 +3424,9 @@ function adjustCriteriaCardHeights(breakdownList) {
     if (item.dataset.userResized === 'true') return;
     const front = item.querySelector('.jh-card-front');
     if (!front) return;
-    const isBadgeCard = item.dataset.criteriaKey === 'skills' || item.dataset.criteriaKey === 'benefits';
+    const isBadgeCard = item.dataset.criteriaKey === 'skills'
+      || item.dataset.criteriaKey === 'benefits'
+      || item.dataset.criteriaKey === 'tools';
     if (isBadgeCard) return;
     const minSpan = 1;
     const requiredSpan = getSpanForHeight(front.scrollHeight);

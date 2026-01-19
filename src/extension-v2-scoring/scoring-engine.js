@@ -42,13 +42,14 @@ const JOB_TO_USER_WEIGHTS = {
  * Must sum to 1.0
  */
 // FIXED: Weights MUST sum to 1.0 for proper weighted average calculation
-// Redistributed removed revOpsComponent weight (0.25) across other criteria
+// Redistributed removed revOpsComponent weight and added tools match
 const USER_TO_JOB_WEIGHTS = {
-  roleType: 0.30,         // Title/seniority alignment with target roles (was 0.25)
-  skillMatch: 0.35,       // Keyword overlap with user's core skills (was 0.25)
-  industryAlignment: 0.20, // Industry match (exact/adjacent/new) (was 0.15)
-  experienceLevel: 0.15   // Years of experience alignment (was 0.10)
-  // Sum: 0.30 + 0.35 + 0.20 + 0.15 = 1.00
+  roleType: 0.30,         // Title/seniority alignment with target roles
+  skillMatch: 0.30,       // Core skill overlap with user's profile
+  toolsMatch: 0.15,       // Required tools/platforms overlap
+  industryAlignment: 0.15, // Industry match (exact/adjacent/new)
+  experienceLevel: 0.10   // Years of experience alignment
+  // Sum: 0.30 + 0.30 + 0.15 + 0.15 + 0.10 = 1.00
 };
 
 /**
@@ -239,6 +240,7 @@ async function calculateUserToJobFit(jobPayload, userProfile) {
     scoreRoleType(jobPayload, userProfile),
     // scoreRevOpsComponent - REMOVED per user request (Operations & Systems Focus)
     await scoreSkillMatchAsync(jobPayload, userProfile),
+    await scoreToolsMatchAsync(jobPayload, userProfile),
     scoreIndustryAlignment(jobPayload, userProfile),
     scoreExperienceLevel(jobPayload, userProfile)
   ];
@@ -248,6 +250,7 @@ async function calculateUserToJobFit(jobPayload, userProfile) {
     USER_TO_JOB_WEIGHTS.roleType,
     // USER_TO_JOB_WEIGHTS.revOpsComponent - REMOVED per user request
     USER_TO_JOB_WEIGHTS.skillMatch,
+    USER_TO_JOB_WEIGHTS.toolsMatch,
     USER_TO_JOB_WEIGHTS.industryAlignment,
     USER_TO_JOB_WEIGHTS.experienceLevel
   ];
@@ -1627,6 +1630,197 @@ async function scoreSkillMatchAsync(jobPayload, userProfile) {
     console.warn('[Job Filter Scoring] Skill extraction failed, falling back:', error);
     return scoreSkillMatch(jobPayload, userProfile);
   }
+}
+
+/**
+ * Score tools/platforms match using the skill extraction engine (0-50).
+ * Compares extracted required/desired tools against user's tool set.
+ */
+async function scoreToolsMatchAsync(jobPayload, userProfile) {
+  const descriptionText = jobPayload.descriptionText || jobPayload.job_description_text || '';
+  const userTools = (userProfile?.background?.tools?.length
+    ? userProfile.background.tools
+    : (userProfile?.background?.core_skills || []));
+
+  const normalizeKey = (value) => String(value || '')
+    .toLowerCase()
+    .replace(/^[•\-\*\u2022\u25E6\u25AA\u25CF·]+\s*/g, '')
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_]/g, '')
+    .trim();
+
+  const sanitizeLabel = (value) => {
+    let label = String(value || '').replace(/^[•\-\*\u2022\u25E6\u25AA\u25CF·]+\s*/g, '').trim();
+    label = label.replace(/^\(([^)]+)\)$/g, '$1').trim();
+    label = label.replace(/^[()]+|[(),;:.]+$/g, '').trim();
+    return label;
+  };
+
+  const isValidToolLabel = (value) => {
+    const label = sanitizeLabel(value);
+    if (!label) return false;
+    const lower = label.toLowerCase();
+    if (/\byears?\b/.test(lower) || /\bexperience\b/.test(lower)) return false;
+    if (/^\d+(\s*-\s*\d+)?$/.test(lower)) return false;
+    if (lower === 'team' || lower === 'teams') return false;
+    if (lower.startsWith('internal team') || lower.startsWith('internal teams')) return false;
+    if (lower.startsWith('external team') || lower.startsWith('external teams')) return false;
+    if (lower.includes('external teams to deliver')) return false;
+    if (lower.includes('internal teams')) return false;
+    if (lower.includes('external teams')) return false;
+    if (lower.includes('teams to deliver')) return false;
+    if (lower.includes('teams to drive')) return false;
+    if (lower === 'teams' || lower.endsWith(' teams')) return false;
+    return true;
+  };
+
+  const normalizeToolItems = (items) => {
+    const mapped = items
+      .map((tool) => {
+        const raw = typeof tool === 'string' ? tool : (tool.name || tool.raw || tool.canonical || '');
+        const label = sanitizeLabel(raw);
+        if (!isValidToolLabel(label)) return null;
+        const canonical = normalizeKey(tool.canonical || label);
+        return { label, canonical };
+      })
+      .filter(Boolean);
+
+    const deduped = new Map();
+    mapped.forEach((tool) => {
+      if (!deduped.has(tool.canonical)) {
+        deduped.set(tool.canonical, tool);
+      }
+    });
+    return Array.from(deduped.values());
+  };
+
+  if (!descriptionText || !descriptionText.trim()) {
+    return {
+      criteria: 'Required Tools',
+      criteria_description: 'Tools and platforms required for this role',
+      actual_value: 'No tools detected',
+      score: 25,
+      rationale: 'No job description text available for tools extraction',
+      missing_data: true,
+      required_tools: [],
+      desired_tools: [],
+      matched_tools: [],
+      missing_tools: []
+    };
+  }
+
+  if (!window.SkillExtractor?.extractAndClassifySkills) {
+    return {
+      criteria: 'Required Tools',
+      criteria_description: 'Tools and platforms required for this role',
+      actual_value: 'Tools extraction unavailable',
+      score: 25,
+      rationale: 'Tools extraction engine not loaded',
+      missing_data: true,
+      required_tools: [],
+      desired_tools: [],
+      matched_tools: [],
+      missing_tools: []
+    };
+  }
+
+  const extraction = await window.SkillExtractor.extractAndClassifySkills(descriptionText, {
+    taxonomy: window.SkillTaxonomy?.SKILL_TAXONOMY || [],
+    fuzzyMatcher: null,
+    denyList: window.SkillConstants?.TOOLS_DENY_LIST || [],
+    genericDenyList: window.SkillConstants?.GENERIC_PHRASES_DENY_LIST || [],
+    canonicalRules: window.SkillTaxonomy?.CANONICAL_RULES || [],
+    synonymGroups: window.SkillTaxonomy?.SKILL_SYNONYM_GROUPS || {}
+  });
+
+  const toolsDictionary = window.SkillClassifier?.loadToolsDictionary
+    ? await window.SkillClassifier.loadToolsDictionary()
+    : [];
+  const validToolKeys = new Set();
+  toolsDictionary.forEach((tool) => {
+    if (!tool) return;
+    const canonical = normalizeKey(tool.canonical || tool.name);
+    if (canonical) validToolKeys.add(canonical);
+    (tool.aliases || []).forEach((alias) => {
+      const aliasKey = normalizeKey(alias);
+      if (aliasKey) validToolKeys.add(aliasKey);
+    });
+  });
+  (window.SkillConstants?.TOOLS_DENY_LIST || []).forEach((tool) => {
+    const toolKey = normalizeKey(tool);
+    if (toolKey) validToolKeys.add(toolKey);
+  });
+
+  const requiredTools = normalizeToolItems(extraction?.requiredTools || [])
+    .filter(tool => validToolKeys.size === 0 || validToolKeys.has(tool.canonical));
+  const desiredTools = normalizeToolItems(extraction?.desiredTools || [])
+    .filter(tool => validToolKeys.size === 0 || validToolKeys.has(tool.canonical));
+  const allTools = [...requiredTools, ...desiredTools];
+
+  if (allTools.length === 0) {
+    return {
+      criteria: 'Required Tools',
+      criteria_description: 'Tools and platforms required for this role',
+      actual_value: 'No tools found',
+      score: 25,
+      rationale: 'No tools detected in job description',
+      missing_data: true,
+      required_tools: [],
+      desired_tools: [],
+      matched_tools: [],
+      missing_tools: []
+    };
+  }
+
+  const userToolKeys = new Set(
+    (userTools || [])
+      .map((tool) => normalizeKey(sanitizeLabel(tool)))
+      .filter(Boolean)
+  );
+
+  const matchedRequired = requiredTools.filter(tool => userToolKeys.has(tool.canonical));
+  const matchedDesired = desiredTools.filter(tool => userToolKeys.has(tool.canonical));
+  const missingRequired = requiredTools.filter(tool => !userToolKeys.has(tool.canonical));
+  const missingDesired = desiredTools.filter(tool => !userToolKeys.has(tool.canonical));
+
+  const multipliers = window.SkillConstants?.FIT_SCORE_CONFIG?.multipliers || { required: 2.0, desired: 1.0 };
+  const numerator =
+    (matchedRequired.length * multipliers.required) +
+    (matchedDesired.length * multipliers.desired);
+  const denominator =
+    (requiredTools.length * multipliers.required) +
+    (desiredTools.length * multipliers.desired);
+  const ratio = denominator > 0 ? (numerator / denominator) : 1;
+  const score = Math.round(Math.max(0, Math.min(1, ratio)) * 50);
+
+  const totalTools = allTools.length;
+  const matchedCount = matchedRequired.length + matchedDesired.length;
+  const matchPercentage = totalTools > 0 ? Math.round((matchedCount / totalTools) * 100) : 0;
+
+  let rationale = '';
+  if (matchPercentage >= 80) {
+    rationale = `Excellent tools match: ${matchedCount}/${totalTools} (${matchPercentage}%)`;
+  } else if (matchPercentage >= 60) {
+    rationale = `Strong tools match: ${matchedCount}/${totalTools} (${matchPercentage}%)`;
+  } else if (matchPercentage >= 40) {
+    rationale = `Moderate tools match: ${matchedCount}/${totalTools} (${matchPercentage}%)`;
+  } else if (matchedCount > 0) {
+    rationale = `Limited tools match: ${matchedCount}/${totalTools} (${matchPercentage}%)`;
+  } else {
+    rationale = 'No tools overlap detected';
+  }
+
+  return {
+    criteria: 'Required Tools',
+    criteria_description: 'Tools and platforms required for this role',
+    actual_value: `${matchedCount}/${totalTools} tools (${matchPercentage}%)`,
+    score,
+    rationale,
+    required_tools: requiredTools.map(t => t.label),
+    desired_tools: desiredTools.map(t => t.label),
+    matched_tools: [...matchedRequired, ...matchedDesired].map(t => t.label),
+    missing_tools: [...missingRequired, ...missingDesired].map(t => t.label)
+  };
 }
 
 /**
