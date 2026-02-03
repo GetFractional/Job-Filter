@@ -1,4 +1,4 @@
-# Job Hunter OS
+# Job Filter
 
 **Automated job application system using AI to generate hyper-personalized assets at scale**
 
@@ -8,7 +8,7 @@ Transform hours of manual work per application → 15 minutes with consistent qu
 
 ## 🎯 What This Is
 
-Job Hunter OS is a systematized job search automation system designed to help land $200K+ remote Growth/RevOps/Lifecycle leadership roles. It combines:
+Job Filter is a systematized job search automation system designed to help land $200K+ remote Growth/RevOps/Lifecycle leadership roles. It combines:
 
 - **Chrome Extension**: Captures job data from LinkedIn/Indeed with one click + Outreach Mode for hiring managers
 - **Airtable CRM**: Relational database (8 tables) tracking Companies, Contacts, Jobs, and Outreach
@@ -72,7 +72,7 @@ Job Hunter OS is a systematized job search automation system designed to help la
 ### Step 1: Set Up Claude Desktop
 
 1. Open Claude Desktop
-2. Create new Project: "Job Hunter OS"
+2. Create new Project: "Job Filter"
 3. Add all files from this repository to the project
 4. Add Custom Instructions (see section below)
 
