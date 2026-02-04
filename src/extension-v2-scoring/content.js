@@ -2162,9 +2162,29 @@ function openSettings() {
   });
 }
 
+/**
+ * Open the Chrome side panel for this tab (if supported and enabled)
+ */
+function openSidePanel() {
+  if (!isExtensionContextValid()) {
+    handleInvalidContext();
+    alert('Extension was reloaded. Please refresh this page to continue.');
+    return;
+  }
+
+  chrome.runtime.sendMessage({ action: 'jobHunter.openSidePanel' }, (resp) => {
+    const lastErr = chrome.runtime.lastError;
+    if (lastErr || !resp?.success) {
+      console.warn('[Job Filter] Side panel unavailable:', lastErr?.message || resp?.error);
+      alert('Side panel is not available in this browser profile. Please update Chrome or use the in-page Job Filter rail.');
+    }
+  });
+}
+
 // Make functions available globally for sidebar and mode detection
 window.openProfileSetup = openProfileSetup;
 window.openSettings = openSettings;
+window.openSidePanel = openSidePanel;
 window.showProfileSetupPrompt = showProfileSetupPrompt;
 
 // Export triggerJobScoring for mode-detection.js to call

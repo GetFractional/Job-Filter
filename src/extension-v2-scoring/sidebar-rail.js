@@ -1393,6 +1393,37 @@ function setupSidebarEventHandlers(sidebar, mode) {
     });
   }
 
+  // Side panel button
+  const sidePanelBtn = sidebar.querySelector('.jh-btn-sidepanel');
+  if (sidePanelBtn) {
+    sidePanelBtn.addEventListener('click', () => {
+      if (window.openSidePanel) {
+        window.openSidePanel();
+      }
+    });
+
+    chrome.runtime.sendMessage({ action: 'jobHunter.sidePanelStatus' }, (resp) => {
+      const lastErr = chrome.runtime.lastError;
+      if (lastErr) {
+        sidePanelBtn.disabled = true;
+        sidePanelBtn.title = 'Side panel unavailable';
+        return;
+      }
+
+      if (!resp?.available) {
+        sidePanelBtn.disabled = true;
+        sidePanelBtn.title = 'Side panel unavailable';
+        return;
+      }
+
+      if (!resp?.enabled) {
+        sidePanelBtn.title = 'Enable Side Panel in Flags';
+      } else {
+        sidePanelBtn.title = 'Open Side Panel';
+      }
+    });
+  }
+
   if (mode === 'jobs') {
     setupJobsModeHandlers(sidebar);
   } else if (mode === 'outreach') {
@@ -1581,6 +1612,7 @@ function getJobsSidebarHTML() {
           <span class="jh-brand-text">Job Filter</span>
         </div>
         <div class="jh-header-controls">
+          <button class="jh-btn-sidepanel" title="Open Side Panel">▣</button>
           <button class="jh-btn-settings" title="Settings">⚙</button>
           <button class="jh-btn-minimize" title="Minimize">−</button>
           <button class="jh-sidebar-close" title="Close">×</button>
@@ -1660,6 +1692,7 @@ function getOutreachSidebarHTML() {
           <span class="jh-mode-badge">Outreach</span>
         </div>
         <div class="jh-header-controls">
+          <button class="jh-btn-sidepanel" title="Open Side Panel">▣</button>
           <button class="jh-btn-minimize" title="Minimize">−</button>
           <button class="jh-sidebar-close" title="Close">×</button>
         </div>
@@ -1902,6 +1935,11 @@ function getSidebarStyles() {
     .jh-header-controls button:hover {
       background: #C7D2FE;
       color: #4F46E5;
+    }
+
+    .jh-header-controls button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     /* ========================================

@@ -70,7 +70,7 @@ async function openSettingsTab() {
 
 async function openSidePanelForSender(sender) {
   if (!chrome?.sidePanel?.open) {
-    throw new Error('Side panel API not available');
+    throw new Error('Side panel API not available (requires Chrome 114+ and side_panel support)');
   }
   const tabId = sender?.tab?.id;
   const windowId = sender?.tab?.windowId;
@@ -243,6 +243,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     openSidePanelForSender(sender)
       .then(() => sendResponse({ success: true }))
       .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+
+  if (request.action === 'jobHunter.sidePanelStatus') {
+    getFeatureFlags()
+      .then(flags => {
+        sendResponse({
+          available: !!chrome?.sidePanel?.open,
+          enabled: !!flags?.enableSidePanel
+        });
+      })
+      .catch(() => {
+        sendResponse({
+          available: !!chrome?.sidePanel?.open,
+          enabled: false
+        });
+      });
     return true;
   }
 

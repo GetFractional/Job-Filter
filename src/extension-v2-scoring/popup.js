@@ -50,8 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
     flagMetadata: document.getElementById('flag-metadata'),
     flagsSaveBtn: document.getElementById('flags-save'),
     flagsResetBtn: document.getElementById('flags-reset'),
-    flagsStatus: document.getElementById('flags-status'),
-    openSidePanelBtn: document.getElementById('open-sidepanel')
+    flagsStatus: document.getElementById('flags-status')
   };
 
   // Set up tab navigation
@@ -83,9 +82,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (elements.flagsResetBtn) {
     elements.flagsResetBtn.addEventListener('click', handleResetFlags);
-  }
-  if (elements.openSidePanelBtn) {
-    elements.openSidePanelBtn.addEventListener('click', handleOpenSidePanel);
   }
 });
 
@@ -286,33 +282,6 @@ async function handleResetFlags() {
   } finally {
     setButtonLoading(elements.flagsResetBtn, false);
   }
-}
-
-function handleOpenSidePanel() {
-  if (!chrome?.runtime?.sendMessage) {
-    showFlagStatus('Side panel unavailable', 'error');
-    return;
-  }
-
-  if (!elements.flagSidePanel?.checked) {
-    showFlagStatus('Enable Side Panel flag first', 'info');
-    return;
-  }
-
-  showFlagStatus('Opening side panel...', 'info');
-  chrome.runtime.sendMessage({ action: 'jobHunter.openSidePanel' }, (resp) => {
-    const lastErr = chrome.runtime.lastError;
-    if (lastErr) {
-      showFlagStatus('Failed to open side panel', 'error');
-      return;
-    }
-
-    if (resp?.success) {
-      showFlagStatus('Side panel opened', 'success');
-    } else {
-      showFlagStatus(resp?.error || 'Failed to open side panel', 'error');
-    }
-  });
 }
 
 function showFlagStatus(message, type) {
