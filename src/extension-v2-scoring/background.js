@@ -380,15 +380,22 @@ async function handleCreateTripleRecord(jobData, scoreData = null) {
     // STEP B: Upsert Contact record (if hiring manager data exists)
     let contactRecordId = null;
     if (jobData.hiringManagerDetails?.name) {
-      contactRecordId = await upsertContact(credentials, jobData, companyRecordId);
-      if (contactRecordId) {
-        console.log('[Job Filter BG] ✓ Contact record ID:', contactRecordId);
+      try {
+        contactRecordId = await upsertContact(credentials, jobData, companyRecordId);
+        if (contactRecordId) {
+          console.log('[Job Filter BG] ✓ Contact record ID:', contactRecordId);
 
-        // HUMAN-SPEED DELAY: Prevent LinkedIn throttling
-        console.log('[Job Filter BG] ⏳ Waiting 1.5s before next API call...');
-        await delay(1500);
-      } else {
-        console.log('[Job Filter BG] ℹ️ Contact creation skipped (validation rejected fake contact)');
+          // HUMAN-SPEED DELAY: Prevent LinkedIn throttling
+          console.log('[Job Filter BG] ⏳ Waiting 1.5s before next API call...');
+          await delay(1500);
+        } else {
+          console.log('[Job Filter BG] ℹ️ Contact creation skipped (validation rejected fake contact)');
+        }
+      } catch (error) {
+        console.warn('[Job Filter BG] ⚠️ Contact upsert failed, continuing without contact:', {
+          message: error?.message || 'unknown error'
+        });
+        contactRecordId = null;
       }
     } else {
       console.log('[Job Filter BG] ℹ️ No hiring manager data, skipping Contact creation');

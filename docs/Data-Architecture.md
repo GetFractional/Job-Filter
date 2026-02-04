@@ -328,6 +328,10 @@
 - n8n
 - Manual
 
+**Event Sources (Operational)**
+- Extension: job capture event
+- Airtable automation: status change events (Applied, Interview, Offer, Rejected)
+
 **Views:**
 1. **Timeline** (Grid): All events, sorted by Event Date (newest first)
 2. **This Week** (Grid): Event Date in current week
