@@ -185,6 +185,25 @@
 | `Created` | Created Time | Auto-populated | Yes | 2024-12-06 10:30 AM |
 | `Last Modified` | Last Modified Time | Auto-populated | Yes | 2024-12-06 2:45 PM |
 
+**Lane Options:**
+- fast_apply
+- full_court_press
+
+**Rejection Reason Options (v1):**
+- role_mismatch
+- experience_gap
+- compensation_mismatch
+- location_or_workplace
+- timing_or_headcount
+- internal_candidate
+- no_response
+- culture_or_mission
+- other
+
+**Stale Detection Rule:**
+- `stale_status` = `stale` if `last_touch_date` is more than **14 days** ago
+- `stale_status` = `fresh` otherwise
+
 **Views:**
 1. **All Jobs** (Grid): All records, sorted by Created (newest first)
 2. **Needs Research** (Grid): Status = "Captured", shows jobs waiting for research
@@ -302,6 +321,12 @@
 - Offer Accepted
 - Rejected by Company
 - Withdrew Application
+
+**event_source Options:**
+- Extension
+- Airtable
+- n8n
+- Manual
 
 **Views:**
 1. **Timeline** (Grid): All events, sorted by Event Date (newest first)

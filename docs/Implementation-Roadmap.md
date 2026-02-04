@@ -78,6 +78,11 @@
 ```
 - [ ] Verify API returns data (empty array is success)
 - [ ] Test creating a record via API
+
+#### Task 1.3: Airtable Schema Audit (SSOT)
+- [ ] Run `docs/Airtable-Audit.md` checklist
+- [ ] Export schema + CSV backups before any changes
+- [ ] Document schema diff vs `docs/Data-Architecture.md`
 - [ ] Test updating a record via API
 - [ ] Delete test records
 

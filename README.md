@@ -310,6 +310,7 @@ This is a personal project, but key learnings:
 - **Strategy**: `/docs/Job-Filter-Strategic-Guidelines.md`
 - **Profile**: `/docs/Matt-Dimock-Professional-Profile.md`
 - **Architecture**: `/docs/System-Architecture.md`, `/docs/Data-Architecture.md`
+- **Airtable Audit**: `/docs/Airtable-Audit.md`
 - **Roadmap**: `/docs/Implementation-Roadmap.md`
 
 ### Expert Frameworks
