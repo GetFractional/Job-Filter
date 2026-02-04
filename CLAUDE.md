@@ -1,4 +1,4 @@
-# Job Hunter OS - Development Specification
+# Job Filter - Development Specification
 
 **Version**: 1.0  
 **Target Launch**: This Weekend  
@@ -9,7 +9,7 @@
 
 ## 🎯 PROJECT OVERVIEW
 
-Job Hunter OS is a job application automation system that transforms the manual multiple-hours-per-application process into a 15-minute workflow. The system captures job data from LinkedIn/Indeed via a Chrome extension, stores it in Airtable, triggers n8n workflows to research companies and generate personalized assets (90-day plan, resume, cover letter, interview prep, outreach), and delivers everything to Google Drive for easy download.
+Job Filter is a job application automation system that transforms the manual multiple-hours-per-application process into a 15-minute workflow. The system captures job data from LinkedIn/Indeed via a Chrome extension, stores it in Airtable, triggers n8n workflows to research companies and generate personalized assets (90-day plan, resume, cover letter, interview prep, outreach), and delivers everything to Google Drive for easy download.
 
 **Target User**: Matt Dimock (Growth/RevOps/Lifecycle leader seeking a minimum $150k/yr remote role (ideally $200K+) with performance bonus, full benefits, and preferably equity or shares  
 **Goal**: Process 5+ high-quality applications per day, 20-30 per month  
@@ -22,7 +22,7 @@ Job Hunter OS is a job application automation system that transforms the manual 
 ### Data Flow
 ```
 LinkedIn/Indeed Job Page
-    ↓ [User clicks "Send to Job Hunter"]
+    ↓ [User clicks "Send to Job Filter"]
 Chrome Extension (captures job data)
     ↓ [POST request]
 Airtable (Jobs Pipeline table)
@@ -36,7 +36,7 @@ n8n Workflow (orchestration)
 ├─ Create Interview Prep (OpenAI + research)
 └─ Draft Outreach Message (OpenAI + research)
     ↓ [Upload assets]
-Google Drive (/Job Hunter Assets/{Company}/{Date}/)
+Google Drive (/Job Filter Assets/{Company}/{Date}/)
     ↓ [Log activity]
 Airtable (update status + asset links)
     ↓ [User reviews]
@@ -80,7 +80,7 @@ Job-Hunter/
 ├── README.md                          ← User documentation
 │
 ├── docs/                              ← Strategy & Architecture
-│   ├── Job-Hunter-OS-Strategic-Guidelines.md
+│   ├── Job-Filter-Strategic-Guidelines.md
 │   ├── Matt-Dimock-Professional-Profile.md
 │   ├── System-Architecture.md         ← Technical design details
 │   ├── Data-Architecture.md           ← Airtable schema
@@ -182,7 +182,7 @@ Job-Hunter/
    - Cost: ~$15/month (20 jobs)
 
 4. **Google Drive API** (Storage)
-   - Folder structure: `/Job Hunter Assets/{Company Name}/{Date}/`
+   - Folder structure: `/Job Filter Assets/{Company Name}/{Date}/`
    - Files: `.md` format for all assets
    - Permissions: Private to Matt's account
 
@@ -278,7 +278,7 @@ Job-Hunter/
 ### WHERE TO FIND WHAT
 
 **Strategy & Thinking**
-- Master strategy: `/docs/Job-Hunter-OS-Strategic-Guidelines.md`
+- Master strategy: `/docs/Job-Filter-Strategic-Guidelines.md`
 - Matt's profile: `/docs/Matt-Dimock-Professional-Profile.md`
 - Technical design: `/docs/System-Architecture.md`
 - Database schema: `/docs/Data-Architecture.md`
@@ -329,7 +329,7 @@ Job-Hunter/
 
 When starting development, use this prompt:
 ```
-You are helping me build Job Hunter OS according to /CLAUDE.md specification.
+You are helping me build Job Filter according to /CLAUDE.md specification.
 
 CURRENT TASK: [Describe what you're building - e.g., "Create Chrome extension to capture LinkedIn job data"]
 

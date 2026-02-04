@@ -1,7 +1,7 @@
 # Reference Prompt: Hormozi Value Equation Deep-Dive
 
 ## 📌 PURPOSE
-This reference guide translates **Alex Hormozi's Value Equation** from business/SaaS context into **Job Hunter OS application**. It answers: How do hiring managers evaluate whether to hire you?
+This reference guide translates **Alex Hormozi's Value Equation** from business/SaaS context into **Job Filter application**. It answers: How do hiring managers evaluate whether to hire you?
 
 **When Used**: Designing annual plans, resumes, cover letters, interview narratives
 **Input**: Job posting + company research + your track record

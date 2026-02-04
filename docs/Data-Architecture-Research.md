@@ -1,8 +1,8 @@
-# Job Hunter OS - Data Architecture (Research)
+# Job Filter - Data Architecture (Research)
 
-**Version**: 2.3  
+**Version**: 3.0  
 **Database**: Airtable  
-**Last Updated**: December 10, 2025
+**Last Updated**: February 3, 2026
 
 ---
 
@@ -11,16 +11,33 @@
 ### Why Airtable?
 
 Chosen over PostgreSQL because:
-- Visual interface (Matt can see/edit data easily)
-- Built-in views, filters, sorting (no SQL needed)
-- Native n8n integration (simpler than raw SQL)
-- Automations built-in (trigger n8n webhooks)
-- Free tier sufficient for MVP (1,200 records/base)
+- Visual interface (fast manual QA and edits)
+- Built-in views, filters, sorting (no SQL required)
+- Native automation hooks (easy n8n triggers)
+- Record-linking is first-class (Jobs ↔ Research ↔ Assets ↔ Contacts)
+- Sufficient for the current operating scale
+- Have $1,736 in credits available; on an annual Team plan currently
 
 Trade-offs accepted:
-- 1,200 record limit on free tier (sufficient for 1,000+ jobs)
-- Less flexible than PostgreSQL for complex queries
-- Vendor lock-in (but easy to export to CSV later)
+- Airtable is less flexible than a warehouse for complex analytics
+- Vendor lock-in risk (mitigated by periodic CSV exports)
+- Strong discipline required around field names (schema mismatch breaks automations)
+
+---
+
+## SYSTEM MODEL (END-TO-END)
+
+**Core loop**: Capture Job → Research → Generate Assets → Outreach → Track Outcomes → Monthly Learning
+
+**Relationship map (high level):**
+
+- **Jobs Pipeline** is the primary table (1 record per opportunity).
+- **Research Briefs** is 1:1 with Jobs (one brief per job).
+- **Generated Assets** is 1:many with Jobs (many assets per job).
+- **Contacts** is many:many with Jobs (a job can have multiple contacts; a contact can relate to multiple jobs/companies).
+- **Companies** is 1:many with Jobs (company can have multiple job listings).
+- **Outreach Log** is 1:many with Contacts (every outreach attempt is logged).
+- **Measurement** is 1 record per logged date (automated with goal to leverage for advanced BI).
 
 ---
 
@@ -28,127 +45,156 @@ Trade-offs accepted:
 
 ### TABLE 1: Jobs Pipeline (Primary Table)
 
-**Purpose**: Core job records – one row per job opportunity. **Created first via job hunting**, then linked to Research Briefs when research is conducted.
+**Purpose**: Core job records, one row per job opportunity. Created first via job hunting, then linked to Research Briefs and downstream work.
 
-**Fields:**
+**Fields**
 
-| Field Name        | Type               | Description                                   | Required | Example                                  |
-|-------------------|--------------------|-----------------------------------------------|----------|------------------------------------------|
-| `Job Title`       | Single line text   | Role title                                    | Yes      | `VP of Growth`                           |
-| `Company Name`    | Single line text   | Company name                                  | Yes      | `TechCorp`                               |
-| `Company Page`    | URL                | Company page on the job platform              | No       | https://linkedin.com/company/techcorp    |
-| `Job URL`         | URL                | Original job posting URL                      | Yes      | https://linkedin.com/jobs/...            |
-| `Location`        | Single line text   | Job location                                  | No       | `San Francisco, CA`                      |
-| `Workplace Type`  | Single line text   | Remote, hybrid, on-site work                  | No       | `Remote`                                 |
-| `Employment Type` | Single line text   | Type of employment being offered              | No       | `Full-time`                              |
-| `Salary Min`      | Number             | Minimum salary                                | No       | 180000                                   |
-| `Salary Max`      | Number             | Maximum salary                                | No       | 220000                                   |
-| `Equity Mentioned`| Checkbox           | Does posting mention equity?                  | No       | ✓                                        |
-| `Source`          | Single select      | Where job was found                           | Yes      | `LinkedIn`, `Indeed`                     |
-| `Job Description` | Long text          | Full job posting text                         | Yes      | [Full text]                              |
-| `Status`          | Single select      | Current stage                                 | Yes      | `Captured`, `Researched`, `Applied`, `Interview`, `Offer`, `Rejected` |
-| `Research Brief`  | Link to record     | Link to Research Briefs table                 | No       | → Research record                        |
-| `Generated Assets`| Link to records    | Links to Generated Assets table               | No       | → Multiple asset records                 |
-| `Application Tracking` | Link to records | Links to Application Tracking table          | No       | → Multiple event records                 |
-| `Applied Date`    | Date               | When application was submitted                | No       | 2024-12-10                               |
-| `Interview Date`  | Date               | When interview is scheduled                   | No       | 2024-12-15                               |
-| `Outcome`         | Single select      | Final result                                  | No       | `Offer`, `No Response`, `Rejected`       |
-| `Matt's Rating`   | Rating (5 stars)   | Matt's interest level                         | No       | ⭐⭐⭐⭐⭐                                    |
-| `Notes`           | Long text          | Matt's notes                                  | No       | `Really like this one...`                |
-| `Created`         | Created time       | Auto-populated                                | Yes      | 2024-12-06 10:30 AM                      |
-| `Last Modified`   | Last modified time | Auto-populated                                | Yes      | 2024-12-06 2:45 PM                       |
+| Field Name | Type | Description | Required | Example |
+|---|---|---|---|---|
+| **Job Title** | Single line text | Role title (Primary field) | Yes | VP of Growth |
+| Company Name | Single line text | Company name | Yes | TechCorp |
+| Company Page | Single line text | Company page on the job platform | No | https://linkedin.com/company/techcorp |
+| Job URL | Single line text | Original job posting URL | Yes | https://linkedin.com/jobs/... |
+| Location | Single line text | Job location | No | San Francisco, CA |
+| Workplace Type | Single line text | Remote, hybrid, on-site work | No | Remote |
+| Employment Type | Single line text | Type of employment being offered | No | Full-time |
+| Salary Min | Number (Currency $) | Minimum salary | No | 180000 |
+| Salary Max | Number (Currency $) | Maximum salary | No | 220000 |
+| Equity Mentioned | Checkbox | Does posting mention equity? | No | ✓ |
+| Bonus Mentioned | Checkbox | Does posting mention bonus? | No | ✓ |
+| Benefits | Multiple select | Benefits mentioned in posting | No | Medical insurance, 401k, PTO |
+| Source | Single select | Where job was found | Yes | LinkedIn |
+| Job Description | Long text | Full job posting text | Yes | [Full text] |
+| Status | Single select | Current stage | Yes | Captured |
+| Overall Fit Score | Number (Integer) | Overall fit score | No | 85 |
+| Preference Fit Score | Number (Integer) | Preference alignment score | No | 90 |
+| Role Fit Score | Number (Integer) | Role alignment score | No | 80 |
+| Fit Recommendation | Single select | Fit assessment label | No | STRONG FIT |
+| Matched Skills | Long text | Skills that match requirements | No | [Bullets] |
+| Missing Skills | Long text | Skills gaps identified | No | [Bullets] |
+| Triggered Dealbreakers | Long text | Dealbreakers triggered by this role | No | [Bullets] |
+| Research Brief | Link to record | Link to Research Briefs table | No | → Research record |
+| Generated Assets | Link to records | Links to Generated Assets table | No | → Multiple asset records |
+| Application Tracking | Link to records | Links to Application Tracking table (optional/TBD) | No | → Multiple event records |
+| Companies | Link to records | Links to Companies table | No | → Company record |
+| Contacts | Link to records | Links to Contacts table | No | → Multiple contact records |
+| Outreach Log | Link to records | Links to Outreach Log table | No | → Multiple outreach records |
+| Applied Date | Date | When application was submitted | No | 2024-12-10 |
+| Interview Date | Date | When interview is scheduled | No | 2024-12-15 |
+| Offer Date | Date | When offer was received | No | 2024-12-20 |
+| Rejected Date | Date | When rejection was received | No | 2024-12-18 |
+| First Contact Date | Date | Date of first contact with company | No | 2024-12-05 |
+| Requested Salary | Number (Currency $) | Salary requested in application | No | 200000 |
+| Job Search Strategies | Single line text | Strategy tags for this job | No | Networking |
+| Notes | Long text | Matt's notes | No | Really like this one... |
+| Created | Formula (Date) | Auto-populated via `CREATED_TIME()` | Yes | 2024-12-06 10:30 AM |
+| Last Modified | Formula (Date) | Auto-populated via `LAST_MODIFIED_TIME()` | Yes | 2024-12-06 2:45 PM |
 
-**Important**: Airtable also assigns an **internal record ID** to each row (e.g., `recOSOd4PiXiNr3Mq`).  
-- This is **not a visible field**, but:
-  - It appears in the URL when you open a record  
-    `https://airtable.com/appHFrk9vapCY39F1/tblcY5odzvocdPMc6/viw30RRl4XRp2ogXg/recOSOd4PiXiNr3Mq?blocks=hide`
-  - It is what the API uses in link fields (like `job` in Research Briefs)
+**Single select options**
 
-**Views:**
+- **Source**: LinkedIn, Indeed, Company Website, Dribbble, Glassdoor, Referral  
+- **Status**: Captured, Researched, Applied, Interview, Offer, Rejected  
+- **Fit Recommendation**: STRONG FIT, GOOD FIT, MODERATE FIT, WEAK FIT, POOR FIT, HARD NO
 
-1. **All Jobs** (Grid): All records, sorted by `Created` (newest first).  
-2. **Needs Research** (Grid): `Status = "Captured"`, shows jobs waiting for research.  
-3. **Ready to Apply** (Grid): `Status = "Researched"`, shows jobs with assets ready.  
-4. **In Progress** (Kanban): Group by `Status` (Captured → Researched → Applied → Interview).  
-5. **High Priority** (Grid): `Matt's Rating ≥ 4` stars, sorted by `Created`.  
-6. **This Week** (Calendar): View by `Applied Date`.
+**Operational notes**
+- Airtable assigns an internal record ID to each job (starts with `rec...`). This is the **canonical identifier** for linking Research Briefs, Assets, Contacts, and Outreach.
+- Use record IDs for linking, never infer IDs from names.
+
+**Recommended views**
+1. **All Jobs**: Sorted by `Created` (newest first)  
+2. **Needs Research**: `Status = Captured`  
+3. **Ready to Apply**: `Status = Researched`  
+4. **In Progress** (Kanban): Group by `Status`  
+5. **High Fit**: `Fit Recommendation` in (STRONG FIT, GOOD FIT) OR `Overall Fit Score ≥ 80`  
+6. **This Week** (Calendar): By `Applied Date`
 
 ---
 
 ### TABLE 2: Research Briefs (Linked Records)
 
-**Purpose**: Store fully structured company and role intelligence for each job, with one research brief per job. Every leaf node from the research JSON gets its own column for maximum control and context access.
+**Purpose**: Structured company + role intelligence for each job, with one research brief per job.
 
-**Fields:**
+**Fields**
 
-| Field Name                      | Type               | Description                                                         | Required |
-|---------------------------------|--------------------|---------------------------------------------------------------------|----------|
-| `research_id`                  | Auto number        | Primary key                                                         | Yes      |
-| `job`                          | Link to record     | Links to Jobs Pipeline (one-to-one). **MUST be an existing Jobs Pipeline record ID (`rec...`)** | Yes      |
-| `job_title`                    | Lookup (from job)  | Job title from Jobs Pipeline                                       | No       |
-| `company_name`                 | Lookup (from job)  | Company name from Jobs Pipeline                                    | No       |
-| `fit_label`                    | Single select      | Overall fit label: `reject`, `caution`, `pursue`                   | No       |
-| `fit_score`                    | Number (0–50)      | Fit score (0–50)                                                   | No       |
-| `fit_summary`                  | Long text          | Narrative summary of fit assessment                                | No       |
-| `reasons_to_pursue`            | Long text          | Bullet list of reasons to pursue                                   | No       |
-| `risks_or_flags`               | Long text          | Bullet list of risks or red flags                                  | No       |
-| `company_summary`              | Long text          | High-level company overview summary                                | Yes      |
-| `stage`                        | Single line text   | Company stage (e.g., Series B, late-stage private, public)         | No       |
-| `revenue_range`                | Single line text   | Revenue range or estimate (e.g., "$20–30M ARR")                    | No       |
-| `funding`                      | Single line text   | Recent funding status / investors (e.g., "$45M Series B led by…")  | No       |
-| `headcount`                    | Single line text   | Approximate headcount (e.g., "~250 FTEs")                          | No       |
-| `products_services`            | Long text          | Key products/services and categories                               | No       |
-| `revenue_model`                | Single line text   | Revenue model (e.g., SaaS, transactional, marketplace, hybrid)     | No       |
-| `gtm_motion`                   | Long text          | Go-to-market motion (e.g., PLG + mid-market sales + partner)       | No       |
-| `mission`                      | Long text          | Company mission statement                                          | No       |
-| `vision`                       | Long text          | Company long-term vision                                           | No       |
-| `icp_summary`                  | Long text          | Ideal customer profile summary (segments, buyers, use cases)       | No       |
-| `reported_cac`                 | Long text          | Company-reported CAC: $X (Year, Source)                            | Yes      |
-| `estimated_cac_range`          | Long text          | Estimated CAC: $A–$B based on assumptions (list them)              | Yes      |
-| `role_summary`                 | Long text          | High-level summary of the role                                     | Yes      |
-| `role_requirements`            | Long text          | Bullet list of real requirements (not just JD bullets)             | Yes      |
-| `team_structure`               | Long text          | Reporting line and team composition                                | No       |
-| `success_metrics`              | Long text          | Bullet list of Year 1+ success metrics                             | No       |
-| `pain_points`                  | Long text          | Bullet list of pains this role must solve                          | No       |
-| `inflection_point`             | Long text          | Why they are hiring now / key inflection point signaling urgency   | No       |
-| `market_summary`               | Long text          | High-level market context summary                                  | Yes      |
-| `industry_trends`              | Long text          | Bullet list of key industry trends and tailwinds/headwinds         | No       |
-| `growth_signals`               | Long text          | Bullet list of growth signals (hiring, launches, expansion)        | No       |
-| `competitive_threats`          | Long text          | Bullet list of competitive threats and positioning context         | No       |
-| `hiring_manager_intel_summary` | Long text          | Summary of hiring manager background and decision style            | No       |
-| `hiring_manager_name`          | Single line text   | Name of the hiring manager I would likely direct report to         | No       |
-| `hiring_manager_title`         | Single line text   | Title of the hiring manager                                        | No       |
-| `hiring_manager_priority`      | Single line text   | Priority/focus area of the hiring manager                          | No       |
-| `hiring_manager_decision_gate` | Single line text   | Decision criteria for the hiring manager                           | No       |
-| `stakeholder_1_name`           | Single line text   | Name of primary stakeholder                                        | No       |
-| `stakeholder_1_title`          | Single line text   | Title of stakeholder 1 (often COO, CMO, CRO, or VP Ops)            | No       |
-| `stakeholder_1_priority`       | Long text          | Priority/focus area of stakeholder 1                               | No       |
-| `stakeholder_1_decision_gate`  | Long text          | Decision criteria for stakeholder 1                                | No       |
-| `stakeholder_2_name`           | Single line text   | Name of secondary stakeholder (often Head of Sales, VP Product)    | No       |
-| `stakeholder_2_title`          | Single line text   | Title of stakeholder 2                                             | No       |
-| `stakeholder_2_priority`       | Long text          | Priority/focus area of stakeholder 2                               | No       |
-| `stakeholder_2_decision_gate`  | Long text          | Decision criteria for stakeholder 2                                | No       |
-| `stakeholder_3_name`           | Single line text   | Name of tertiary stakeholder (often CFO, CTO, VP People)           | No       |
-| `stakeholder_3_title`          | Single line text   | Title of stakeholder 3                                             | No       |
-| `stakeholder_3_priority`       | Long text          | Priority/focus area of stakeholder 3                               | No       |
-| `stakeholder_3_decision_gate`  | Long text          | Decision criteria for stakeholder 3                                | No       |
-| `hiring_priorities`            | Long text          | Aggregated list of all hiring priorities across stakeholders       | No       |
-| `strategic_positioning_summary`| Long text          | Summary of how Matt should position himself for this role          | Yes      |
-| `best_angle`                   | Long text          | Best angle or narrative for Matt (how to frame his expertise)      | No       |
-| `proof_points`                 | Long text          | Bullet list of Matt's most relevant proof points                   | No       |
-| `quick_win_opportunities`      | Long text          | Bullet list of 30–90 day quick wins Matt could deliver             | No       |
-| `risks_to_address`             | Long text          | Bullet list of risks/objections Matt must proactively address      | No       |
-| `key_insights`                 | Long text          | Bullet list of most important insights distilled from research     | Yes      |
-| `research_sources`             | Long text          | Newline-separated URLs of sources used                             | No       |
-| `quality_score`                | Number (0–50)      | Research quality score from rubric (0–50)                          | No       |
-| `Generated At`                 | Created time       | When research record was created (auto-populated)                  | Yes      |
+| Field Name | Type | Description | Required |
+|---|---|---|---|
+| research_id | Autonumber | Primary key | Yes |
+| job | Link to record | Links to Jobs Pipeline (one-to-one). MUST be an existing Jobs Pipeline record ID (rec...) | Yes |
+| job_title | Lookup (from job) | Job title from Jobs Pipeline | No |
+| company_name | Lookup (from job) | Company name from Jobs Pipeline | No |
+| Contacts (from job) | Lookup (from job) | Contacts linked to the job | No |
+| fit_label | Single select | Overall fit label: reject, caution, pursue, Maybe | No |
+| fit_score | Number (Integer) | Fit score (0–50) | No |
+| fit_summary | Long text | Narrative summary of fit assessment | No |
+| reasons_to_pursue | Long text | Bullet list of reasons to pursue | No |
+| risks_or_flags | Long text | Bullet list of risks or red flags | No |
+| company_summary | Long text | High-level company overview summary | Yes |
+| stage | Single line text | Company stage (e.g., Series B, late-stage private, public) | No |
+| revenue_range | Single line text | Revenue range or estimate (e.g., "$20–30M ARR") | No |
+| funding | Single line text | Recent funding status / investors | No |
+| headcount | Single line text | Approximate headcount (e.g., "~250 FTEs") | No |
+| products_services | Long text | Key products/services and categories | No |
+| revenue_model | Single line text | Revenue model (e.g., SaaS, transactional, marketplace) | No |
+| gtm_motion | Long text | Go-to-market motion | No |
+| mission | Long text | Company mission statement | No |
+| vision | Long text | Company long-term vision | No |
+| icp_summary | Long text | Ideal customer profile summary | No |
+| reported_cac | Long text | Company-reported CAC | Yes |
+| estimated_cac_range | Long text | Estimated CAC range with assumptions | Yes |
+| role_summary | Long text | High-level summary of the role | Yes |
+| role_requirements | Long text | Bullet list of real requirements | Yes |
+| team_structure | Long text | Reporting line and team composition | No |
+| success_metrics | Long text | Bullet list of Year 1+ success metrics | No |
+| pain_points | Long text | Bullet list of pains this role must solve | No |
+| inflection_point | Long text | Why they are hiring now / key inflection point | No |
+| market_summary | Long text | High-level market context summary | Yes |
+| industry_trends | Long text | Bullet list of key industry trends | No |
+| growth_signals | Long text | Bullet list of growth signals | No |
+| competitive_threats | Long text | Bullet list of competitive threats | No |
+| hiring_manager_intel_summary | Long text | Summary of hiring manager background and decision style | No |
+| hiring_manager_name | Single line text | Name of the hiring manager | No |
+| hiring_manager_title | Single line text | Title of the hiring manager | No |
+| hiring_manager_priority | Single line text | Priority/focus area of the hiring manager | No |
+| hiring_manager_decision_gate | Single line text | Decision criteria for the hiring manager | No |
+| stakeholder_1_name | Single line text | Name of primary stakeholder | No |
+| stakeholder_1_title | Single line text | Title of stakeholder 1 | No |
+| stakeholder_1_priority | Long text | Priority/focus area of stakeholder 1 | No |
+| stakeholder_1_decision_gate | Long text | Decision criteria for stakeholder 1 | No |
+| stakeholder_2_name | Single line text | Name of secondary stakeholder | No |
+| stakeholder_2_title | Single line text | Title of stakeholder 2 | No |
+| stakeholder_2_priority | Long text | Priority/focus area of stakeholder 2 | No |
+| stakeholder_2_decision_gate | Long text | Decision criteria for stakeholder 2 | No |
+| stakeholder_3_name | Single line text | Name of tertiary stakeholder | No |
+| stakeholder_3_title | Single line text | Title of stakeholder 3 | No |
+| stakeholder_3_priority | Long text | Priority/focus area of stakeholder 3 | No |
+| stakeholder_3_decision_gate | Long text | Decision criteria for stakeholder 3 | No |
+| hiring_priorities | Long text | Aggregated list of all hiring priorities | No |
+| strategic_positioning_summary | Long text | Summary of how Matt should position himself | Yes |
+| best_angle | Long text | Best angle or narrative for Matt | No |
+| proof_points | Long text | Bullet list of Matt's most relevant proof points | No |
+| quick_win_opportunities | Long text | Bullet list of 30–90 day quick wins | No |
+| risks_to_address | Long text | Bullet list of risks/objections to address | No |
+| key_insights | Long text | Bullet list of most important insights | Yes |
+| research_sources | Long text | Newline-separated URLs of sources used | No |
+| quality_score | Number (Integer) | Research quality score (0–50) | No |
+| Best Man Summary | AI text (on-demand) | Auto-generated value proposition summary | No |
+| Generated At | Formula (Date) | When research record was created (`CREATED_TIME()`) | Yes |
 
-**Views:**
+**Fit label vs Fit recommendation**
+- **fit_label** (Research Briefs) is your internal triage: *reject / caution / maybe / pursue*.
+- **Fit Recommendation** (Jobs Pipeline) is the “resume-velocity” label: *HARD NO → STRONG FIT*.
 
-1. **All Research** (Grid): All research briefs, sorted by `Generated At` (newest first).  
-2. **High Quality** (Grid): `quality_score ≥ 45`.  
-3. **High Fit** (Grid): `fit_label = "pursue"` and `fit_score ≥ 40`.  
-4. **By Fit Label** (Grid): Group by `fit_label` to see reject / caution / pursue buckets.
+Recommended mapping (optional):
+- reject → HARD NO / POOR FIT
+- caution → WEAK FIT / MODERATE FIT
+- Maybe → MODERATE FIT / GOOD FIT
+- pursue → GOOD FIT / STRONG FIT
+
+**Recommended views**
+1. **All Research**: Sorted by `Generated At`  
+2. **High Quality**: `quality_score ≥ 45`  
+3. **High Fit**: `fit_label = pursue` and `fit_score ≥ 40`  
+4. **By Fit Label**: Group by `fit_label`
 
 ---
 
@@ -156,281 +202,316 @@ Trade-offs accepted:
 
 **Purpose**: Store links and content for generated documents (annual plan, resume, cover letter, interview prep, outreach).
 
-**Fields:**
+**Fields**
 
-| Field Name        | Type            | Description                                         | Required |
-|-------------------|-----------------|-----------------------------------------------------|----------|
-| `Asset ID`        | Auto number     | Primary key                                         | Yes      |
-| `Job`             | Link to record  | Links to Jobs Pipeline                              | Yes      |
-| `Asset Type`      | Single select   | `Annual Plan`, `Resume Tailored`, `Cover Letter`, `Interview Prep`, `Outreach Message` | Yes |
-| `Google Drive Link` | URL           | Link to file in Drive                               | Yes      |
-| `Content (Full)`  | Long text       | Final content for the asset                         | No       |
-| `Quality Score`   | Number (0–50)   | Score from asset rubric (0–50)                      | No       |
-| `Score Breakdown` | Long text       | Breakdown of quality score                          | No       |
-| `Generated At`    | Created time    | When asset record was created                       | Yes      |
-| `Reviewed`        | Checkbox        | Checked when Matt has reviewed and approved         | No       |
-| `Needs Revision`  | Checkbox        | Flag for assets needing improvement                 | No       |
-| `Revision Notes`  | Long text       | Notes on what needs to be changed                   | No       |
-| `Version Number`  | Long text       | Version tag for the asset generation prompt used    | No       |
-| `Prompt Used`     | Long text       | Which asset prompt template was used                | No       |
+| Field Name | Type | Description | Required |
+|---|---|---|---|
+| Asset ID | Autonumber | Primary key | Yes |
+| Job | Link to record | Links to Jobs Pipeline | Yes |
+| Company Name (from Job) | Lookup (from Job) | Company name from linked job | No |
+| Contact First Name | Link to record | Links to Contacts table | No |
+| Asset Type | Single select | Type of asset | Yes |
+| Google Drive Link | Single line text | Link to file in Drive | Yes |
+| Content (Full) | Long text | Final content for the asset | No |
+| Quality Score | Number (Integer) | Score from asset rubric (0–50) | No |
+| Score Breakdown | Long text | Breakdown of quality score | No |
+| Reviewed | Checkbox | Checked when Matt has reviewed and approved | No |
+| Needs Revision | Checkbox | Flag for assets needing improvement | No |
+| Revision Notes | Long text | Notes on what needs to be changed | No |
+| Version Number | Number (Decimal) | Version tag for the asset | No |
+| Prompt Used | Long text | Which asset prompt template was used | No |
+| Generated At | Formula (Date) | When asset record was created (`CREATED_TIME()`) | Yes |
 
-**Views:**
+**Asset Type options**
+- Research Brief
+- Annual Growth Plan
+- Resume
+- Cover Letter
+- Interview Prep
+- Outreach Message
+- Image
+- Document
+- Video
+- Presentation
+- Spreadsheet
+- Resume Tailored
+- Strategic Memo
 
-1. **All Assets** (Grid): All assets, sorted by `Generated At` (newest first).  
-2. **By Asset Type** (Grid): Group by `Asset Type`.  
-3. **Needs Review** (Grid): `Reviewed = unchecked`.  
-4. **High Quality** (Grid): `Quality Score ≥ 45`.
+**Recommended views**
+1. **All Assets**: Sorted by `Generated At`  
+2. **By Asset Type**: Group by `Asset Type`  
+3. **Needs Review**: `Reviewed = unchecked`  
+4. **High Quality**: `Quality Score ≥ 45`
 
 ---
 
-## Research JSON Contract (for AI agents)
+### TABLE 4: Contacts
 
-The Research Briefs table is populated from a **Research JSON** object. This JSON is produced by a research agent (Perplexity, custom GPT, or n8n) and then mapped 1:1 into the Airtable fields above. Every leaf node in this JSON maps directly to a corresponding field.
+**Purpose**: Track all people connected to opportunities, including recruiters, hiring managers, stakeholders, and networking allies.
 
-### ⚠️ CRITICAL: `jobMeta.job_id` (Record ID)
+**Fields**
 
-The **single source of truth** for linking a Research Brief to a Job is the **Airtable record ID** of the job in the Jobs Pipeline table.
+| Field Name | Type | Description | Required |
+|---|---|---|---|
+| **First Name** | Single line text | Contact's first name (Primary field) | Yes |
+| Last Name | Single line text | Contact's last name | No |
+| Full Name | Formula | Computed full name (First + Last) | No |
+| Role / Title | Single line text | Contact's job title | No |
+| Company | Link to record | Links to Jobs Pipeline (job-specific relationship) | No |
+| Companies | Link to record | Links to Companies table (company-level relationship) | No |
+| Email | Single line text | Contact's email address | No |
+| LinkedIn URL | Single line text | Contact's LinkedIn profile URL | No |
+| Phone / WhatsApp | Phone number | Contact's phone number | No |
+| Contact Type | Single select | Type of contact relationship | No |
+| Status | Single select | Current engagement status | No |
+| Last Outreach Date | Date | When last outreach was made | No |
+| Next Follow-Up Date | Date | When to follow up next | No |
+| Follow-Up Interval (Days) | Number (Integer) | Days between follow-ups | No |
+| Contacted Via | Multiple select | Channels used to contact | No |
+| Relationship Strength | Rating (5 stars) | Strength of relationship | No |
+| Introduced By | Single line text | Who made the introduction | No |
+| Hiring Influence Level | Single select | Level of hiring influence | No |
+| Next Task / Action | Single line text | Next action item for this contact | No |
+| Generated Assets | Link to records | Links to Generated Assets | No |
+| Outreach Log | Link to records | Links to Outreach Log | No |
+| Days Since Last Outreach | Formula (Number) | Calculated days since last contact | No |
+| Next Follow-Up Trigger | Formula | Automation trigger for follow-up | No |
+| Relationship Age | Formula (Number) | Days since contact was created | No |
+| Created Time | Formula (Date) | When contact was created (`CREATED_TIME()`) | Yes |
+| Last Modified | Formula (Date) | When contact was last modified (`LAST_MODIFIED_TIME()`) | Yes |
 
-- This ID is **not** a visible column; it is the internal Airtable record identifier.
-- It is always of the form `recXXXXXXXXXXXXXX` (starts with `rec`).
-- It appears in the job URL when opened in Airtable:
-  - `https://airtable.com/appHFrk9vapCY39F1/tblcY5odzvocdPMc6/viw30RRl4XRp2ogXg/recOSOd4PiXiNr3Mq?blocks=hide`
-- The `job` link field in Research Briefs **must** receive this value in the API payload:
-  - `"job": ["recOSOd4PiXiNr3Mq"]`
+**Contact Type options**
+- Recruiter (Agency)
+- Recruiter (In-House)
+- Executive Search Partner
+- Hiring Manager
+- Stakeholder / Influencer
+- Networking / Ally
 
-Therefore:
+**Status options**
+- Active Outreach
+- Replied
+- Scheduled Call
+- Inactive / Not Engaged
+- Long-Term Relationship
+- Do Not Contact
 
-**`jobMeta.job_id` in the Research JSON must always equal the Airtable record ID of the job in Jobs Pipeline.**
+**Contacted Via options**
+- LinkedIn DM
+- Email
+- Phone
+- Referral Intro
+- Other
 
-### Workflow: How to Ensure `jobMeta.job_id` is Correct
+**Hiring Influence Level options**
+- Decision Maker
+- Gatekeeper
+- Influencer
+- Referrer
 
-This is the **Option 2** fully-automated linking workflow.
+---
 
-#### Step 1: Capture Job into Jobs Pipeline
+### TABLE 5: Companies
 
-- Use your Chrome extension / capture flow to create a job record in Jobs Pipeline.
-- That record is now the **source of truth** for this job.
-- Open the record in Airtable and copy the record ID from the URL (the `rec...` part).
+**Purpose**: Store company-level info separate from individual job listings, so multiple roles at the same company roll up cleanly.
 
-Example:
+**Fields**
 
-- Job Title: `Head of RevOps + Growth Infrastructure`  
-- Company Name: `TalentLayer`  
-- Airtable URL:  
-  `https://airtable.com/appHFrk9vapCY39F1/tblcY5odzvocdPMc6/viw30RRl4XRp2ogXg/recOSOd4PiXiNr3Mq?blocks=hide`  
-- Record ID (what you need): `recOSOd4PiXiNr3Mq`
+| Field Name | Type | Description | Required |
+|---|---|---|---|
+| **Company Name** | Single line text | Company name (Primary field) | Yes |
+| Website | Single line text | Company website URL | No |
+| LinkedIn URL | Single line text | Company LinkedIn page URL | No |
+| Industry | Single line text | Company's industry | No |
+| Location | Single line text | Company headquarters location | No |
+| Size | Single select | Company size by headcount | No |
+| Type | Single select | Company type/stage | No |
+| Total Employees | Number (Decimal) | Exact employee count | No |
+| Growth | Number (Percent) | Employee growth rate | No |
+| Median Employee Tenure | Number (Decimal) | Median tenure in years | No |
+| Company Description | Long text | Description of the company | No |
+| Company Overview (AI) | AI text (on-demand) | AI-generated company overview | No |
+| Notes | Long text | Additional notes | No |
+| Job Listings | Link to records | Links to Jobs Pipeline | No |
+| Contacts | Link to records | Links to Contacts | No |
+| Created Time | Formula (Date) | When record was created (`CREATED_TIME()`) | Yes |
+| Last Modified Time | Formula (Date) | When record was last modified (`LAST_MODIFIED_TIME()`) | Yes |
 
-#### Step 2: Pass Record ID into Perplexity
+**Size options**
+- 1-10, 11-50, 51-200, 201-500, 501-1000, 1001-5000, 5001-10000, 10000+
 
-When you ask Perplexity (or any research agent) to generate Research JSON, you must provide:
+**Type options**
+- Startup, SMB, Enterprise, Nonprofit, Agency, Other
 
-- The job details (job title, company name, job URL, etc.)
-- The **Airtable record ID** for this job
+---
 
-Example instruction to Perplexity:
+### TABLE 6: Outreach Log
 
-Research this job and produce Research JSON that includes this Airtable record ID:
+**Purpose**: Track all outreach activities, including messages sent, replies received, and status.
 
-Airtable Record ID: recOSOd4PiXiNr3Mq
-Job Title: Head of RevOps + Growth Infrastructure
-Company: TalentLayer
-Job URL: https://www.linkedin.com/jobs/view/12345/
+**Fields**
 
-[Paste full job description here]
+| Field Name | Type | Description | Required |
+|---|---|---|---|
+| Outreach ID | Autonumber | Primary key | Yes |
+| Contact | Link to record | Links to Contacts table | Yes |
+| Company | Link to record | Links to Jobs Pipeline (job context) | No |
+| First Name | Lookup (from Contact) | Contact's first name | No |
+| Role / Title | Lookup (from Contact) | Contact's job title | No |
+| Email | Lookup (from Contact) | Contact's email | No |
+| LinkedIn URL | Lookup (from Contact) | Contact's LinkedIn URL | No |
+| Phone / WhatsApp | Lookup (from Contact) | Contact's phone number | No |
+| Last Outreach Date | Lookup (from Contact) | Last outreach date from contact record | No |
+| Outreach Channel | Single select | Channel used for outreach | No |
+| Outreach Status | Single select | Current status of outreach | No |
+| Outreach Message | Long text | Content of the outreach message | No |
+| Sent Date | Date | When message was sent | No |
+| Response Date | Date | When response was received | No |
+| Response | Long text | Content of the response | No |
+| Make First Contact | Button | Opens LinkedIn URL with record ID params | No |
+| Created Time | Formula (Date) | When record was created (`CREATED_TIME()`) | Yes |
+| Last Modified | Formula (Date) | When record was last modified (`LAST_MODIFIED_TIME()`) | Yes |
 
-text
+**Outreach Channel options**
+- LinkedIn
+- Email
 
-Perplexity must then:
+**Outreach Status options**
+- Drafted
+- Sent
+- Replied
 
-- Use the **exact value** `recOSOd4PiXiNr3Mq` in `jobMeta.job_id`
-- Never invent or change a record ID
-- Never guess or generate IDs that are not provided
+---
 
-Add this to any Research JSON–generation prompt:
+### TABLE 7: Measurement
 
-> - `jobMeta.job_id` MUST be set to the exact Airtable Record ID provided by the user (string starting with `rec`).  
-> - Never guess or fabricate record IDs. If none is provided, ask explicitly.
+**Purpose**: Track job search performance metrics and learnings on a daily basis to use for advanced BI.
 
-#### Step 3: Research JSON Shape (with Correct ID)
+**Fields**
 
-Example structure:
+| Field Name | Type | Description | Required |
+|---|---|---|---|
+| **Date** | Date | Date logged (Primary field) | Yes |
+| Week | Single line text | Week | Yes |
+| Month | Single line text | Month name | Yes |
+| Year | Number (Integer) | Year | Yes |
+| Applications Sent | Number (Integer) | Total applications submitted | No |
+| Responses Received | Number (Integer) | Total responses received | No |
+| Response Rate | Number (Percent) | Response rate (0–100%) | No |
+| Phone Screens | Number (Integer) | Number of phone screens | No |
+| Interviews | Number (Integer) | Number of interviews | No |
+| Offers | Number (Integer) | Number of offers received | No |
+| Avg Days to Response | Number (Integer) | Avg days to response | No |
+| Avg Quality Score | Number (Integer) | Avg quality score of applications | No |
+| Application to Response Rate | Number (Percent) | Conversion: application → response | No |
+| Response to Interview Rate | Number (Percent) | Conversion: response → interview | No |
+| Interview to Offer Rate | Number (Percent) | Conversion: interview → offer | No |
+| Lessons Learned | Long text | Key learnings from the month | No |
 
+---
+
+## RESEARCH JSON CONTRACT (FOR AI AGENTS)
+
+The Research Briefs table is populated from a **Research JSON** object produced by a research agent (Perplexity/custom GPT/n8n) and mapped into Airtable fields.
+
+### CRITICAL: Linking uses Airtable record IDs (`rec...`)
+
+The single source of truth for linking a Research Brief to a Job is the **Airtable record ID** of the job in the Jobs Pipeline table.
+
+- Appears in Airtable record URL as the `rec...` segment
+- The `job` link field in Research Briefs must receive this value in an array:
+  - `"job": ["recXXXXXXXXXXXXXX"]`
+
+### Recommended Research JSON shape (v3)
+
+```json
 {
-"jobMeta": {
-"job_id": "recOSOd4PiXiNr3Mq",
-"job_title": "Head of RevOps + Growth Infrastructure",
-"company_name": "TalentLayer",
-"job_url": "https://www.linkedin.com/jobs/view/12345/",
-"source": "LinkedIn",
-"location": "Remote",
-"workplace_type": "Remote",
-"employment_type": "Full-time",
-"salary_range": "$150,000 - $200,000",
-"equity_mentioned": true,
-"seniority": "Director/VP level"
-},
-
-"fitAssessment": {
-"fit_label": "pursue",
-"fit_score": 47,
-"fit_summary": "High-growth SaaS company with clear Series B inflection point, seeking RevOps and GTM infrastructure maturity—ideal match for Matt's Mechanic profile.",
-"reasons_to_pursue": [
-"Series B with $20M+ ARR and recent $25M raise signals growth momentum",
-"Painfully manual GTM systems—Matt's RevOps architecture skills are highly relevant",
-"Direct CEO visibility and mandate for growth efficiency",
-"ICP matches Matt's past verticals (HR tech, B2B SaaS, marketplaces)"
-],
-"risks_or_flags": [
-"No clear RevOps head—might signal early GTM chaos",
-"Velocity over precision culture may misalign with Matt's perfectionist systems style"
-]
-},
-
-"researchBrief": {
-"company_overview": {
-"company_summary": "TalentLayer is a Series B HR-tech platform ($20–25M ARR) enabling companies to hire verified freelancers across global marketplaces via API and shared identity graphs. Recently raised $25M Series B led by a16z.",
-"stage": "Series B",
-"revenue_range": "$20M–$25M ARR",
-"funding": "$25M Series B (2025, a16z)",
-"headcount": "80–120",
-"products_services": "TalentLayer Core (freelancer identity protocol), Hiring API, integrations with Upwork, Toptal, Deel, and others",
-"revenue_model": "Usage-based SaaS (per-hire + monthly API access)",
-"gtm_motion": "Product-led + BD hybrid; API-first distribution via marketplace partners",
-"mission": "Create an open talent economy by unifying freelance identity and access across platforms",
-"vision": "A unified global labor graph that removes friction from hiring the best talent anywhere",
-"icp_summary": "Mid-market and enterprise companies hiring technical contractors; HR-tech platforms and marketplaces seeking freelancer verification",
-"reported_cac": "Unknown; not publicly disclosed.",
-"estimated_cac_range": "Estimated CAC: $500–$1500 based on enterprise sales motion with 3–6 month cycles."
-},
-
-text
-"role_analysis": {
-  "role_summary": "Head of RevOps + Growth Infrastructure: Own the full GTM stack—CRM, attribution, dashboards, billing logic, sales enablement, lifecycle automations.",
-  "role_requirements": [
-    "Architect RevOps infrastructure (HubSpot, Segment, Metabase, Chargebee)",
-    "Stand up attribution model for marketing",
-    "Automate lifecycle comms",
-    "Create reporting for CEO visibility",
-    "Integrate with API billing + usage data",
-    "Build GTM playbooks across CS, Sales, Marketing"
-  ],
-  "team_structure": "Reports to CEO; dotted line to Head of Sales. Team includes 2 SDRs, 1 lifecycle marketer, 1 ops analyst.",
-  "success_metrics": [
-    "Reduce CAC by 30% in 2 quarters",
-    "Increase demo-to-close from 12% → 20%",
-    "Launch lifecycle flows for reactivation (target: $1M ARR lift)",
-    "Stand up exec dashboard with 100% data completeness"
-  ],
-  "pain_points": [
-    "Disconnected tools (HubSpot + Segment + Chargebee + Metabase) = broken data flow",
-    "No attribution = inefficient spend",
-    "Lifecycle emails entirely manual",
-    "No GTM playbooks = team inconsistencies"
-  ],
-  "inflection_point": "Post-Series B pressure to grow efficiently; must prove CAC payback and retention before Series C."
-},
-
-"market_context": {
-  "market_summary": "HR-tech market growing 14% YoY; shift to freelance/contractor workforce accelerating post-COVID; demand for API-native infrastructure up.",
-  "industry_trends": [
-    "Rise of API-native HR platforms",
-    "Cross-platform identity standardization",
-    "Embedded hiring in SaaS products"
-  ],
-  "growth_signals": [
-    "Series B with top-tier VC",
-    "4 recent GTM hires on LinkedIn",
-    "Job posts for data/RevOps roles",
-    "Website traffic up 40% YoY (SimilarWeb)"
-  ],
-  "competitive_threats": [
-    "Deel and Oyster building overlapping infrastructure",
-    "Upwork investing in own identity layer",
-    "Winner likely to be embedded across platforms—winner-take-most dynamics"
-  ]
-},
-
-"hiring_manager_intel": {
-  "hiring_manager_intel_summary": "CEO Josh Yang is hiring. Background in growth-stage startups (ex-Stripe, ex-Airbnb). Values data visibility and systems-thinking. Wants builder, not just operator. Decision style: data-driven, collaborative, values speed + precision balance.",
-  "hiring_manager_name": "Josh Yang",
-  "hiring_manager_title": "CEO",
-  "hiring_manager_priority": "Growth efficiency, investor reporting, hiring system-builder, data visibility for board",
-  "hiring_manager_decision_gate": "Final hire approval; will interview directly; values execution + systems thinking + cultural fit",
-  "stakeholders": [
-    {
-      "stakeholder_name": "Lena Morales",
-      "stakeholder_title": "Head of Sales",
-      "stakeholder_priority": "Enablement systems, cleaner attribution, better close rates, pipeline visibility",
-      "stakeholder_decision_gate": "Key influencer; wants RevOps support fast; will interview and provide input on hire"
+  "jobMeta": {
+    "job_id": "recXXXXXXXXXXXXXX",
+    "job_title": "VP of Growth",
+    "company_name": "TechCorp",
+    "company_page": "https://linkedin.com/company/techcorp",
+    "job_url": "https://linkedin.com/jobs/...",
+    "source": "LinkedIn",
+    "location": "Remote",
+    "workplace_type": "Remote",
+    "employment_type": "Full-time",
+    "salary_min": 180000,
+    "salary_max": 220000,
+    "equity_mentioned": true,
+    "bonus_mentioned": false,
+    "benefits": ["Medical insurance", "401k", "PTO"]
+  },
+  "fitAssessment": {
+    "fit_label": "pursue",
+    "fit_score": 47,
+    "fit_summary": "…",
+    "reasons_to_pursue": ["…"],
+    "risks_or_flags": ["…"]
+  },
+  "researchBrief": {
+    "company_overview": {
+      "company_summary": "…",
+      "stage": "Series B",
+      "revenue_range": "$20–30M ARR",
+      "funding": "…",
+      "headcount": "…",
+      "products_services": "…",
+      "revenue_model": "SaaS",
+      "gtm_motion": "…",
+      "mission": "…",
+      "vision": "…",
+      "icp_summary": "…",
+      "reported_cac": "…",
+      "estimated_cac_range": "…"
     },
-    {
-      "stakeholder_name": "Unknown (VP Product or CTO, if exists)",
-      "stakeholder_title": "VP Product",
-      "stakeholder_priority": "Product analytics integration, usage data visibility, API billing accuracy",
-      "stakeholder_decision_gate": "Likely interview; wants RevOps to bridge product + GTM data"
+    "role_analysis": {
+      "role_summary": "…",
+      "role_requirements": ["…"],
+      "team_structure": "…",
+      "success_metrics": ["…"],
+      "pain_points": ["…"],
+      "inflection_point": "…"
     },
-    {
-      "stakeholder_name": "Unknown (CFO or Finance Lead, if exists)",
-      "stakeholder_title": "CFO",
-      "stakeholder_priority": "Budget control, ROI justification, financial forecasting, comp approval for senior hires >$200k",
-      "stakeholder_decision_gate": "Budget approval for roles >$200k total comp; will review financial projections and CAC payback"
-    }
-  ],
-  "hiring_priorities": [
-    "Data clarity (dashboards, attribution)",
-    "Scalable GTM systems",
-    "Fast onboarding and enablement",
-    "Lifecycle automation to lift expansion revenue",
-    "Cross-functional alignment (sales + product + finance)"
-  ]
-},
-
-"strategic_positioning_for_matt": {
-  "strategic_positioning_summary": "Matt = systems architect who thrives in chaos and makes data flow. Replaces duct tape with infrastructure. Can prove ROI to CEO fast. Perfect fit for post-Series B company needing RevOps maturity.",
-  "best_angle": "RevOps infrastructure builder who's scaled exactly this stack (Segment, Metabase, Chargebee, HubSpot) before—can get data flowing and CAC down fast. Proven track record of reducing CAC 30% in 60 days.",
-  "proof_points": [
-    "Built $45M RevOps engine at Prosper (Segment + Metabase)",
-    "Cut CAC 30% in 60 days at Affordable Insurance",
-    "Deployed end-to-end funnel visibility + dashboards",
-    "Replaced duct-taped tools with automated OS at HireHawk"
-  ],
-  "quick_win_opportunities": [
-    "Audit data flow Week 1, present fixes by Week 2",
-    "Launch 2 lifecycle flows = $500K ARR lift in Month 2–3",
-    "Build first exec dashboard (CAC, funnel, retention) in 30 days"
-  ],
-  "risks_to_address": [
-    "Misalignment on speed vs. precision—clarify expectations in interviews",
-    "Early-stage chaos could distract from infra build—get CEO commitment to protect build time",
-    "Need to set expectations around what's possible in 90 days (no miracles, but clear ROI)"
-  ]
-},
-
-"key_insights": [
-  "CEO wants RevOps maturity but hasn't hired a lead before—opportunity to define the role",
-  "Data exists but doesn't flow—huge leverage point for Matt's skills",
-  "Lifecycle = untapped revenue; email infra is there but unused",
-  "Attribution and dashboards = top priority for leadership and board reporting"
-],
-
-"research_sources": [
-  "https://www.crunchbase.com/organization/talentlayer",
-  "https://www.linkedin.com/company/talentlayer/",
-  "https://a16z.com/portfolio/talentlayer/",
-  "https://www.linkedin.com/jobs/view/12345/"
-],
-
-"quality_score": 47
+    "market_context": {
+      "market_summary": "…",
+      "industry_trends": ["…"],
+      "growth_signals": ["…"],
+      "competitive_threats": ["…"]
+    },
+    "hiring_manager_intel": {
+      "hiring_manager_intel_summary": "…",
+      "hiring_manager_name": "…",
+      "hiring_manager_title": "…",
+      "hiring_manager_priority": "…",
+      "hiring_manager_decision_gate": "…",
+      "stakeholders": [
+        {
+          "stakeholder_name": "…",
+          "stakeholder_title": "…",
+          "stakeholder_priority": "…",
+          "stakeholder_decision_gate": "…"
+        }
+      ],
+      "hiring_priorities": ["…"]
+    },
+    "strategic_positioning_for_matt": {
+      "strategic_positioning_summary": "…",
+      "best_angle": "…",
+      "proof_points": ["…"],
+      "quick_win_opportunities": ["…"],
+      "risks_to_address": ["…"]
+    },
+    "key_insights": ["…"],
+    "research_sources": ["https://…"],
+    "quality_score": 45
+  }
 }
-}
+```
 
-text
+### Field mapping: Research JSON → Research Briefs
 
-### Field Mapping
-
-Every leaf node in the JSON above maps 1:1 to the corresponding Airtable field in Research Briefs:
-
-- `jobMeta.job_id` → `job` (link field) **MUST BE VALID EXISTING JOB RECORD ID (`rec...`)**
+- `jobMeta.job_id` → `job` (link field, array containing a job `rec...` ID)
 - `jobMeta.job_title` → `job_title` (lookup, read-only)
 - `jobMeta.company_name` → `company_name` (lookup, read-only)
 - `fitAssessment.fit_label` → `fit_label`
@@ -466,86 +547,66 @@ Every leaf node in the JSON above maps 1:1 to the corresponding Airtable field i
 - `researchBrief.hiring_manager_intel.hiring_manager_title` → `hiring_manager_title`
 - `researchBrief.hiring_manager_intel.hiring_manager_priority` → `hiring_manager_priority`
 - `researchBrief.hiring_manager_intel.hiring_manager_decision_gate` → `hiring_manager_decision_gate`
-- `researchBrief.hiring_manager_intel.stakeholders[0].stakeholder_name` → `stakeholder_1_name`
-- `researchBrief.hiring_manager_intel.stakeholders[0].stakeholder_title` → `stakeholder_1_title`
-- `researchBrief.hiring_manager_intel.stakeholders[0].stakeholder_priority` → `stakeholder_1_priority`
-- `researchBrief.hiring_manager_intel.stakeholders[0].stakeholder_decision_gate` → `stakeholder_1_decision_gate`
-- `researchBrief.hiring_manager_intel.stakeholders[1].stakeholder_name` → `stakeholder_2_name`
-- `researchBrief.hiring_manager_intel.stakeholders[1].stakeholder_title` → `stakeholder_2_title`
-- `researchBrief.hiring_manager_intel.stakeholders[1].stakeholder_priority` → `stakeholder_2_priority`
-- `researchBrief.hiring_manager_intel.stakeholders[1].stakeholder_decision_gate` → `stakeholder_2_decision_gate`
-- `researchBrief.hiring_manager_intel.stakeholders[2].stakeholder_name` → `stakeholder_3_name`
-- `researchBrief.hiring_manager_intel.stakeholders[2].stakeholder_title` → `stakeholder_3_title`
-- `researchBrief.hiring_manager_intel.stakeholders[2].stakeholder_priority` → `stakeholder_3_priority`
-- `researchBrief.hiring_manager_intel.stakeholders[2].stakeholder_decision_gate` → `stakeholder_3_decision_gate`
+- `researchBrief.hiring_manager_intel.stakeholders[0]` → stakeholder_1_* fields
+- `researchBrief.hiring_manager_intel.stakeholders[1]` → stakeholder_2_* fields
+- `researchBrief.hiring_manager_intel.stakeholders[2]` → stakeholder_3_* fields
 - `researchBrief.hiring_manager_intel.hiring_priorities[]` → `hiring_priorities` (bullet-separated)
-- `researchBrief.strategic_positioning_for_matt.strategic_positioning_summary` → `strategic_positioning_summary`
-- `researchBrief.strategic_positioning_for_matt.best_angle` → `best_angle`
-- `researchBrief.strategic_positioning_for_matt.proof_points[]` → `proof_points` (bullet-separated)
-- `researchBrief.strategic_positioning_for_matt.quick_win_opportunities[]` → `quick_win_opportunities` (bullet-separated)
-- `researchBrief.strategic_positioning_for_matt.risks_to_address[]` → `risks_to_address` (bullet-separated)
+- `researchBrief.strategic_positioning_for_matt.*` → strategic positioning fields
 - `researchBrief.key_insights[]` → `key_insights` (bullet-separated)
-- `researchBrief.research_sources[]` → `research_sources` (URL-separated)
+- `researchBrief.research_sources[]` → `research_sources` (newline-separated URLs)
 - `researchBrief.quality_score` → `quality_score`
 
----
+### Optional propagation: Research → Jobs Pipeline
 
-## Integration Points
-
-### Data Flow
-
-1. **Capture**  
-   - Job is discovered and created in Jobs Pipeline table via capture flow.  
-   - Airtable assigns an internal record ID (`rec…`).
-
-2. **Research (Perplexity)**  
-   - You copy the Airtable record ID from the job URL.  
-   - You pass this record ID into Perplexity along with the job description.  
-   - Perplexity outputs Research JSON where:
-     - `jobMeta.job_id` = that exact record ID.
-
-3. **Persist Research (Custom GPT)**  
-   - You paste the Research JSON into your custom GPT.  
-   - The GPT:
-     - Parses `jobMeta.job_id`  
-     - Calls `write_research_brief` with `"job": ["<jobMeta.job_id>"]` in the `fields.job` array  
-     - All other fields are mapped according to the Field Mapping above.  
-   - Result: Research Brief is created and **linked directly** to the pre-existing job.
-
-4. **Asset Generation**  
-   - Custom GPT calls `fetch_context` using the job record ID filter: `{job} = 'recXXXXXXXXXXXXXX'`.  
-   - GPT uses the Research Brief to generate assets.  
-   - GPT calls `write_generated_asset` with:
-     - `job` = `["recXXXXXXXXXXXXXX"]`  
-     - `asset_type`, `asset_title`, `content`, `quality_score`, etc.
-
-5. **Automation**  
-   - Airtable automations or n8n listen for:
-     - New Research Briefs  
-     - New Generated Assets  
-     - Status changes (e.g., `Captured` → `Researched` → `Applied`)  
-   - They can trigger secondary workflows (Google Drive export, email, calendar blocks, etc.).
-
-### Custom Actions (Contract Expectations)
-
-- **write_research_brief**  
-  - Expects JSON body with `records[0].fields` including:
-    - `job`: `["recXXXXXXXXXXXXXX"]` (derived from `jobMeta.job_id`)  
-    - All required research fields (fit, summaries, etc.).  
-  - If `job` refers to a non-existent record, Airtable returns `ROW_DOES_NOT_EXIST`.
-
-- **fetch_context**  
-  - Expects `filterByFormula` built with the job ID:
-    - Example: `{job} = 'recOSOd4PiXiNr3Mq'`.
-
-- **write_generated_asset**  
-  - Expects `job`: `["recXXXXXXXXXXXXXX"]`, aligning assets to the same job record.
+To reduce context switching, it can be valuable to write a small subset of research outputs back to the job record:
+- `fitAssessment.fit_label` → Jobs Pipeline `Status` remains manual (do not overwrite)
+- `fitAssessment.fit_score` → Jobs Pipeline `Overall Fit Score` (optional: store `fit_score * 2` if Jobs uses 0–100)
+- `Fit Recommendation` can be derived from Overall Fit Score using a simple mapping (e.g., ≥85 STRONG FIT, ≥75 GOOD FIT, etc.)
 
 ---
 
-## Scaling & Maintenance
+## INTEGRATION POINTS
 
-- **Current capacity**: 1,200 records/base on free tier. At 5–10 jobs/week, this supports ~4–8 months of active use.  
-- **When to upgrade**: Upgrade to Airtable Plus ($10/user/month) for 5,000 records/base.  
-- **Backups**: Export Research Briefs and Generated Assets as CSV monthly and store in Google Drive.  
-- **Views refresh**: Review filters quarterly as new patterns emerge.
+### Data flow
+
+1. **Capture**
+   - Create a Job record in Jobs Pipeline.
+   - (Optional) Create/attach Company record in Companies.
+   - (Optional) Create/attach early Contacts (recruiter, hiring manager) if known.
+
+2. **Research**
+   - Provide the Airtable Job record ID (`rec...`) + job description to the research agent.
+   - Create a Research Brief linked to the Job (`job` field = `["rec..."]`).
+
+3. **Asset generation**
+   - Fetch context via the job record ID.
+   - Generate assets and create Generated Assets records linked to the Job.
+   - If an asset is meant for a specific contact (outreach message), link `Contact First Name`.
+
+4. **Outreach + follow-up**
+   - Log outreach attempts in Outreach Log linked to the Contact (and optionally the Job).
+   - Update Contact: `Last Outreach Date`, `Next Follow-Up Date`, and `Status`.
+
+5. **Outcome tracking**
+   - Update Jobs Pipeline dates (Applied/Interview/Offer/Rejected) as reality changes.
+
+6. **Monthly learning**
+   - Update Monthly Analytics with rollups and lessons.
+
+### Guardrails (prevents schema breakage)
+
+- Never send Airtable fields that do not exist (example: **no “Asset Title” field** in Generated Assets).
+- Link fields must always be arrays of Airtable record IDs (e.g., `"job": ["rec..."]`).
+- Lookup + formula fields are read-only. Do not attempt to write to them.
+
+---
+
+## SCALING & MAINTENANCE
+
+- **Backups**: Export Research Briefs + Generated Assets + Outreach Log monthly (CSV) and store in Drive.
+- **Schema change rule**: Any Airtable field rename must be mirrored in:
+  - Custom GPT action schemas (OpenAPI)
+  - n8n mapping nodes
+  - This document
+- **Upgrade trigger**: Upgrade when record count approaches 70–80% of plan limit, or when multi-base separation becomes necessary.
+

@@ -1,327 +1,195 @@
-# Interview Prep Prompt
+<!--
+==========================================================
+FACTUAL DATA LOCK — MATT DIMOCK (AUTHORITATIVE SOURCE)
+==========================================================
+GENERAL RULES
+1. All role titles, locations, and dates are factual and locked.
+   Never infer, reword, or upscale titles (e.g., "Head of," "VP," "Director")
+   beyond the verified source below.
+2. All employment periods are factual to the month and year listed.
+3. All outcomes, metrics, and achievements must remain truthful to baseline resume data.
+4. Replace all em dashes (—) with commas (,) or vertical bars (|).
+5. When uncertain about any data, HALT and request user confirmation. Never assume.
+ROLE HISTORY (VERIFIED)
+----------------------------------------------------------
+Prosper Wireless = Director of Growth & Retention
+Location = Remote
+Dates = September 2023 to November 2025
+AffordableInsuranceQuotes.com = Chief Marketing Officer
+Location = Nashville, TN
+Dates = June 2020 to December 2021
+Breakthrough Academy = Marketing Operations Manager
+Location = Vancouver, BC
+Dates = August 2019 to June 2021
+Bob's Watches = Director of Marketing
+Location = Orange County, CA
+Dates = January 2017 to December 2018
+Get Fractional = Owner
+Location = Remote
+Dates = October 2022 to Present
+Dealer Acceleration Group = Founder & CRO
+Location = Remote
+Dates = January 2022 to December 2022
+SkyfineUSA = Fractional CMO
+Location = Remote
+Dates = January 2019 to August 2019
+Swell Marketing = SEO Director
+Location = Remote
+Dates = February 2016 to June 2016
+iMarket Solutions = SEO Manager
+Location = Remote
+Dates = May 2013 to January 2016
+National Positions = SEO Specialist & Director of Special Projects
+Location = Remote
+Dates = September 2007 to May 2013
+----------------------------------------------------------
+EDUCATION
+University of Central Florida = B.A. in Business Administration, Marketing
+MANDATE
+All generated content (assets, briefs, or memos) must adhere 100% to these facts.
+Never introduce speculative data, altered role names, or unverified timeframes.
+==========================================================
+-->
 
-> **Reference**: This prompt follows `/docs/Asset-Generation-Template.md` structure.
+# Interview Prep Pack Prompt (Job Filter)
 
-## 📌 PURPOSE
-Generate interview preparation materials including STAR stories, objection handling, and strategic questions to demonstrate Matt's readiness and depth.
+> Reference: This prompt follows `Asset-Generation-Template.md` output rules.
 
-**When Used**: After research brief is complete (ideally before interview invite)  
-**Input**: Research brief + Matt's profile + job description  
-**Output**: 3 STAR stories + 3 objection responses + 5 strategic questions  
-**Success Metric**: Matt feels confident and prepared for any question in interview
-
----
-
-## 🧠 CORE PRINCIPLES
-
-### Principle 1: STAR Stories Must Mirror Their Challenges
-- **Definition**: Select stories that directly parallel THEIR current problems
-- **Why**: Shows pattern recognition, not just capability
-- **How**: Map research findings → Matt's past wins with similar context
-- **Example**: If they're struggling with CAC, tell story about Prosper CAC reduction (not random revenue win)
-- **Anti-Pattern**: Telling your "greatest hit" that's irrelevant to their situation
-- **Source**: Job-Hunter-OS-Strategic-Guidelines.md (Pattern Recognition section)
-
-### Principle 2: Objections Are Buying Signals
-- **Definition**: Pre-empt likely objections and reframe them as assets
-- **Why**: Shows self-awareness and addresses elephant in room
-- **How**: Identify 3 likely concerns, prepare honest + confident responses
-- **Example**: "You haven't been in role long" → "Correct - I move fast, learn quickly, and deliver results in months not years"
-- **Anti-Pattern**: Getting defensive or apologizing for gaps
-- **Source**: Reference-Rory-Psychologic.md (Reframing)
-
-### Principle 3: Questions Reveal Strategic Thinking
-- **Definition**: Your questions matter as much as your answers
-- **Why**: Questions show what you prioritize and how you think
-- **How**: Ask about their constraints, not just their goals
-- **Example**: "What's the #1 growth constraint keeping your CEO up at night?" (not "What's the culture like?")
-- **Anti-Pattern**: Generic questions you could ask any company
-- **Source**: Research brief (Strategic Positioning section)
-
-### Principle 4: Specificity Builds Credibility
-- **Definition**: Every story must have exact metrics and timeframes
-- **Why**: Vague stories sound fabricated, specific stories sound true
-- **How**: Use Alen's framework - drill down to "how specifically?"
-- **Example**: "Reduced CAC from $650 to $420 (-35%) over 8 weeks" (not "significantly improved efficiency")
-- **Anti-Pattern**: "We saw great results" or "things improved a lot"
-- **Source**: Reference-Alen-Ascension-Specificity.md
-
----
-
-## ⚙️ TACTICAL RULES
-
-### Rule 1: STAR Story Structure
-**Situation** (30 sec): Company context, market, team, problem  
-**Task** (20 sec): Your specific role/responsibility  
-**Action** (60 sec): Exact steps YOU took (emphasize "I" not "we")  
-**Result** (30 sec): Quantified outcome + business impact  
-
-Total: 2-3 minutes per story
-
-### Rule 2: Story Selection Criteria
-- **Story 1**: Mirrors their #1 challenge (from research)
-- **Story 2**: Shows leadership/team building (if managing team)
-- **Story 3**: Shows Matt's "Mechanic" approach (infrastructure/systems)
-
-### Rule 3: Objection Response Framework
-**Acknowledge** → **Reframe** → **Prove**
-
-Example:
-- Acknowledge: "You're right, I've only been in this role 18 months"
-- Reframe: "That's because I deliver results quickly - I don't need 3 years to make impact"
-- Prove: "At Prosper, I scaled revenue 120% in 18 months, faster than my predecessor did in 3 years"
-
-### Rule 4: Question Types to Prepare
-- **1-2 Strategic** (CEO-level concerns)
-- **1-2 Tactical** (Your role's day-to-day)
-- **1 Risk** (What could go wrong? How are you thinking about it?)
-
-### Rule 5: Interview Close Technique
-After answering their questions, ask:
-"Based on our conversation, do you have any concerns about my fit for this role?"
-→ Surfaces hidden objections you can address immediately
+## PURPOSE
+Create a comprehensive interview prep pack that increases close rate by giving Matt:
+- A crisp narrative
+- A strategy thesis
+- A story bank with proof
+- A 30/60/90 operating view
+- Objection handling
+- Smart questions to ask
+- Compensation negotiation prep
 
 ---
 
-## 📋 INTERVIEW PREP TEMPLATE
-```markdown
-# Interview Prep: [ROLE TITLE] at [COMPANY]
-
-## SECTION 1: STAR STORIES
-
-### STORY 1: [Title - Maps to Their Challenge #1]
-**Context:** This mirrors their current challenge with [specific issue from research]
-
-**Situation (30 sec):**
-[Company name] was [stage/size]. [Market context]. [Team structure]. [Problem we faced that parallels their situation].
-
-**Task (20 sec):**
-I was responsible for [specific role]. My goal was to [specific objective with metric].
-
-**Action (60 sec):**
-Here's exactly what I did:
-- Week 1-2: [Specific action]
-- Week 3-4: [Specific action]
-- Month 2: [Specific action]
-Key tactic: [Most important thing you did]
-
-**Result (30 sec):**
-[Quantified outcome]: [Metric before] → [Metric after] ([% change]) in [timeframe].
-Business impact: [Revenue/cost/efficiency gain in $].
-
-**Why this worked:** [1 sentence explaining root cause success]
+## INPUTS (Required)
+- Research Brief (fetched by Job ID)
+- Job Description (explicit requirements checklist)
+- Matt-Dimock-Professional-Profile (canonical metrics/tools/scope/voice)
+- Annual Growth Plan output (Exec Memo, if available)
+- 90-Day Plan output (if available)
 
 ---
 
-### STORY 2: [Title - Leadership/Team Building]
-**Context:** Shows leadership capability for managing [team size from job description]
-
-**Situation:**
-[Company]. [Team you built/inherited]. [Challenge].
-
-**Task:**
-Build/scale team to [specific goal].
-
-**Action:**
-- Hired [# people] for [roles]
-- Implemented [process/system]
-- Developed [training/playbook]
-- Key insight: [What made this work]
-
-**Result:**
-Team grew from [X] to [Y] people. Output increased [metric]. Team retention: [%].
+## OUTPUT CONTRACT (HARD)
+- Format: structured prep pack with headings + bullets
+- Length: 1,200–2,000 words (ok to be longer than other assets, but keep it tight)
+- Final output: ONLY the prep pack (no meta, no rubric, no templates, no bracket placeholders)
+- Must include:
+  1) Role Thesis (1 paragraph)
+  2) “What I’d do first” (first 30 days, 6–10 bullets)
+  3) JD Must-Haves Map (requirement → proof)
+  4) Story Bank (6–10 stories)
+  5) Likely Questions + Winning Answers (10–15)
+  6) Objections & Responses (6–10)
+  7) Questions Matt Should Ask (10–15)
+  8) Take-Home / Case Study Outline (if relevant)
+  9) Compensation Strategy (anchoring + tradeoffs)
 
 ---
 
-### STORY 3: [Title - Infrastructure/Systems ("Mechanic" Differentiator)]
-**Context:** Demonstrates Matt's systems-thinking approach
-
-**Situation:**
-[Company] lacked [infrastructure]. Team was [manual/inefficient]. [Specific pain point].
-
-**Task:**
-Build scalable infrastructure to support [growth goal].
-
-**Action:**
-Architected [specific system]:
-- CRM: [Specific configuration]
-- Automation: [Specific workflow]
-- Dashboards: [Specific metrics]
-- Playbooks: [Specific documentation]
-
-**Result:**
-Enabled [outcome] without proportional headcount growth. [Efficiency metric]. Scaled [before → after].
-
-**Why this matters for them:** [Connection to their scaling challenge]
+## NON-HALLUCINATION RULES (HARD)
+- Never invent company metrics, budgets, headcount, margins, CAC, etc.
+- Only use factual proof points from Matt’s profile.
+- When a detail is unknown, label it as “validate” and propose how to validate.
+- JD must-haves must be covered in the map or flagged.
 
 ---
 
-## SECTION 2: OBJECTION HANDLING
+## PROCESS (DETERMINISTIC)
+### Step 1 — Extract JD Must-Haves
+Create a checklist of:
+- Channels, tools, responsibilities, seniority, leadership scope, expected outcomes
 
-### OBJECTION 1: [Most Likely Concern from Research]
-**Their concern:** "[Verbatim objection they might raise]"
+### Step 2 — Build Requirement → Proof Map
+For each must-have:
+- Evidence from Matt’s profile (Action → Method → Impact)
+- If missing, flag gap and propose mitigation strategy (without claiming it’s already true)
 
-**Your response (Acknowledge → Reframe → Prove):**
-"[Acknowledge the fact honestly]. [Reframe as asset, not liability]. [Prove with specific example from past]."
+### Step 3 — Build Story Bank
+Stories must be:
+- Situation → Constraint → Actions → Systems → Result → Lesson
+- Quantified only where proof exists
 
-**Follow-up if pushed:**
-[Deeper explanation with second proof point]
+### Step 4 — Build Objections and Q/A
+Make responses:
+- Direct, confident, non-fluffy
+- System-oriented
+- Tied back to the operating plan
 
----
-
-### OBJECTION 2: [Second Likely Concern]
-**Their concern:** "[Objection]"
-
-**Your response:**
-"[Acknowledge]. [Reframe]. [Prove]."
-
----
-
-### OBJECTION 3: [Third Likely Concern]
-**Their concern:** "[Objection]"
-
-**Your response:**
-"[Acknowledge]. [Reframe]. [Prove]."
-
----
-
-## SECTION 3: QUESTIONS FOR THEM
-
-### STRATEGIC QUESTIONS (Ask Leadership/Hiring Manager)
-
-**Q1: CEO-Level Constraint**
-"What's the #1 growth constraint keeping your CEO up at night right now?"
-
-*Why this matters:* Reveals true priority vs. what's in job description
+### Step 5 — Build Comp Strategy
+Create a negotiation approach:
+- anchor logic
+- defensible value narrative
+- tradeoffs (base/bonus/equity/title/remote/benefits)
 
 ---
 
-**Q2: Go-to-Market Evolution**
-"How are you thinking about [specific metric from research - e.g., CAC vs LTV] over the next 12-24 months?"
+## OUTPUT TEMPLATE (Use exactly; remove brackets in final output)
 
-*Why this matters:* Shows you understand their key metrics
+# INTERVIEW PREP PACK — [COMPANY NAME] — [ROLE TITLE]
 
----
+## ROLE THESIS
+[1 paragraph: what the company needs now + how Matt will deliver]
 
-### TACTICAL QUESTIONS (Ask Hiring Manager)
+## WHAT I’D DO FIRST (FIRST 30 DAYS)
+- [...]
+- [...]
 
-**Q3: Success Definition**
-"If I nail this role, what does success look like in Year 1? What specific metrics would you point to?"
+## JD MUST-HAVES MAP (REQUIREMENT → PROOF)
+- Requirement: [...]  
+  Proof: [Action → Method → Impact]  
+  Notes: [If a gap exists, state it and how you’ll de-risk it]
 
-*Why this matters:* Gets explicit success criteria
+## STORY BANK (USE THESE IN INTERVIEWS)
+1) Title: [...]
+   - Situation:
+   - Constraint:
+   - Actions (systems/tools):
+   - Result (metric if supported):
+   - Lesson:
+2) ...
 
----
+## LIKELY QUESTIONS + WINNING ANSWERS
+1) Question: [...]
+   Answer: [2–6 bullets, Action → Method → Impact]
+2) ...
 
-**Q4: Cross-Functional Dynamics**
-"How does this role interact with [Product/Sales/other key team]? What's the collaboration model?"
+## OBJECTIONS & RESPONSES
+- Objection: “[...]”
+  Response: [...]
 
-*Why this matters:* Reveals potential friction points
+## QUESTIONS MATT SHOULD ASK
+- About strategy:
+  - [...]
+- About operations:
+  - [...]
+- About measurement:
+  - [...]
+- About team:
+  - [...]
+- About success definition:
+  - [...]
 
----
+## TAKE-HOME / CASE STUDY OUTLINE (IF REQUESTED)
+- Assumptions (label as assumptions):
+- Key risks:
+- Plan (30/60/90):
+- Measurement:
+- Experiments:
+- What would change my mind:
 
-### RISK QUESTION
-
-**Q5: Decision Timeline**
-"What are your next steps in the process, and what's your timeline for making a decision?"
-
-*Why this matters:* Shows you're serious, helps you plan follow-up
-
----
-
-## SECTION 4: INTERVIEW CLOSE TECHNIQUE
-
-**After they finish their questions, ask:**
-
-"Based on our conversation today, do you have any concerns about my fit for this role that I can address?"
-
-**Why this works:**
-- Surfaces hidden objections
-- Shows confidence
-- Gives you chance to respond immediately
-- Prevents "post-interview regret" (wishing you'd addressed something)
-
-**If they say no concerns:**
-"Great! What are the next steps, and when can I expect to hear from you?"
-
-**If they raise concern:**
-Use objection handling framework → Acknowledge → Reframe → Prove
-
----
-
-## SECTION 5: PRE-INTERVIEW CHECKLIST
-
-**24 Hours Before:**
-- [ ] Re-read research brief
-- [ ] Review annual plan
-- [ ] Rehearse 3 STAR stories aloud
-- [ ] Prepare questions based on interviewer (CEO vs hiring manager)
-- [ ] Research interviewer on LinkedIn
-
-**1 Hour Before:**
-- [ ] Review company's latest news (Google: "[Company] news")
-- [ ] Read interviewer's recent LinkedIn posts
-- [ ] Review job description one more time
-- [ ] Test Zoom/tech setup
-
-**During Interview:**
-- [ ] Take notes (shows engagement)
-- [ ] Use exact terminology from job description
-- [ ] Reference research findings naturally
-- [ ] Ask for permission to ask questions before diving in
-
-**After Interview:**
-- [ ] Send thank-you email within 4 hours
-- [ ] Reference 1 specific topic discussed
-- [ ] Reiterate enthusiasm + fit
-- [ ] Clear next step or timeline
-```
-
----
-
-## 📊 SUCCESS METRICS
-
-Interview Prep Quality Scorecard (50 points):
-
-- [ ] **STAR Stories** (15 pts): 3 stories that directly mirror their challenges
-- [ ] **Story Specificity** (10 pts): Every story has exact metrics + timeframes
-- [ ] **Objections** (10 pts): Identifies 3 likely objections with strong reframes
-- [ ] **Strategic Questions** (10 pts): 5 questions showing deep thinking
-- [ ] **Close Technique** (5 pts): Includes framework for surfacing hidden concerns
-
-**Scoring**: 45+ = Ready to interview
-
----
-
-## 🚫 CONSTRAINTS & GUARDRAILS
-
-**DO:**
-✅ Select stories that mirror THEIR challenges  
-✅ Use exact metrics and timeframes in every story  
-✅ Pre-empt likely objections honestly  
-✅ Ask strategic questions (not generic culture questions)  
-✅ Use close technique to surface hidden concerns  
-✅ Emphasize "I" (what YOU did) not "we"  
-
-**DON'T:**
-❌ Tell generic "greatest hit" stories that don't match their needs  
-❌ Use vague language ("we improved things")  
-❌ Get defensive about objections  
-❌ Ask questions you could ask any company  
-❌ Skip the interview close technique  
-❌ Take credit for team work (say "I led team that..." not "team did...")  
-
-**FORBIDDEN IN STORIES:**
-- Vague metrics ("significantly improved")
-- Team credit without YOUR role ("We achieved...")
-- Missing timeframes ("Eventually we...")
-- Unquantified results ("Great success")
-
----
-
-## 🔗 CROSS-REFERENCES
-
-- **Depends on**: 10-Research-Company.md (identifies their challenges)
-- **Complements**: Matt-Dimock-Professional-Profile.md (source for stories)
-- **Used by**: Interview preparation (before phone screen/onsite)
-- **Triggers**: n8n workflow 06-Interview-Prep
-- **Source Frameworks**: STAR (Situation-Task-Action-Result), Rory (Reframing), Alen (Specificity)
+## COMPENSATION STRATEGY
+- Target comp thesis: [value narrative, non-hype]
+- Anchor: [range logic, what you can defend]
+- Tradeoffs:
+  - Base vs bonus
+  - Equity vs cash
+  - Title/scope vs comp
+  - Benefits/401k/childcare support vs cash
+- Close language (1–2 lines): [direct ask without fluff]

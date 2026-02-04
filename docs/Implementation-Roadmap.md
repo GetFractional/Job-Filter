@@ -1,4 +1,4 @@
-# Job Hunter OS - Implementation Roadmap
+# Job Filter - Implementation Roadmap
 
 **Version**: 1.1  
 **Purpose**: Task checklist organized by dependencies (not timeline)  
@@ -40,7 +40,7 @@
 
 #### Task 1.1: Create Airtable Base
 - [ ] Sign up for Airtable account (if needed)
-- [ ] Create new base: "Job Hunter OS"
+- [ ] Create new base: "Job Filter"
 - [ ] Create table: Jobs Pipeline
   - [ ] Add all 20 fields per `/docs/Data-Architecture.md`
   - [ ] Set correct field types (Single Line Text, URL, Number, etc.)
@@ -112,7 +112,7 @@
 ---
 
 #### Task 1.4: Set Up Google Drive Folder Structure
-- [ ] Create root folder: `/Job Hunter Assets/`
+- [ ] Create root folder: `/Job Filter Assets/`
 - [ ] Share folder with service account email (from n8n Google credential)
 - [ ] Test: Upload a test file via n8n
 - [ ] Verify file appears in Drive
@@ -132,7 +132,7 @@
 **Dependencies**: Phase 1 complete (Airtable API working)
 
 #### Task 2.1: Create Extension Project Structure
-- [ ] Create directory: `/src/extension/`
+- [ ] Use active extension directory: `/src/extension-v2-scoring/`
 - [ ] Create files:
   - [ ] `manifest.json`
   - [ ] `popup.html`
@@ -182,7 +182,7 @@
   - [ ] Salary (if present)
   - [ ] Job Description (full text)
   - [ ] Job URL
-- [ ] Inject "Send to Job Hunter" overlay button
+- [ ] Inject "Send to Job Filter" overlay button
 - [ ] On button click: send data to background.js
 - [ ] Show loading state
 - [ ] Show success/error message
@@ -249,7 +249,7 @@
 - [ ] Open `chrome://extensions/`
 - [ ] Enable "Developer Mode"
 - [ ] Click "Load unpacked"
-- [ ] Select `/src/extension/` folder
+- [ ] Select `/src/extension-v2-scoring/` folder
 - [ ] Verify extension loads without errors
 - [ ] Check console for any warnings
 
@@ -263,7 +263,7 @@
 
 #### Task 2.8: Test Extension End-to-End
 - [ ] Find real LinkedIn job posting
-- [ ] Click "Send to Job Hunter"
+- [ ] Click "Send to Job Filter"
 - [ ] Verify success message
 - [ ] Check Airtable: new record created
 - [ ] Verify all fields populated correctly
@@ -321,7 +321,7 @@
 - [ ] Connect to webhook node
 - [ ] Configure:
   - [ ] Operation: Get
-  - [ ] Base: Job Hunter OS
+  - [ ] Base: Job Filter
   - [ ] Table: Jobs Pipeline
   - [ ] Record ID: `{{ $json.jobId }}` (from webhook)
 - [ ] Test execution
@@ -410,7 +410,7 @@
 - [ ] Drag "Airtable" node to canvas (under True branch)
 - [ ] Configure:
   - [ ] Operation: Create
-  - [ ] Base: Job Hunter OS
+  - [ ] Base: Job Filter
   - [ ] Table: Research Briefs
   - [ ] Fields:
     - [ ] Job: `{{ $node['Webhook'].json.jobId }}` (link to job)
@@ -432,7 +432,7 @@
 - [ ] Connect after Create Record node
 - [ ] Configure:
   - [ ] Operation: Update
-  - [ ] Base: Job Hunter OS
+  - [ ] Base: Job Filter
   - [ ] Table: Jobs Pipeline
   - [ ] Record ID: `{{ $node['Webhook'].json.jobId }}`
   - [ ] Fields:
@@ -549,7 +549,7 @@
 
 #### Task 4.4: Test End-to-End (Extension → Airtable → n8n)
 - [ ] Find new LinkedIn job
-- [ ] Click "Send to Job Hunter" in extension
+- [ ] Click "Send to Job Filter" in extension
 - [ ] Watch automation trigger (refresh Airtable)
 - [ ] Wait for research to complete
 - [ ] Verify all data is correct
@@ -579,7 +579,7 @@
   - [ ] User message: Combine research + Matt's profile + job description
 - [ ] Add Code node (parse OpenAI response, score quality)
 - [ ] Add Google Drive "Upload" node:
-  - [ ] Folder: `/Job Hunter Assets/{{ companyName }}/{{ today }}/`
+  - [ ] Folder: `/Job Filter Assets/{{ companyName }}/{{ today }}/`
   - [ ] Filename: `02-90-Day-Plan.md`
 - [ ] Add Airtable "Create Record" (Generated Assets)
 - [ ] Activate and test

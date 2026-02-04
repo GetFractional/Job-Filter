@@ -1,4 +1,4 @@
-# Job Hunter OS - Data Architecture
+# Job Filter - Data Architecture
 
 **Version**: 1.0  
 **Database**: Airtable  
@@ -137,7 +137,7 @@
 **Special Feature: Open URL Button**
 - The `Open URL` button field uses formula: `{LinkedIn URL (from Outreach Message)} & "?outreachID=" & RECORD_ID()`
 - When clicked, opens LinkedIn profile with `?outreachID=recXXXXXXXXXXXXXXX` parameter
-- Job Hunter extension detects this parameter and enters "Outreach Mode"
+- Job Filter extension detects this parameter and enters "Outreach Mode"
 - Displays outreach message with copy button and "Mark as Sent" CTA
 
 ---
@@ -167,6 +167,12 @@
 | `Source` | Single Select | Where job was found | Yes | LinkedIn, Indeed |
 | `Job Description` | Long Text | Full job posting text | Yes | [Full text] |
 | `Status` | Single Select | Current stage | Yes | Captured, Researched, Applied, Interview, Offer, Rejected |
+| `lane` | Single Select | Workflow lane | No | fast_apply, full_court_press |
+| `last_touch_date` | Date | Last activity date for stale detection | No | 2024-12-10 |
+| `next_followup_date` | Date | Next follow-up date | No | 2024-12-17 |
+| `stale_status` | Single Select | Stale indicator | No | fresh, stale |
+| `rejection_reason` | Single Select | Primary rejection reason | No | role_mismatch |
+| `rejection_reason_other` | Long Text | Freeform rejection detail | No | "Budget freeze mid-process" |
 | `Research Brief` | Link to Record | Link to Research Briefs table | No | → Research record |
 | `Generated Assets` | Link to Records | Links to Generated Assets table | No | → Multiple asset records |
 | `Application Tracking` | Link to Records | Links to Application Tracking table | No | → Multiple asset records |
@@ -270,6 +276,12 @@
 | `Event ID` | Auto Number | Primary key | Yes |
 | `Job` | Link to Record | Links to Jobs Pipeline | Yes |
 | `Event Type` | Single Select | Type of event | Yes |
+| `event_source` | Single Select | Source of event | No |
+| `event_payload` | Long Text | Raw JSON payload for debugging | No |
+| `event_key` | Single Line Text | Idempotency key | No |
+| `status_snapshot` | Single Select | Status at time of event | No |
+| `lane_snapshot` | Single Select | Lane at time of event | No |
+| `rejection_reason_snapshot` | Single Select | Rejection reason at time of event | No |
 | `Event Date` | Date | Specific date and time | No |
 | `Details` | Long Text | Additional context | No |
 | `Attachments` | Attachments | Screenshots, emails, etc. | No |
@@ -278,9 +290,11 @@
 
 **Event Type Options:**
 - Job Captured
+- Score Calculated
 - Research Completed
 - Assets Generated
 - Application Submitted
+- Outreach Sent
 - Response Received
 - Phone Screen Scheduled
 - Interview Completed
@@ -326,6 +340,30 @@
 
 ---
 
+### TABLE 6: Rejection Insights (Analysis Table)
+
+**Purpose**: Capture structured rejection feedback and patterns for iterative improvement
+
+**Fields:**
+
+| Field Name | Type | Description | Required |
+|------------|------|-------------|----------|
+| `rejection_id` | Auto Number | Primary key | Yes |
+| `job` | Link to Record | Links to Jobs Pipeline | Yes |
+| `reason` | Single Select | Primary rejection reason | Yes |
+| `signal` | Multiple Select | Supporting signals or keywords | No |
+| `received_date` | Date | When rejection was received | No |
+| `source` | Single Select | Source of rejection | No |
+| `actionable` | Checkbox | Mark if actionable | No |
+| `notes` | Long Text | Additional context | No |
+
+**Views:**
+1. **All Rejections** (Grid): Sorted by received_date (newest first)
+2. **Actionable** (Grid): actionable = checked
+3. **By Reason** (Grid): Grouped by reason
+
+---
+
 ## 🔗 TABLE RELATIONSHIPS
 
 ### CRM Data Model (Companies, Contacts, Jobs)
@@ -345,6 +383,7 @@ Application Tracking (Multiple events per job)
 Companies ↔ Outreach Log (Many-to-Many via Contacts)
 Contacts ↔ Outreach Log (One-to-Many)
 Jobs Pipeline ↔ Outreach Log (One-to-Many)
+Jobs Pipeline ↔ Rejection Insights (One-to-Many)
 ```
 
 ### Relational Structure
@@ -459,7 +498,7 @@ console.log("n8n triggered:", response.status);
 - **Method**: POST to Airtable PAT
 - **Endpoint**: `https://api.airtable.com/v0/{BASE_ID}/Jobs%20Pipeline`
 - **Auth**: Personal Access Token (stored in extension)
-- **Frequency**: Manual (user clicks "Send to Job Hunter")
+- **Frequency**: Manual (user clicks "Send to Job Filter")
 - **Fields Populated**: Job Title, Company Name, Job URL, Location, Salary, Source, Job Description, Status="Captured"
 
 ### 2. n8n Workflows → Research Briefs & Generated Assets
@@ -575,7 +614,7 @@ console.log("n8n triggered:", response.status);
 
 ### Step 1: Create Airtable Base
 - [ ] Sign up for Airtable (free tier)
-- [ ] Create new base: "Job Hunter OS"
+- [ ] Create new base: "Job Filter"
 - [ ] Create 5 tables with fields as specified above
 - [ ] Set up table relationships (link fields)
 - [ ] Create views for each table

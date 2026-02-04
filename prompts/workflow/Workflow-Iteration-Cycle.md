@@ -2,7 +2,7 @@
 
 ## 📌 PURPOSE
 
-This document defines the **continuous improvement loop** for Job Hunter OS applications. After every 5-10 applications, you measure results, identify patterns, and iterate to optimize conversion rates.
+This document defines the **continuous improvement loop** for Job Filter applications. After every 5-10 applications, you measure results, identify patterns, and iterate to optimize conversion rates.
 
 **When Used**: After every batch of 5-10 applications
 **Input**: Application results (response rates, interview conversions, rejections)
@@ -472,6 +472,6 @@ NOTES:
 
 ## 🔗 CROSS-REFERENCES
 - **Source**: Eric Ries - Lean Startup methodology
-- **Applied in**: Job Hunter OS continuous improvement
+- **Applied in**: Job Filter continuous improvement
 - **Used with**: Workflow-Orchestration-Master.md (for refinements)
 - **Output feeds to**: Next batch of applications

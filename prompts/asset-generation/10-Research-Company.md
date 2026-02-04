@@ -30,7 +30,7 @@ Generate comprehensive company intelligence to inform all downstream assets (ann
 - **How To Apply**: Look for signals: funding round + hiring spike = scaling challenge; layoffs + restructure = efficiency focus
 - **Example**: "They raised $30M in Q2 but revenue grew only 20% (below SaaS median 40%). Likely issue: CAC too high or sales cycle too long. Hiring a VP Growth signals they know it."
 - **Anti-Pattern**: Describing what they do, not what problem they face
-- **Source**: Job-Hunter-OS-Strategic-Guidelines.md (Design Thinking)
+- **Source**: Job-Filter-Strategic-Guidelines.md (Design Thinking)
 
 ### Principle 3: Competitive Positioning Context
 - **Definition**: Understand where they sit vs. competitors (feature parity, pricing, market share)
@@ -38,7 +38,7 @@ Generate comprehensive company intelligence to inform all downstream assets (ann
 - **How To Apply**: Porter's Five Forces - who are they really competing with? What's their differentiation?
 - **Example**: "Competing with HubSpot (800lb gorilla) and Marketo (enterprise), but positioning as 'easier than Marketo, more powerful than HubSpot' for mid-market. That's a tough middle position - neither cheapest nor most feature-rich."
 - **Anti-Pattern**: Not researching competitors at all
-- **Source**: Job-Hunter-OS-Strategic-Guidelines.md (Porter's Five Forces)
+- **Source**: Job-Filter-Strategic-Guidelines.md (Porter's Five Forces)
 
 ### Principle 4: Hiring Manager Context (If Available)
 - **Definition**: Research the hiring manager's background, priorities, decision style

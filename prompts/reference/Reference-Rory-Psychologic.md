@@ -1,7 +1,7 @@
 # Reference Prompt: Rory Sutherland Psycho-Logic & Perception Design
 
 ## 📌 PURPOSE
-This reference guide applies **Rory Sutherland's Psycho-Logic principles** (perception > reality, emotion > logic, irrationality as design) to **Job Hunter OS messaging**. It answers: How do you make hiring managers FEEL like you're the right choice, not just think it?
+This reference guide applies **Rory Sutherland's Psycho-Logic principles** (perception > reality, emotion > logic, irrationality as design) to **Job Filter messaging**. It answers: How do you make hiring managers FEEL like you're the right choice, not just think it?
 
 **When Used**: Cover letters, annual plans, interview narratives, outreach messages
 **Input**: Your achievements + hiring manager psychology

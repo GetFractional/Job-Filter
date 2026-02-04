@@ -1,8 +1,8 @@
-# Job Hunter OS: Strategic Guidelines
+# Job Filter: Strategic Guidelines
 
 **Version 2.0 — Extended Edition**
 
-> This is the definitive strategic operating manual for the Job Hunter OS. It synthesizes advanced thinking frameworks, expert strategies, and tactical principles—with situational context for when and how to apply each framework. This document is designed to evolve with the system.
+> This is the definitive strategic operating manual for the Job Filter. It synthesizes advanced thinking frameworks, expert strategies, and tactical principles—with situational context for when and how to apply each framework. This document is designed to evolve with the system.
 
 ---
 
@@ -21,7 +21,7 @@
 
 ## 1. EXECUTIVE SUMMARY: THINKING FRAMEWORK STACK
 
-The Job Hunter OS operates on a layered thinking framework. Each layer serves a specific purpose and must be applied contextually to different units of work (UI, workflow node, prompt, copy, offer, touchpoint, etc.).
+The Job Filter operates on a layered thinking framework. Each layer serves a specific purpose and must be applied contextually to different units of work (UI, workflow node, prompt, copy, offer, touchpoint, etc.).
 
 ### **The Thinking Stack (Layer Hierarchy)**
 
@@ -80,7 +80,7 @@ The Job Hunter OS operates on a layered thinking framework. Each layer serves a 
 
 ## 2. EXPERT ROLE ORCHESTRA
 
-To orchestrate the Job Hunter OS optimally, these roles are required. The system bridges them.
+To orchestrate the Job Filter optimally, these roles are required. The system bridges them.
 
 ### **Core Expert Roles**
 
@@ -98,9 +98,9 @@ To orchestrate the Job Hunter OS optimally, these roles are required. The system
 
 ## 3. COMPREHENSIVE THINKING MODELS REFERENCE
 
-Below are ALL relevant thinking models, organized by use case and prioritized for Job Hunter OS application.
+Below are ALL relevant thinking models, organized by use case and prioritized for Job Filter application.
 
-### **CORE MODELS** (Most Applicable to Job Hunter OS)
+### **CORE MODELS** (Most Applicable to Job Filter)
 
 #### **3.1 Systems Thinking**
 - **When to use:** Designing the overall OS, understanding how modules interact, identifying constraints
@@ -321,7 +321,7 @@ This section distills the **core, actionable principles** from each source mater
 **Core Principles:**
 1. **Follow the Path of Least Resistance** — Matt's genius is systems & automation, NOT relationship hustling
 2. **Leverage Over Effort** — Use the OS to amplify output, not to work harder
-3. **Create Tangible Assets** — The Job Hunter OS itself is a proof point of Matt's core genius
+3. **Create Tangible Assets** — The Job Filter itself is a proof point of Matt's core genius
 4. **Identity Alignment** — Every role should reinforce the "Systems Builder" identity, not dilute it
 
 **Applied To:**
@@ -380,13 +380,13 @@ This section distills the **core, actionable principles** from each source mater
 
 ## 5. ALEN SULTANIC: MAXIMIZED STRATEGY EXTRACTION
 
-This section goes DEEP on Alen's strategies and determines which are **directly applicable** vs. **contextually inapplicable** to the Job Hunter OS.
+This section goes DEEP on Alen's strategies and determines which are **directly applicable** vs. **contextually inapplicable** to the Job Filter.
 
 ### **5.1 DIRECTLY APPLICABLE: Core Principles**
 
 #### **Principle 1: Compete on Economics, Not Marketing**
 - **What it means:** Don't rely on pretty fonts or clever wording. Rely on the undeniable value and clarity of your offer.
-- **Application to Job Hunter OS:** Your annual plan + resume + cover letter stack MUST be so economically sound (ROI so clear) that the hiring manager can't ignore it.
+- **Application to Job Filter:** Your annual plan + resume + cover letter stack MUST be so economically sound (ROI so clear) that the hiring manager can't ignore it.
 - **How:** Calculate clear metrics in the annual plan (e.g., "Expected pipeline growth: +$2.5M in year 1 through these specific campaigns")
 
 ---
@@ -412,7 +412,7 @@ This section goes DEEP on Alen's strategies and determines which are **directly 
 - **Alen's Method:** Look for what everyone in the market wants but can't achieve
   - **Example:** "Everyone wants to lose weight but can't lose weight" → This is the problem to solve
   
-- **Applied to Job Hunter OS:**
+- **Applied to Job Filter:**
   - **The hiring manager's problem:** "Everyone wants to hire a high-performing growth leader but struggles to find one who has already thought through our specific growth challenges"
   - **Your solution:** You've done that thinking (via the annual plan)
 
@@ -490,7 +490,7 @@ This section goes DEEP on Alen's strategies and determines which are **directly 
   - **Example:** People pay for DoorDash not to go to the grocery store and cook
   - **Example:** People pay for ChatGPT not to research and write from scratch
 
-- **Applied to Job Hunter OS:**
+- **Applied to Job Filter:**
   - **What hiring managers pay for:** Someone who solves their problem WITHOUT requiring heavy management
   - **Your message:** "I've done the strategic thinking. You just execute."
   - **Reframe:** NOT "I can execute your strategy" but "I'm not making you figure out the strategy"
@@ -636,7 +636,7 @@ END: Apply the framework. Make the decision. Document the assumptions.
 
 ## 7. IMPLEMENTATION PLAYBOOK: SYSTEM OPTIMIZATION CHECKLIST
 
-Use this checklist before implementing ANY change to the Job Hunter OS.
+Use this checklist before implementing ANY change to the Job Filter.
 
 ### **7.1 Pre-Implementation Checklist**
 
@@ -760,7 +760,7 @@ Use this checklist before implementing ANY change to the Job Hunter OS.
 ### **8.1 Intellectual Property: What You CAN and CAN'T Do**
 
 **✅ PERMITTED:**
-- Adapting principles from source materials to your specific context (Job Hunter OS)
+- Adapting principles from source materials to your specific context (Job Filter)
 - Creating original prompts, workflows, and assets inspired by these principles
 - Using the frameworks (MECE, Systems Thinking, etc.) as guidance
 - Synthesizing public information (company data, news, LinkedIn profiles) into research
@@ -797,7 +797,7 @@ Use this checklist before implementing ANY change to the Job Hunter OS.
 
 ### **8.3 Data Privacy & GDPR Compliance**
 
-**For the Job Hunter OS:**
+**For the Job Filter:**
 - Don't store hiring managers' personal data beyond what's necessary for your outreach
 - Don't share job posting data or company intelligence publicly
 - Respect LinkedIn's Terms of Service (don't scrape or automate in violation of TOS)
@@ -826,7 +826,7 @@ Use this checklist before implementing ANY change to the Job Hunter OS.
 
 ## FINAL SYNTHESIS
 
-The Job Hunter OS is not a rigid system. It's a **thinking system** that applies different models and expert tactics based on context.
+The Job Filter is not a rigid system. It's a **thinking system** that applies different models and expert tactics based on context.
 
 ### **The Operating Principle:**
 

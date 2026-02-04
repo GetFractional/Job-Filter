@@ -39,7 +39,7 @@ Help Matt Dimock land a **$200K+ base, remote leadership role** in Growth/Lifecy
 
 ## Constraints (Hard Rules)
 ✅ No auto-submit, auto-navigate, or mass scraping  
-✅ User initiates every action ("Send to Job Hunter" button)  
+✅ User initiates every action ("Send to Job Filter" button)  
 ✅ Zero LinkedIn ban risk (reads public pages only)  
 ✅ Single user focus (Matt), but SaaS-ready architecture  
 ✅ Costs under $50/month MVP  
@@ -92,9 +92,9 @@ Help Matt Dimock land a **$200K+ base, remote leadership role** in Growth/Lifecy
    │  ├─ research table (company intel)
    │  └─ application_log table (metrics)
    ├─ Google Sheets
-   │  └─ Job Hunter Tracker (real-time job log)
+   │  └─ Job Filter Tracker (real-time job log)
    └─ Google Drive
-      └─ /Job Hunter Assets/{Company Name}/{Date}/...
+      └─ /Job Filter Assets/{Company Name}/{Date}/...
 
 5. PERSONAL PROFILE SYSTEM
    ├─ Storage: Chrome local storage + PostgreSQL
@@ -110,7 +110,7 @@ Stage 1: DISCOVERY (You)
   System: Nothing (you're in control)
 
 Stage 2: CAPTURE (Extension)
-  Action: Click "Send to Job Hunter" on job detail page
+  Action: Click "Send to Job Filter" on job detail page
   System: Content.js extracts data → POSTs to webhook
   Data: jobPayload JSON created
 
@@ -293,7 +293,7 @@ Stage 8: ERROR HANDLING, RETRY LOGIC, & FEEDBACK
 ```json
 {
   "manifest_version": 3,
-  "name": "Job Hunter",
+  "name": "Job Filter",
   "version": "1.0.0",
   "description": "Capture job postings → research, generate assets, track applications",
 
@@ -310,7 +310,7 @@ Stage 8: ERROR HANDLING, RETRY LOGIC, & FEEDBACK
 
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Job Hunter"
+    "default_title": "Job Filter"
   },
 
   "background": {
@@ -343,7 +343,7 @@ Stage 8: ERROR HANDLING, RETRY LOGIC, & FEEDBACK
 
 ```javascript
 /**
- * Job Hunter - Content Script
+ * Job Filter - Content Script
  * Detects LinkedIn/Indeed job pages, extracts data, shows overlay
  * NO complex scoring here – that happens in backend
  */
@@ -388,11 +388,11 @@ let overlayVisible = false;
 function init() {
   const source = detectJobSource();
   if (!source) {
-    console.log('[Job Hunter] Not on a job posting page');
+    console.log('[Job Filter] Not on a job posting page');
     return;
   }
 
-  console.log(`[Job Hunter] Detected ${source} job page`);
+  console.log(`[Job Filter] Detected ${source} job page`);
 
   // Wait for page to fully load, then extract
   setTimeout(() => {
@@ -401,7 +401,7 @@ function init() {
       currentJobData = jobData;
       showOverlay(jobData);
     } else {
-      console.warn('[Job Hunter] Failed to extract job data');
+      console.warn('[Job Filter] Failed to extract job data');
     }
   }, 1500);
 }
@@ -589,7 +589,7 @@ function showOverlay(jobData) {
           cursor: pointer;
           font-size: 14px;
         ">
-          📌 Send to Job Hunter
+          📌 Send to Job Filter
         </button>
         <button id="jh-skip" style="
           flex: 1;
@@ -658,13 +658,13 @@ async function sendToWebhook(jobData) {
       }, 2000);
     } else {
       showToast('Error: ' + (result.error || 'Unknown error'), 'error');
-      huntBtn.textContent = '📌 Send to Job Hunter';
+      huntBtn.textContent = '📌 Send to Job Filter';
       huntBtn.disabled = false;
     }
   } catch (error) {
-    console.error('[Job Hunter] Webhook error:', error);
+    console.error('[Job Filter] Webhook error:', error);
     showToast('Connection error. Check webhook URL.', 'error');
-    huntBtn.textContent = '📌 Send to Job Hunter';
+    huntBtn.textContent = '📌 Send to Job Filter';
     huntBtn.disabled = false;
   }
 }
@@ -773,7 +773,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       <label class="field">
         <span>Webhook URL</span>
         <input type="text" id="webhook-url" placeholder="https://.../webhook/job-hunt">
-        <small class="hint">Get this from your Job Hunter dashboard</small>
+        <small class="hint">Get this from your Job Filter dashboard</small>
       </label>
     </div>
 
@@ -1209,7 +1209,7 @@ process.on('SIGTERM', () => {
 {
   "name": "job-hunter-webhook",
   "version": "1.0.0",
-  "description": "Job Hunter webhook receiver and orchestrator",
+  "description": "Job Filter webhook receiver and orchestrator",
   "main": "webhook.js",
   "scripts": {
     "start": "node webhook.js",
@@ -1246,7 +1246,7 @@ NODE_ENV=production
 **File: schema.sql**
 
 ```sql
--- Job Hunter Database Schema
+-- Job Filter Database Schema
 
 -- Jobs Table (Core Records)
 CREATE TABLE jobs (
@@ -1372,7 +1372,7 @@ CREATE INDEX idx_jobs_status ON jobs(status);
 ## n8n Workflow Design (Text Description)
 
 ```
-WORKFLOW: Job Hunter - Master Research & Asset Generation
+WORKFLOW: Job Filter - Master Research & Asset Generation
 
 TRIGGER
 ├─ Webhook node: Receives job data from webhook server
@@ -1413,7 +1413,7 @@ ASSET GENERATION PHASE
 
 STORAGE PHASE
 ├─ Upload to Google Drive
-│  ├─ Create folder: "/Job Hunter Assets/{Company}/{Date}"
+│  ├─ Create folder: "/Job Filter Assets/{Company}/{Date}"
 │  ├─ Upload all 5 documents
 │  └─ Output: drive_links (JSON)
 │
@@ -1833,7 +1833,7 @@ n8n Node Sequence:
 
 Google Drive → Create Folder (Main)
 
-Name: Job Hunter Assets
+Name: Job Filter Assets
 
 Check if exists (avoid duplicates)
 
@@ -1841,7 +1841,7 @@ Google Drive → Create Folder (Company-level)
 
 Name: {company_name} - {job_title} - {date}
 
-Parent: Job Hunter Assets
+Parent: Job Filter Assets
 
 Create Sub-folders:
 
@@ -2155,7 +2155,7 @@ Proof by Association: Lists tools you've mastered (Zoho, Braze, n8n = credibilit
 Design Tips for Canva
 Color & Typography:
 
-Accent Color: Teal (#2180a1 – matches your Job Hunter brand)
+Accent Color: Teal (#2180a1 – matches your Job Filter brand)
 
 Font: Use 2 fonts max
 
@@ -2221,7 +2221,7 @@ Due to space, here's the **configuration template**:
 
 ```json
 {
-  "name": "Job Hunter Master",
+  "name": "Job Filter Master",
   "active": true,
   "nodes": [
     {
@@ -2344,7 +2344,7 @@ Due to space, here's the **configuration template**:
 
 # PART 8: GOOGLE SHEETS TRACKER SCHEMA
 
-**Create a Google Sheet named "Job Hunter Tracker"** with these columns (A–T):
+**Create a Google Sheet named "Job Filter Tracker"** with these columns (A–T):
 
 | Column | Name | Type | Formula/Notes |
 | :-- | :-- | :-- | :-- |
@@ -2582,7 +2582,7 @@ Certified in Inbound Marketing (HubSpot)
 Google Analytics Certified
 ```
 
-### How to Make This Work in Job Hunter
+### How to Make This Work in Job Filter
 
 **Step 1: Create Master Resume**
 - Build a comprehensive "Master Resume" with all 6 jobs listed (2–3 pages, for your eyes only).
@@ -2593,7 +2593,7 @@ Google Analytics Certified
   - Input: job posting + master resume
   - AI selects the 3–4 most relevant roles + reorders bullets
   - Output: tailored 1.5-page resume PDF
-  - Store in Drive: `/Job Hunter Assets/{Company}/{Date}/resume_tailored.md`
+  - Store in Drive: `/Job Filter Assets/{Company}/{Date}/resume_tailored.md`
 
 **Step 3: Optional Canva Export**
 - If you want visual polish:
@@ -2620,7 +2620,7 @@ Google Analytics Certified
 - [ ] Deploy webhook to Railway (paste code, set env vars)
 - [ ] Get public webhook URL
 - [ ] Update extension popup to accept and save webhook URL
-- [ ] Test: "Send to Job Hunter" → watch webhook logs
+- [ ] Test: "Send to Job Filter" → watch webhook logs
 
 ### Day 3 (4 hours)
 - [ ] Set up n8n (already running at getfractional.up.railway.app)
@@ -2630,7 +2630,7 @@ Google Analytics Certified
 
 ### Day 4 (2 hours)
 - [ ] Create Google Sheets tracker (copy schema from Part 9)
-- [ ] Set up Google Drive folder structure (`/Job Hunter Assets/`)
+- [ ] Set up Google Drive folder structure (`/Job Filter Assets/`)
 - [ ] Configure n8n Google Drive + Sheets nodes
 - [ ] Test full end-to-end: Click "Hunt" → Job in Sheets + Assets in Drive
 
@@ -2756,7 +2756,7 @@ app.use(cors({ origin: 'https://getfractional.up.railway.app' }));
 - [ ] Icons in `/images/` folder
 - [ ] Extension loads in Chrome without errors
 - [ ] Overlay appears on LinkedIn/Indeed job pages
-- [ ] "Send to Job Hunter" button sends data to webhook
+- [ ] "Send to Job Filter" button sends data to webhook
 - [ ] Popup settings page works (can save webhook URL)
 
 ### Webhook Server
@@ -2781,14 +2781,14 @@ app.use(cors({ origin: 'https://getfractional.up.railway.app' }));
 - [ ] Appends rows to Google Sheets
 
 ### Google Sheets
-- [ ] "Job Hunter Tracker" sheet created
+- [ ] "Job Filter Tracker" sheet created
 - [ ] All 20 columns labeled (A–T)
 - [ ] Google Drive API enabled
 - [ ] Service account or OAuth configured for n8n
 
 ### End-to-End Test
 - [ ] Navigate to LinkedIn job
-- [ ] Click "Send to Job Hunter"
+- [ ] Click "Send to Job Filter"
 - [ ] Check webhook logs → job received
 - [ ] Check PostgreSQL → job stored
 - [ ] Wait 2 minutes → n8n processes job

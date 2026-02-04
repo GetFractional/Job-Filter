@@ -22,18 +22,18 @@ Job Filter is a systematized job search automation system designed to help land 
 
 ---
 
-## 📁 Repository Structure Job-Hunter/
+## 📁 Repository Structure Job-Filter/
 ├── CLAUDE.md                          # System specification (for Claude Code)
 ├── README.md                          # This file
 │
 ├── docs/                              # Core Documentation
-│   ├── Job-Hunter-OS-Strategic-Guidelines.md    # Master strategy & MECE filtering
+│   ├── Job-Filter-Strategic-Guidelines.md    # Master strategy & MECE filtering
 │   ├── Matt-Dimock-Professional-Profile.md      # Source of truth for achievements
 │   ├── System-Architecture.md                    # Technical component design
 │   ├── Data-Architecture.md                      # Airtable schema (5 tables)
 │   ├── Implementation-Roadmap.md                 # Build checklist
 │   ├── Asset-Generation-Template.md              # Common prompt structure
-│   └── Job-Hunter-OS-Master-Blueprint.md         # Original design doc (archive)
+│   └── Job-Filter-Master-Blueprint.md         # Original design doc (archive)
 │
 ├── prompts/                           # AI Prompt Templates
 │   ├── asset-generation/              # 6 core asset generators
@@ -53,8 +53,9 @@ Job Filter is a systematized job search automation system designed to help land 
 │       ├── Workflow-Orchestration-Master.md
 │       └── Workflow-Iteration-Cycle.md
 │
-└── src/                               # Implementation (to be built)
-├── extension/                     # Chrome extension code
+└── src/                               # Implementation (active)
+├── extension-v2-scoring/          # Job Filter Chrome extension (active)
+├── extension-legacy/              # Archived legacy extension (reference only)
 ├── n8n/                           # n8n workflow JSONs
 └── database/                      # Airtable documentation
 
@@ -79,7 +80,7 @@ Job Filter is a systematized job search automation system designed to help land 
 ### Step 2: Review Documentation
 
 Read in this order:
-1. `/docs/Job-Hunter-OS-Strategic-Guidelines.md` - Understand the strategy
+1. `/docs/Job-Filter-Strategic-Guidelines.md` - Understand the strategy
 2. `/docs/System-Architecture.md` - Understand how components connect
 3. `/docs/Implementation-Roadmap.md` - See what needs to be built
 
@@ -98,14 +99,14 @@ claudeUse starter prompts from Implementation Roadmap
 ### Daily Workflow
 
 1. **Find job on LinkedIn/Indeed**
-2. **Click "Send to Job Hunter"** (Chrome extension)
+2. **Click "Send to Job Filter"** (Chrome extension)
 3. **Wait 3-5 minutes** (automation runs)
 4. **Review assets in Airtable/Drive**
 5. **Apply with confidence**
 
 ### CRM & Outreach Mode
 
-Job Hunter now includes a full CRM system for managing contacts and outreach:
+Job Filter now includes a full CRM system for managing contacts and outreach:
 
 #### Automatic Record Creation
 When you capture a job, the extension automatically creates/updates:
@@ -306,7 +307,7 @@ This is a personal project, but key learnings:
 ## 📚 Additional Resources
 
 ### Key Files to Reference
-- **Strategy**: `/docs/Job-Hunter-OS-Strategic-Guidelines.md`
+- **Strategy**: `/docs/Job-Filter-Strategic-Guidelines.md`
 - **Profile**: `/docs/Matt-Dimock-Professional-Profile.md`
 - **Architecture**: `/docs/System-Architecture.md`, `/docs/Data-Architecture.md`
 - **Roadmap**: `/docs/Implementation-Roadmap.md`

@@ -1,226 +1,134 @@
-# Outreach Message Prompt
+<!--
+==========================================================
+FACTUAL DATA LOCK — MATT DIMOCK (AUTHORITATIVE SOURCE)
+==========================================================
+GENERAL RULES
+1. All role titles, locations, and dates are factual and locked.
+   Never infer, reword, or upscale titles (e.g., "Head of," "VP," "Director")
+   beyond the verified source below.
+2. All employment periods are factual to the month and year listed.
+3. All outcomes, metrics, and achievements must remain truthful to baseline resume data.
+4. Replace all em dashes (—) with commas (,) or vertical bars (|).
+5. When uncertain about any data, HALT and request user confirmation. Never assume.
+ROLE HISTORY (VERIFIED)
+----------------------------------------------------------
+Prosper Wireless = Director of Growth & Retention
+Location = Remote
+Dates = September 2023 to November 2025
+AffordableInsuranceQuotes.com = Chief Marketing Officer
+Location = Nashville, TN
+Dates = June 2020 to December 2021
+Breakthrough Academy = Marketing Operations Manager
+Location = Vancouver, BC
+Dates = August 2019 to June 2021
+Bob's Watches = Director of Marketing
+Location = Orange County, CA
+Dates = January 2017 to December 2018
+Get Fractional = Owner
+Location = Remote
+Dates = October 2022 to Present
+Dealer Acceleration Group = Founder & CRO
+Location = Remote
+Dates = January 2022 to December 2022
+SkyfineUSA = Fractional CMO
+Location = Remote
+Dates = January 2019 to August 2019
+Swell Marketing = SEO Director
+Location = Remote
+Dates = February 2016 to June 2016
+iMarket Solutions = SEO Manager
+Location = Remote
+Dates = May 2013 to January 2016
+National Positions = SEO Specialist & Director of Special Projects
+Location = Remote
+Dates = September 2007 to May 2013
+----------------------------------------------------------
+EDUCATION
+University of Central Florida = B.A. in Business Administration, Marketing
+MANDATE
+All generated content (assets, briefs, or memos) must adhere 100% to these facts.
+Never introduce speculative data, altered role names, or unverified timeframes.
+==========================================================
+-->
 
-> **Reference**: This prompt follows `/docs/Asset-Generation-Template.md` structure.
+# Outreach Message Prompt (Job Filter)
 
-## 📌 PURPOSE
-Generate a 3-sentence outreach message (40-60 words) that demonstrates credibility and creates urgency for hiring manager to respond.
+> Reference: This prompt follows `Asset-Generation-Template.md` output rules.
 
-**When Used**: 3-5 days after submitting application  
-**Input**: Research brief + job description  
-**Output**: 3-sentence message (Hook → Proof → CTA)  
-**Success Metric**: ≥20% response rate from hiring managers
-
----
-
-## 🧠 CORE PRINCIPLES
-
-### Principle 1: Hook with Diagnosis (Not Pitch)
-- **Definition**: Lead with specific insight about their business, not who you are
-- **Why**: Hooks attention immediately, shows you've done homework
-- **How**: Reference specific challenge from research in sentence 1
-- **Example**: "Your Series C GTM isn't scaling with revenue growth - most teams solve this with headcount, but infrastructure is what's needed."
-- **Anti-Pattern**: "Hi, I'm Matt and I applied for your VP Growth role..."
-- **Source**: Reference-Rory-Psychologic.md (Lead with insight, not identity)
-
-### Principle 2: Proof Through Pattern Recognition
-- **Definition**: Establish credibility via similar past win (not generic experience)
-- **Why**: "I've done exactly this before" > "I have 10 years experience"
-- **How**: Cite ONE specific achievement that mirrors their challenge
-- **Example**: "I've architected the systems that scaled revenue 50-100% in 12 months without proportional headcount."
-- **Anti-Pattern**: "I have extensive experience in growth marketing and would love to discuss..."
-- **Source**: Reference-Alen-Ascension-Specificity.md
-
-### Principle 3: Create Scarcity Without Desperation
-- **Definition**: Signal time constraint to create urgency (but stay confident)
-- **Why**: Scarcity increases perceived value (Hormozi)
-- **How**: Mention you're "evaluating a few opportunities" or have "decision timeline"
-- **Example**: "I'm evaluating 2-3 opportunities this month - up for a conversation?"
-- **Anti-Pattern**: "I'm very interested and hoping to hear back soon!" (sounds desperate)
-- **Source**: Reference-Hormozi-Value-Equation.md (Scarcity as value multiplier)
-
-### Principle 4: Question Not Statement
-- **Definition**: End with question that invites response (not period)
-- **Why**: Questions have 2x response rate vs. statements
-- **How**: "Up for a conversation?" or "Interested in exploring this?"
-- **Example**: "Worth a 20-minute conversation?" (not "I'd love to chat.")
-- **Anti-Pattern**: "Looking forward to hearing from you." (closed statement)
-- **Source**: Direct response marketing principles
-
----
-
-## ⚙️ TACTICAL RULES
-
-### Rule 1: Three-Sentence Structure
-**Sentence 1 (Hook):** Specific insight about their business challenge  
-**Sentence 2 (Proof):** Your credibility via parallel past win  
-**Sentence 3 (CTA):** Question inviting response + light scarcity  
-
-### Rule 2: Word Count Discipline
-- Total: 40-60 words (strictly)
-- If over 60 words, you're being too wordy
-- If under 40 words, you're missing critical elements
-
-### Rule 3: Timing Strategy
-Send 3-5 days after application:
-- Too soon (<3 days): Seems desperate
-- Too late (>7 days): They've moved on
-- Sweet spot: 3-5 days (shows thoughtfulness + urgency)
-
-### Rule 4: Channel Selection
-**Email** (preferred):
-- Subject: "VP Growth @ [Company] - Quick thought on GTM scaling"
-- Send to hiring manager if you can find their email
-- CC recruiter if you must
-
-**LinkedIn DM** (backup):
-- Use if you can't find email
-- Same message structure
-- Connection request + message simultaneously
-
-### Rule 5: Subject Line Formula (Email Only)
-**[ROLE TITLE] @ [COMPANY] - [Specific Topic]**
-
-Examples:
-- "VP Growth @ TechCorp - Quick thought on CAC scaling"
-- "Director RevOps @ SaasCo - Series B → C transition"
-- "Head of Lifecycle @ FinTech - PLG → Sales-led motion"
+## PURPOSE
+Generate a high-response outreach set that:
+- Signals fit fast
+- Demonstrates value without overselling
+- Gets a reply (call, referral, internal champion)
+- Avoids fluff and forbidden phrases
 
 ---
 
-## 📋 OUTREACH MESSAGE TEMPLATE
-```markdown
-## EMAIL VERSION
-
-**Subject:** [ROLE TITLE] @ [COMPANY] - [Specific Topic from Research]
-
-[SENTENCE 1 - HOOK]:
-[Specific insight about their business challenge based on research]. [Evidence or context].
-
-[SENTENCE 2 - PROOF]:
-[Credibility statement via pattern recognition]. [Specific past achievement that mirrors their challenge].
-
-[SENTENCE 3 - CTA]:
-[Time-bound scarcity signal]. [Question inviting response]?
-
-Best,  
-Matt Dimock
-
-[LinkedIn URL]  
-[Phone - optional]
+## INPUTS (Required)
+- Research Brief (fetched by Job ID)
+- Job Description (explicit requirements checklist)
+- Matt-Dimock-Professional-Profile (proof points + tools + scope)
+- Annual Growth Plan (Exec Memo) and/or 90-Day Plan (if available)
 
 ---
 
-## LINKEDIN DM VERSION
+## OUTPUT CONTRACT (HARD)
+Output a “3-message set” (no meta, no rubric, no placeholders):
+1) LinkedIn Connection Note (≤ 280 characters)
+2) Direct Message / LinkedIn Follow-Up (60–120 words)
+3) Email Version (90–140 words) with:
+   - Subject line
+   - Body
+   - Single CTA
 
-[SENTENCE 1 - HOOK with company tag]:
-Your [stage/challenge from research] at [COMPANY] mirrors a challenge I've solved before. [Specific insight].
-
-[SENTENCE 2 - PROOF]:
-[Credibility via specific achievement].
-
-[SENTENCE 3 - CTA]:
-[Scarcity]. [Question]?
-
----
-
-## EXAMPLES
-
-### Example 1: Series B → C Scaling Challenge
-**Subject:** VP Growth @ TechCorp - Series B → C GTM scaling
-
-Your Series C GTM isn't scaling with revenue growth - most teams solve this with headcount, but infrastructure is what's needed. I've architected the systems that scaled revenue 50-100% in 12 months without proportional headcount, and I'd bring that exact playbook to you. I'm evaluating 2-3 opportunities this month - up for a conversation?
-
-Best,  
-Matt
+Must include:
+- 1 specific insight from research/JD
+- 1 credibility proof point (Action → Method → Impact, only if true)
+- 1 low-friction CTA
 
 ---
 
-### Example 2: CAC Efficiency Problem
-**Subject:** Director Demand Gen @ SaasCo - CAC reduction strategy
-
-Your CAC jumped 40% post-Series B while competitors stayed flat - classic scaling problem. At Prosper, I reduced CAC 30% in 8 weeks using infrastructure over headcount approach (revenue scaled 120% in same period). Worth a 20-minute conversation this week?
-
-Best,  
-Matt
+## NON-HALLUCINATION RULES (HARD)
+- Never invent company metrics, internal initiatives, or private intel.
+- Specific insight must come from Research Brief/JD.
+- Proof points must come from Matt’s profile, not inferred.
+- No forbidden phrases from global instructions.
 
 ---
 
-### Example 3: PLG → Sales-Led Transition
-**Subject:** VP Lifecycle @ FinTech - PLG to sales-led motion
+## PROCESS (DETERMINISTIC)
+### Step 1 — Determine Best Angle
+Choose ONE:
+- Fix measurement and payback clarity
+- Increase acquisition efficiency
+- Improve retention/LTV and lifecycle leverage
+- Build GTM ops and execution cadence
 
-Transitioning PLG → sales-led without breaking what works is tricky - most companies overcorrect and lose self-serve momentum. I've built the hybrid infrastructure that preserved 70% self-serve while scaling enterprise 3x at similar-stage company. Interested in exploring how I'd approach yours?
+Angle must match JD priorities.
 
-Best,  
-Matt
-```
+### Step 2 — Build Message Spine
+- Line 1: specific context (“saw X, noticed Y”)
+- Line 2: value thesis (what you’d do first)
+- Line 3: proof bullet (one line)
+- CTA: 10–15 min chat, or “who owns X internally?”
 
----
-
-## 📊 SUCCESS METRICS
-
-Outreach Message Quality Scorecard (50 points):
-
-- [ ] **Hook** (15 pts): Opens with specific company insight (not generic intro)
-- [ ] **Proof** (15 pts): Establishes credibility via parallel past win
-- [ ] **CTA** (10 pts): Ends with question + light scarcity
-- [ ] **Length** (5 pts): 40-60 words (not 80+)
-- [ ] **Subject Line** (5 pts): Specific topic (not generic "Application follow-up")
-
-**Scoring**: 45+ = Send immediately
+### Step 3 — Produce 3-message set
+Keep it direct. No hype. No fluff.
 
 ---
 
-## 🚫 CONSTRAINTS & GUARDRAILS
+## OUTPUT TEMPLATE (Use exactly; remove brackets in final output)
 
-**DO:**
-✅ Lead with specific insight about THEIR business  
-✅ Cite ONE specific past achievement (not resume)  
-✅ Create light scarcity (evaluating options)  
-✅ End with question (invites response)  
-✅ Keep to 40-60 words total  
-✅ Send 3-5 days after application  
+# OUTREACH SET — [COMPANY NAME] — [ROLE TITLE]
 
-**DON'T:**
-❌ Start with "Hi, I'm Matt and I applied..."  
-❌ List multiple achievements (focus beats scattered)  
-❌ Sound desperate ("Really hoping to hear back...")  
-❌ End with statement ("Looking forward to hearing from you.")  
-❌ Exceed 60 words (shows you can't prioritize)  
-❌ Send immediately after applying (<3 days)  
+## 1) LINKEDIN CONNECTION NOTE (≤ 280 chars)
+[Short, specific, direct]
 
-**FORBIDDEN PHRASES:**
-- "I'm very interested in..."
-- "I would be a great fit because..."
-- "I have X years of experience in..."
-- "I'm passionate about..."
-- "Hoping to hear back..."
-- "Looking forward to..."
-- "Please let me know..."
+## 2) FOLLOW-UP DM (60–120 words)
+[Context + value + proof + CTA]
 
-**REQUIRED ELEMENTS:**
-- Specific company insight (sentence 1)
-- Parallel past win (sentence 2)
-- Question + scarcity (sentence 3)
-- Subject line with specific topic (email only)
-
----
-
-## 🔗 CROSS-REFERENCES
-
-- **Depends on**: 10-Research-Company.md (for specific insights)
-- **Complements**: Matt-Dimock-Professional-Profile.md (for proof points)
-- **Used by**: Follow-up outreach 3-5 days post-application
-- **Triggers**: n8n workflow 07-Outreach-Message
-- **Source Frameworks**: Rory (Psycho-Logic), Hormozi (Scarcity), Alen (Specificity), Direct Response Marketing
-
----
-
-## TIMING STRATEGY
-
-**Day 0:** Submit application (resume + cover letter)  
-**Day 3-5:** Send outreach message  
-**Day 10:** If no response, send gentle bump (reference original message)  
-**Day 15:** Move on (don't chase further)
-
-**Bump Message Template (if needed):**
-"Following up on my note from last week about [specific topic]. Still evaluating options through end of month - let me know if worth connecting."
+## 3) EMAIL VERSION (90–140 words)
+Subject: [short, specific]
+Body:
+[2–4 short paragraphs or tight bullets]
+CTA: [one line]

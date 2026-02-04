@@ -1,7 +1,7 @@
 # Reference Prompt: Alen Sultanic Specificity & Ascension Framework
 
 ## 📌 PURPOSE
-This reference guide applies **Alen Sultanic's core frameworks** (Specificity, Ascension, Value Stack) to **Job Hunter OS asset creation**. It answers: How do you make hiring managers believe you're THE candidate?
+This reference guide applies **Alen Sultanic's core frameworks** (Specificity, Ascension, Value Stack) to **Job Filter asset creation**. It answers: How do you make hiring managers believe you're THE candidate?
 
 **When Used**: All assets (research, annual plan, resume, cover letter, outreach, interview prep)
 **Input**: Job posting + company research

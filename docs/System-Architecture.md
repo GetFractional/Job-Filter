@@ -1,4 +1,4 @@
-# Job Hunter OS - System Architecture
+# Job Filter - System Architecture
 
 **Version**: 1.0  
 **Last Updated**: December 6, 2024  
@@ -8,7 +8,7 @@
 
 ## 🎯 ARCHITECTURAL OVERVIEW
 
-Job Hunter OS is a **capture → research → generate → deliver** automation system that transforms manual job application workflows into a semi-automated pipeline. The system reduces time-per-application from 2 hours to 15 minutes while maintaining high quality through AI-powered personalization.
+Job Filter is a **capture → research → generate → deliver** automation system that transforms manual job application workflows into a semi-automated pipeline. The system reduces time-per-application from 2 hours to 15 minutes while maintaining high quality through AI-powered personalization.
 
 ### Design Principles
 
@@ -26,7 +26,7 @@ Job Hunter OS is a **capture → research → generate → deliver** automation 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                     USER LAYER (Matt)                           │
-│  LinkedIn/Indeed → Browse Jobs → Click "Send to Job Hunter"    │
+│  LinkedIn/Indeed → Browse Jobs → Click "Send to Job Filter"    │
 └────────────────────────┬────────────────────────────────────────┘
                          ↓
 ┌─────────────────────────────────────────────────────────────────┐
@@ -68,7 +68,7 @@ Job Hunter OS is a **capture → research → generate → deliver** automation 
                          ↓
 ┌─────────────────────────────────────────────────────────────────┐
 │                   DELIVERY LAYER (Google Drive)                 │
-│  /Job Hunter Assets/                                            │
+│  /Job Filter Assets/                                            │
 │    ├── {Company Name}/                                          │
 │    │   ├── {Date}/                                              │
 │    │   │   ├── 01-Research-Brief.md                            │
@@ -107,7 +107,7 @@ Job Hunter OS is a **capture → research → generate → deliver** automation 
 1. User visits LinkedIn/Indeed job page
 2. Content script detects page type
 3. Content script extracts job data via DOM selectors
-4. User clicks "Send to Job Hunter" button (injected overlay)
+4. User clicks "Send to Job Filter" button (injected overlay)
 5. Background script POSTs JSON to Airtable API
 6. Success: Show "✓ Job Captured" message
 7. Error: Show error message, log to console
@@ -277,7 +277,7 @@ Each asset prompt includes:
 
 **Folder Structure:**
 ```
-/Job Hunter Assets/
+/Job Filter Assets/
   ├── TechCorp/
   │   ├── 2024-12-06_[Job-Title]/
   │   │   ├── 01-Research-Brief.md
@@ -485,7 +485,7 @@ n8n Workflow
 
 ### Google Drive
 - **Environment**: Cloud (Google's infrastructure)
-- **Organization**: `/Job Hunter Assets/` folder in Matt's Drive
+- **Organization**: `/Job Filter Assets/` folder in Matt's Drive
 - **Sharing**: Private (only Matt has access)
 
 ---

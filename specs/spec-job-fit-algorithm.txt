@@ -1,4 +1,4 @@
-FEATURE SPEC: Job Fit Scoring Algorithm for Job Hunter OS Chrome Extension
+FEATURE SPEC: Job Fit Scoring Algorithm for Job Filter Chrome Extension
 EXECUTIVE SUMMARY
 You need a bidirectional job fit scoring system embedded in your Chrome extension that instantly tells you whether a job is worth applying to. The system scores two dimensions independently and combines them:
 
@@ -287,7 +287,7 @@ Overall score card (large, color-coded)
 Styling: Uses existing popup.css + new scoring-specific styles
 
 4. MODIFY: content.js (Injected Overlay)
-Change: After extracting job data, add a "Score This Job" button alongside existing "Send to Job Hunter" button
+Change: After extracting job data, add a "Score This Job" button alongside existing "Send to Job Filter" button
 
 Behavior: Clicking opens a modal/popup that calls the scoring engine and displays results
 
@@ -314,11 +314,11 @@ Format: YAML/JSON with comments explaining each criterion
 
 STEP-BY-STEP EXECUTION FLOW
 Phase 1: User Opens Extension (First Time)
-User clicks Job Hunter icon
+User clicks Job Filter icon
 
 popup.js checks if jh_user_profile exists in Chrome storage
 
-If missing, show modal: "Complete your Job Hunter Profile in 3 minutes"
+If missing, show modal: "Complete your Job Filter Profile in 3 minutes"
 
 User clicks "Set Up Profile"
 
@@ -343,7 +343,7 @@ User navigates to job detail page (LinkedIn or Indeed)
 
 content.js detects job page and injects overlay with two buttons:
 
-"Send to Job Hunter" (existing)
+"Send to Job Filter" (existing)
 
 "Score This Job" (new)
 
@@ -438,7 +438,7 @@ Interpretation section: "This role is a strong fit because X, Y, Z. Risk: A. Nex
 
 Action buttons:
 
-"Send to Job Hunter" (existing; saves to Airtable)
+"Send to Job Filter" (existing; saves to Airtable)
 
 "Close" (dismiss modal)
 
@@ -447,7 +447,7 @@ Action buttons:
 Phase 6: User Decision
 User reads score + interpretation
 
-Decides: "Worth applying" → clicks "Send to Job Hunter"
+Decides: "Worth applying" → clicks "Send to Job Filter"
 
 Existing background.js flow triggers: saves to Airtable + trigger n8n workflow
 

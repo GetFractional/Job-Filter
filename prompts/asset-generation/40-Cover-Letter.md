@@ -1,176 +1,97 @@
-# Cover Letter Prompt
+<!--
+==========================================================
+FACTUAL DATA LOCK — MATT DIMOCK (AUTHORITATIVE SOURCE)
+==========================================================
+GENERAL RULES
+1. All role titles, locations, and dates are factual and locked.
+   Never infer, reword, or upscale titles (e.g., "Head of," "VP," "Director")
+   beyond the verified source below.
+2. All employment periods are factual to the month and year listed.
+3. All outcomes, metrics, and achievements must remain truthful to baseline resume data.
+4. Replace all em dashes (—) with commas (,) or vertical bars (|).
+5. When uncertain about any data, HALT and request user confirmation. Never assume.
+ROLE HISTORY (VERIFIED)
+----------------------------------------------------------
+Prosper Wireless = Director of Growth & Retention
+Location = Remote
+Dates = September 2023 to November 2025
+AffordableInsuranceQuotes.com = Chief Marketing Officer
+Location = Nashville, TN
+Dates = June 2020 to December 2021
+Breakthrough Academy = Marketing Operations Manager
+Location = Vancouver, BC
+Dates = August 2019 to June 2021
+Bob's Watches = Director of Marketing
+Location = Orange County, CA
+Dates = January 2017 to December 2018
+Get Fractional = Owner
+Location = Remote
+Dates = October 2022 to Present
+Dealer Acceleration Group = Founder & CRO
+Location = Remote
+Dates = January 2022 to December 2022
+SkyfineUSA = Fractional CMO
+Location = Remote
+Dates = January 2019 to August 2019
+Swell Marketing = SEO Director
+Location = Remote
+Dates = February 2016 to June 2016
+iMarket Solutions = SEO Manager
+Location = Remote
+Dates = May 2013 to January 2016
+National Positions = SEO Specialist & Director of Special Projects
+Location = Remote
+Dates = September 2007 to May 2013
+----------------------------------------------------------
+EDUCATION
+University of Central Florida = B.A. in Business Administration, Marketing
+MANDATE
+All generated content (assets, briefs, or memos) must adhere 100% to these facts.
+Never introduce speculative data, altered role names, or unverified timeframes.
+==========================================================
+-->
 
-> **Reference**: This prompt follows `/docs/Asset-Generation-Template.md` structure.
+# Cover Letter Prompt (Job Filter)
 
-## 📌 PURPOSE
-Generate a compelling cover letter (300-400 words) that follows the Problem → Proof → Solution arc to demonstrate Matt has already diagnosed their challenge and knows how to fix it.
+> Reference: This prompt follows `/docs/Asset-Generation-Template.md` output rules.
 
-**When Used**: After research brief and annual plan are complete  
-**Input**: Research brief + annual plan + Matt's profile + job description  
-**Output**: 300-400 word cover letter (4-5 paragraphs)  
-**Success Metric**: Hiring manager thinks "This person gets our business" after reading
-
----
-
-## 🧠 CORE PRINCIPLES
-
-### Principle 1: Hook with Insight (Not Enthusiasm)
-- **Definition**: Open with specific insight about their business, not generic excitement
-- **Why**: Separates you from 99% of applicants who say "I'm excited about..."
-- **How**: Reference research finding that shows you understand their inflection point
-- **Example**: "Your Series C → public transition is textbook: CAC rising, sales cycle extending, but marketing infrastructure hasn't scaled with enterprise motion."
-- **Anti-Pattern**: "I'm excited to apply for this amazing opportunity at your innovative company"
-- **Source**: Rory Sutherland Psycho-Logic - specificity builds trust
-
-### Principle 2: Problem Before Solution
-- **Definition**: Articulate THEIR problem in detail before offering your solution
-- **Why**: Demonstrates empathy and diagnostic thinking (Alen's framework)
-- **How**: Spend 100+ words on problem diagnosis, only then introduce solution
-- **Example**: First describe their CAC/LTV squeeze, THEN say "I've solved exactly this at Prosper..."
-- **Anti-Pattern**: Jumping straight to "Here's what I'd do" without acknowledging their context
-- **Source**: Design Thinking (Empathize → Define → Ideate)
-
-### Principle 3: Proof Through Pattern Recognition
-- **Definition**: Connect their problem to Matt's past win using "I've solved exactly this" framing
-- **Why**: Pattern recognition = credibility (not just capability)
-- **How**: "At [Company], I faced similar challenge: [their problem mirror]. Here's how I solved it: [specific tactic + result]"
-- **Example**: "At Prosper, CAC spiked 40% during similar expansion. I rebuilt acquisition funnel using [specific approach], reducing CAC 30% within 60 days."
-- **Anti-Pattern**: Generic "I have experience in growth marketing" without specific parallel
-- **Source**: Matt-Dimock-Professional-Profile.md
-
-### Principle 4: Reference the Annual Plan (Without Quoting)
-- **Definition**: Paint picture of what Matt would do, informed by annual plan
-- **Why**: Shows you've already done the thinking (not winging it)
-- **How**: Mention 1-2 key initiatives from plan in conversational language
-- **Example**: "First 30 days, I'd diagnose your full acquisition funnel to pinpoint where sales cycle is stalling..."
-- **Anti-Pattern**: Copy-pasting sections from annual plan into letter
-- **Source**: 20-Annual-Plan.md output
-
----
-
-## ⚙️ TACTICAL RULES
-
-### Rule 1: Paragraph Structure
-**Paragraph 1 (Hook)**: Specific insight about their business (2-3 sentences)  
-**Paragraph 2 (Problem)**: Articulate their #1 growth constraint (3-4 sentences)  
-**Paragraph 3 (Proof)**: Cite parallel win from Matt's past (3-4 sentences)  
-**Paragraph 4 (Solution)**: Preview what Matt would do (3-4 sentences)  
-**Paragraph 5 (CTA)**: Clear ask for next step (2 sentences)
-
-### Rule 2: Word Count Discipline
-- Total: 300-400 words (strictly enforced)
-- If over 400 words, cut fluff (never cut specifics)
-- If under 300 words, add more problem diagnosis
-
-### Rule 3: Tone Calibration
-- **Authoritative**: "I architected..." (not "I helped...")
-- **Specific**: Exact numbers/metrics
-- **Confident but humble**: "I've solved this before" + "I'd love to explore if my approach fits"
-- **No fluff**: Zero "passionate," "excited," "innovative," "synergy"
-
-### Rule 4: Mirror Their Language
-- Use their terminology from job description
-- Use their company's stated values/mission (if authentic)
-- Match formality level (startup = casual, enterprise = formal)
-
-### Rule 5: Single Focus
-- Each letter addresses ONE primary problem
-- Don't try to solve all their challenges
-- Deep > wide (better to nail one thing than skim three)
+## PURPOSE
+Create a concise, executive-grade cover letter that shows: (1) you understand the company’s real growth problem, (2) you have a credible operating plan, (3) you have proof you can execute.
 
 ---
 
-## 📋 COVER LETTER TEMPLATE
-```markdown
-[DATE]
-
-[HIRING MANAGER NAME, if known, else "Hiring Team"]  
-[COMPANY NAME]  
-[CITY, STATE - if known]
-
-Dear [Name/Team],
-
-**PARAGRAPH 1: HOOK (Insight, not enthusiasm)**
-[Specific observation about their company/market/stage]. [Evidence from research]. [Why this matters now].
-
-**PARAGRAPH 2: PROBLEM (Their constraint)**
-[Their #1 growth bottleneck articulated clearly]. [Quantify the cost/impact if possible]. [Root cause diagnosis]. [Why typical solutions don't work / what makes this hard].
-
-**PARAGRAPH 3: PROOF (Pattern recognition)**
-I've solved exactly this at [Company]. [Describe similar situation]. [Specific tactic used]: [detailed approach]. [Quantified result with timeframe]. [Why it worked / lesson learned].
-
-**PARAGRAPH 4: SOLUTION (Preview approach)**
-In my first 90 days, I'd [specific initiative from plan]. [Quick win expected in weeks 3-4]. [Month 2-3 focus]. [Expected outcome with metric].
-
-**PARAGRAPH 5: CTA (Clear next step)**
-I'd love to walk through this diagnosis with you in more detail. Are you available for [20/30] minutes next week?
-
-Best,  
-Matt Dimock
-
-[LinkedIn URL]  
-[Phone Number]  
-[Email]
-```
+## INPUTS
+- Research Brief (fetched by Job ID)
+- Job Description (explicit requirements checklist)
+- Matt proof points (metrics, tools, scope)
+- Annual Growth Plan memo output (from 20-Annual-Plan.md)
 
 ---
 
-## 📊 SUCCESS METRICS
-
-Cover Letter Quality Scorecard (50 points):
-
-- [ ] **Hook** (10 pts): Opens with specific company insight (not generic enthusiasm)
-- [ ] **Problem** (10 pts): Articulates THEIR constraint clearly (100+ words)
-- [ ] **Proof** (10 pts): References Matt's parallel win with exact metrics
-- [ ] **Solution** (10 pts): Previews annual approach (specific to them)
-- [ ] **CTA** (5 pts): Clear, specific ask for next step
-- [ ] **Length** (5 pts): 300-400 words (not 500+)
-
-**Scoring**: 45+ = Ready to send
+## OUTPUT CONTRACT (HARD)
+- 250–400 words
+- 3–5 short paragraphs
+- Must include: one specific insight, one plan cue (first 30 days), and 2–3 proof points
+- Final output: ONLY the letter (no meta)
 
 ---
 
-## 🚫 CONSTRAINTS & GUARDRAILS
+## KEY RULES
+- Mirror the Annual Growth Plan memo’s logic, but do not copy/paste sections.
+- Use Action → Method → Impact.
+- Address JD “must have” requirements directly.
 
-**DO:**
-✅ Open with specific insight about their business  
-✅ Diagnose problem before offering solution  
-✅ Reference Matt's past win with exact numbers  
-✅ Preview annual plan in conversational language  
-✅ End with clear CTA (time-bound if possible)  
-✅ Match their formality level and terminology  
+**Example of a plan cue**
+“First 30 days, I’d run a diagnostic across channel efficiency, attribution integrity, offer/creative winners, and cohort-based LTV to establish a validated baseline and identify the fastest path to payback improvement.”
 
-**DON'T:**
-❌ Start with "I'm excited to apply..."  
-❌ Jump to solution without acknowledging problem  
-❌ Use generic "I have experience in..." language  
-❌ Copy-paste from annual plan  
-❌ Exceed 400 words (recruiters won't read)  
-❌ Use forbidden fluff words  
-
-**FORBIDDEN WORDS/PHRASES:**
-- "Passionate about"
-- "Excited to"
-- "Innovative" (unless they use it first)
-- "Synergy"
-- "Best practices"
-- "Leverage"
-- "Drive growth" (too vague)
-- "I believe I would be a great fit"
-
-**REQUIRED ELEMENTS:**
-- Company-specific insight in opening
-- Their problem articulated (with evidence)
-- Matt's past win (with specific metric)
-- Preview of solution (1-2 key initiatives)
-- Clear CTA
+**Anti-Pattern**
+- Copy-pasting sections from the Annual Growth Plan into the letter
 
 ---
 
-## 🔗 CROSS-REFERENCES
-
-- **Depends on**: 10-Research-Company.md, 20-Annual-Plan.md
-- **Complements**: Matt-Dimock-Professional-Profile.md (for proof points)
-- **Used by**: Application submission (sent with resume)
-- **Triggers**: n8n workflow 05-Cover-Letter
-- **Source Frameworks**: Rory (Psycho-Logic), Alen (Specificity), Design Thinking (Empathize → Define)
+## STRUCTURE
+Paragraph 1 (Hook): specific company insight + why it matters  
+Paragraph 2 (Problem): what’s limiting scale (based on research/JD)  
+Paragraph 3 (Plan): first 30 days + why that sequence  
+Paragraph 4 (Proof): 2–3 proof points tied to their constraints  
+Paragraph 5 (Close): direct, confident ask
