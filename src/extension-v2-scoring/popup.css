@@ -14,11 +14,16 @@ body {
   color: #1a1a2e;
   background-color: #f8f9fa;
   min-width: 320px;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
 }
 
 .container {
   padding: 16px;
-  max-width: 320px;
+  width: 100%;
+  max-width: 360px;
 }
 
 /* Header styles */

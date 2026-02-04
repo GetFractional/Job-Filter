@@ -878,11 +878,13 @@ function setupPanelEventHandlers(panel) {
   if (settingsBtn) {
     settingsBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      // Open profile setup
-      if (window.openProfileSetup) {
+      // Open settings (fallback to profile setup)
+      if (window.openSettings) {
+        window.openSettings();
+      } else if (window.openProfileSetup) {
         window.openProfileSetup();
       } else {
-        console.log('[Floating Panel] openProfileSetup not available');
+        console.log('[Floating Panel] openSettings not available');
       }
     });
   }

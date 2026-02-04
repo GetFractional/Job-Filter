@@ -996,23 +996,6 @@ async function logCaptureEvents(credentials, flags, jobRecordId, jobData, scoreD
     statusSnapshot: 'Captured',
     laneSnapshot: jobData.lane
   });
-
-  if (scoreData) {
-    await createApplicationEvent(credentials, jobRecordId, {
-      eventType: 'Score Calculated',
-      eventSource: 'Extension',
-      details: 'Job scored during capture',
-      eventKey: `score:${jobRecordId}`,
-      payload: {
-        overall_score: scoreData.overall_score,
-        overall_label: scoreData.overall_label,
-        preference_fit: scoreData.job_to_user_fit?.score,
-        role_fit: scoreData.user_to_job_fit?.score
-      },
-      statusSnapshot: 'Captured',
-      laneSnapshot: jobData.lane
-    });
-  }
 }
 
 async function createApplicationEvent(credentials, jobRecordId, {

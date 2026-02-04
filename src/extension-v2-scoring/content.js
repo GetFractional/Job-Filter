@@ -405,6 +405,9 @@ function extractLinkedInJobData() {
     ];
     data.descriptionText = getTextFromSelectors(descriptionSelectors, true) || '';
 
+    // Lane detection based on apply button text
+    data.lane = detectLinkedInApplyLane();
+
     // Multi-pass salary extraction with confidence levels
     const salaryResult = extractSalaryWithConfidence({
       structuredSalary: structuredSalaryText,
@@ -941,6 +944,33 @@ function extractLinkedInJobData() {
   }
 
   return data;
+}
+
+/**
+ * Determine lane based on LinkedIn apply button text.
+ * Easy Apply -> fast_apply
+ * Apply -> full_court_press
+ */
+function detectLinkedInApplyLane() {
+  try {
+    const buttonSelectors = [
+      '.jobs-apply-button--top-card button',
+      'button#jobs-apply-button-id',
+      '.jobs-apply-button button'
+    ];
+    const button = document.querySelector(buttonSelectors.join(','));
+    if (!button) return null;
+
+    const text = (button.innerText || button.textContent || '').trim();
+    const aria = button.getAttribute('aria-label') || '';
+    const combined = `${text} ${aria}`.toLowerCase();
+
+    if (combined.includes('easy apply')) return 'fast_apply';
+    if (combined.includes('apply')) return 'full_court_press';
+  } catch (err) {
+    console.warn('[Job Filter] Lane detection error:', err);
+  }
+  return null;
 }
 
 /**
@@ -2098,8 +2128,32 @@ function openProfileSetup() {
   window.open(profileUrl, '_blank');
 }
 
+/**
+ * Open the settings popup page (Airtable + Profile + Flags)
+ */
+function openSettings() {
+  if (!isExtensionContextValid()) {
+    handleInvalidContext();
+    alert('Extension was reloaded. Please refresh this page to continue.');
+    return;
+  }
+
+  const settingsUrl = chrome.runtime.getURL('popup.html');
+  const width = 420;
+  const height = 680;
+  const left = Math.max(0, Math.round((screen.width - width) / 2));
+  const top = Math.max(0, Math.round((screen.height - height) / 2));
+  const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`;
+
+  const settingsWindow = window.open(settingsUrl, '_blank', features);
+  if (!settingsWindow) {
+    window.open(settingsUrl, '_blank');
+  }
+}
+
 // Make functions available globally for sidebar and mode detection
 window.openProfileSetup = openProfileSetup;
+window.openSettings = openSettings;
 window.showProfileSetupPrompt = showProfileSetupPrompt;
 
 // Export triggerJobScoring for mode-detection.js to call

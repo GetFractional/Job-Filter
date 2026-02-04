@@ -1385,7 +1385,9 @@ function setupSidebarEventHandlers(sidebar, mode) {
   const settingsBtn = sidebar.querySelector('.jh-btn-settings');
   if (settingsBtn) {
     settingsBtn.addEventListener('click', () => {
-      if (window.openProfileSetup) {
+      if (window.openSettings) {
+        window.openSettings();
+      } else if (window.openProfileSetup) {
         window.openProfileSetup();
       }
     });
@@ -1579,7 +1581,7 @@ function getJobsSidebarHTML() {
           <span class="jh-brand-text">Job Filter</span>
         </div>
         <div class="jh-header-controls">
-          <button class="jh-btn-settings" title="Edit Profile">⚙</button>
+          <button class="jh-btn-settings" title="Settings">⚙</button>
           <button class="jh-btn-minimize" title="Minimize">−</button>
           <button class="jh-sidebar-close" title="Close">×</button>
         </div>
