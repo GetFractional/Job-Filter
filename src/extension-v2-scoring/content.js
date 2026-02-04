@@ -2138,17 +2138,28 @@ function openSettings() {
     return;
   }
 
-  const settingsUrl = chrome.runtime.getURL('popup.html');
-  const width = 420;
-  const height = 680;
-  const left = Math.max(0, Math.round((screen.width - width) / 2));
-  const top = Math.max(0, Math.round((screen.height - height) / 2));
-  const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`;
+  chrome.runtime.sendMessage({ action: 'jobHunter.openSettings' }, (resp) => {
+    const lastErr = chrome.runtime.lastError;
+    if (lastErr) {
+      console.warn('[Job Filter] Open settings failed via background:', lastErr.message);
+    }
 
-  const settingsWindow = window.open(settingsUrl, '_blank', features);
-  if (!settingsWindow) {
-    window.open(settingsUrl, '_blank');
-  }
+    if (resp?.success) {
+      return;
+    }
+
+    const settingsUrl = chrome.runtime.getURL('popup.html');
+    const width = 420;
+    const height = 680;
+    const left = Math.max(0, Math.round((screen.width - width) / 2));
+    const top = Math.max(0, Math.round((screen.height - height) / 2));
+    const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`;
+
+    const settingsWindow = window.open(settingsUrl, '_blank', features);
+    if (!settingsWindow) {
+      window.open(settingsUrl, '_blank');
+    }
+  });
 }
 
 // Make functions available globally for sidebar and mode detection

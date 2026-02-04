@@ -17,6 +17,7 @@ const STORAGE_KEYS = {
   BASE_ID: 'jh_airtable_base_id',
   PAT: 'jh_airtable_pat'
 };
+const FEATURE_FLAGS_KEY = 'jh_feature_flags';
 
 // Airtable API base URL
 const AIRTABLE_API_BASE = 'https://api.airtable.com/v0';
@@ -39,6 +40,47 @@ async function getFeatureFlags() {
     };
   }
   return self.JobFilterFlags.getFlags();
+}
+
+async function configureSidePanelBehavior(flags) {
+  if (!chrome?.sidePanel?.setPanelBehavior) return;
+  const openOnClick = !!flags?.enableSidePanel;
+  try {
+    await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: openOnClick });
+  } catch (err) {
+    console.warn('[Job Filter BG] Side panel behavior config failed:', err?.message || err);
+  }
+}
+
+// Initialize side panel behavior and keep in sync with flag changes
+getFeatureFlags().then(configureSidePanelBehavior);
+if (chrome?.storage?.onChanged) {
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'local') return;
+    if (changes[FEATURE_FLAGS_KEY]?.newValue) {
+      configureSidePanelBehavior(changes[FEATURE_FLAGS_KEY].newValue);
+    }
+  });
+}
+
+async function openSettingsTab() {
+  const url = chrome.runtime.getURL('popup.html');
+  return chrome.tabs.create({ url });
+}
+
+async function openSidePanelForSender(sender) {
+  if (!chrome?.sidePanel?.open) {
+    throw new Error('Side panel API not available');
+  }
+  const tabId = sender?.tab?.id;
+  const windowId = sender?.tab?.windowId;
+  if (tabId !== undefined) {
+    return chrome.sidePanel.open({ tabId });
+  }
+  if (windowId !== undefined) {
+    return chrome.sidePanel.open({ windowId });
+  }
+  throw new Error('No tab or window context available');
 }
 
 // ===========================
@@ -116,8 +158,7 @@ function ensureNumber(value) {
 
 /**
  * Map company type to valid Airtable Single Select options
- * Valid options: "Public Company", "Privately Held", "Educational Institution",
- *                "Self-Employed", "Government Agency", "Partnership", "Non-Profit"
+ * Valid options: "Startup", "SMB", "Enterprise", "Nonprofit", "Agency", "Other"
  * @param {string} companyType - Raw company type from LinkedIn
  * @returns {string|null} Valid Airtable option or null
  */
@@ -126,45 +167,57 @@ function mapCompanyType(companyType) {
 
   const normalized = companyType.toLowerCase().trim();
 
-  // Map various LinkedIn formats to valid Airtable options
-  const typeMap = {
-    'public company': 'Public Company',
-    'publicly held': 'Public Company',
-    'publicly traded': 'Public Company',
-    'privately held': 'Privately Held',
-    'private': 'Privately Held',
-    'educational institution': 'Educational Institution',
-    'educational': 'Educational Institution',
-    'education': 'Educational Institution',
-    'school': 'Educational Institution',
-    'university': 'Educational Institution',
-    'self-employed': 'Self-Employed',
-    'self employed': 'Self-Employed',
-    'freelance': 'Self-Employed',
-    'government agency': 'Government Agency',
-    'government': 'Government Agency',
-    'public sector': 'Government Agency',
-    'partnership': 'Partnership',
-    'non-profit': 'Non-Profit',
-    'nonprofit': 'Non-Profit',
-    'non profit': 'Non-Profit',
-    'not-for-profit': 'Non-Profit',
-    'ngo': 'Non-Profit'
+  const mapToAllowed = (value) => value || null;
+
+  const directMap = {
+    'startup': 'Startup',
+    'start-up': 'Startup',
+    'start up': 'Startup',
+    'smb': 'SMB',
+    'small business': 'SMB',
+    'public company': 'Enterprise',
+    'publicly held': 'Enterprise',
+    'publicly traded': 'Enterprise',
+    'enterprise': 'Enterprise',
+    'non-profit': 'Nonprofit',
+    'nonprofit': 'Nonprofit',
+    'non profit': 'Nonprofit',
+    'not-for-profit': 'Nonprofit',
+    'ngo': 'Nonprofit',
+    'agency': 'Agency'
   };
 
-  // Check for exact match first
-  if (typeMap[normalized]) {
-    return typeMap[normalized];
+  if (directMap[normalized]) {
+    return mapToAllowed(directMap[normalized]);
   }
 
-  // Check for partial matches
-  for (const [key, value] of Object.entries(typeMap)) {
+  for (const [key, value] of Object.entries(directMap)) {
     if (normalized.includes(key) || key.includes(normalized)) {
-      return value;
+      return mapToAllowed(value);
     }
   }
 
-  // If no match, return null to avoid 422 errors
+  const knownButUnmapped = [
+    'privately held',
+    'private',
+    'partnership',
+    'self-employed',
+    'self employed',
+    'government',
+    'public sector',
+    'educational',
+    'education',
+    'school',
+    'university'
+  ];
+
+  for (const key of knownButUnmapped) {
+    if (normalized.includes(key)) {
+      console.log('[Job Filter BG] ℹ️ Company type mapped to Other:', companyType);
+      return 'Other';
+    }
+  }
+
   console.log('[Job Filter BG] ⚠️ Unknown company type, skipping:', companyType);
   return null;
 }
@@ -176,6 +229,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // Ping check for service worker health
   if (request.action === 'jobHunter.ping') {
     sendResponse({ alive: true });
+    return true;
+  }
+
+  if (request.action === 'jobHunter.openSettings') {
+    openSettingsTab()
+      .then(() => sendResponse({ success: true }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+
+  if (request.action === 'jobHunter.openSidePanel') {
+    openSidePanelForSender(sender)
+      .then(() => sendResponse({ success: true }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
 
