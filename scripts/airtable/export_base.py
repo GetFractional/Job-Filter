@@ -87,9 +87,11 @@ def main():
 
   base_id = os.environ.get("AIRTABLE_BASE_ID", "").strip()
   pat = os.environ.get("AIRTABLE_PAT", "").strip()
+  if not pat:
+    pat = os.environ.get("AIRTABLE_API_KEY", "").strip()
 
   if not base_id or not pat:
-    raise SystemExit("Missing AIRTABLE_BASE_ID or AIRTABLE_PAT in environment.")
+    raise SystemExit("Missing AIRTABLE_BASE_ID and/or AIRTABLE_PAT/AIRTABLE_API_KEY in environment.")
 
   timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
   output_root = Path(args.output) / timestamp

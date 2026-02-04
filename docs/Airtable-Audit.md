@@ -7,7 +7,7 @@
 Run the export script before any schema changes:
 
 ```bash
-AIRTABLE_BASE_ID=appXXXX AIRTABLE_PAT=patXXXX \
+AIRTABLE_BASE_ID=appXXXX AIRTABLE_API_KEY=patXXXX \
   python3 scripts/airtable/export_base.py --output backups/airtable
 ```
 
