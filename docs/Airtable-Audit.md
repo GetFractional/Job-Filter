@@ -16,24 +16,25 @@ Outputs:
 - `backups/airtable/<timestamp>/tables/*.json`
 - `backups/airtable/<timestamp>/tables/*.csv`
 
-## 2) Schema Diff (Fill This In)
+## 2) Schema Diff (Latest Backup)
 
 **SSOT reference**: `docs/Data-Architecture.md`
+
+Backup used: `backups/airtable/20260204_045916/schema.json`
 
 | Table | Field | Status | Notes |
 | --- | --- | --- | --- |
 | Jobs Pipeline | lane | Missing | Add Single Select |
 | Jobs Pipeline | last_touch_date | Missing | Add Date |
+| Jobs Pipeline | next_followup_date | Missing | Add Date |
 | Jobs Pipeline | stale_status | Missing | Add Single Select or Formula |
 | Jobs Pipeline | rejection_reason | Missing | Add Single Select |
 | Jobs Pipeline | rejection_reason_other | Missing | Add Long Text |
-| Application Tracking | event_source | Missing | Add Single Select |
-| Application Tracking | event_payload | Missing | Add Long Text |
-| Application Tracking | event_key | Missing | Add Single Line Text |
-| Application Tracking | status_snapshot | Missing | Add Single Select |
-| Application Tracking | lane_snapshot | Missing | Add Single Select |
-| Application Tracking | rejection_reason_snapshot | Missing | Add Single Select |
+| Application Tracking | (table) | Missing | Create table before adding event fields |
 | Rejection Insights | (table) | Missing | Add table + fields |
+
+**Drift notes (present in base, not in SSOT):**
+- Jobs Pipeline: `Requested Salary`, `Job Search Strategies`, `First Contact Date`, `Offer Date`, `Rejected Date`
 
 ## 3) Migration Plan (Non-Destructive)
 
