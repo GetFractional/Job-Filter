@@ -2177,6 +2177,11 @@ function openSidePanel() {
     if (lastErr || !resp?.success) {
       console.warn('[Job Filter] Side panel unavailable:', lastErr?.message || resp?.error);
       alert('Side panel is not available in this browser profile. Please update Chrome or use the in-page Job Filter rail.');
+      return;
+    }
+
+    if (resp?.fallback === 'tab') {
+      alert('Side panel is not available in this browser profile. Opening the panel in a tab instead.');
     }
   });
 }

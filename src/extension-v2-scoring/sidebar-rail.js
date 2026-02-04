@@ -1612,7 +1612,10 @@ function getJobsSidebarHTML() {
           <span class="jh-brand-text">Job Filter</span>
         </div>
         <div class="jh-header-controls">
-          <button class="jh-btn-sidepanel" title="Open Side Panel">▣</button>
+          <button class="jh-btn-sidepanel" title="Open Side Panel">
+            <span class="jh-btn-icon">▣</span>
+            <span class="jh-btn-label">Panel</span>
+          </button>
           <button class="jh-btn-settings" title="Settings">⚙</button>
           <button class="jh-btn-minimize" title="Minimize">−</button>
           <button class="jh-sidebar-close" title="Close">×</button>
@@ -1692,7 +1695,10 @@ function getOutreachSidebarHTML() {
           <span class="jh-mode-badge">Outreach</span>
         </div>
         <div class="jh-header-controls">
-          <button class="jh-btn-sidepanel" title="Open Side Panel">▣</button>
+          <button class="jh-btn-sidepanel" title="Open Side Panel">
+            <span class="jh-btn-icon">▣</span>
+            <span class="jh-btn-label">Panel</span>
+          </button>
           <button class="jh-btn-minimize" title="Minimize">−</button>
           <button class="jh-sidebar-close" title="Close">×</button>
         </div>
@@ -1918,7 +1924,6 @@ function getSidebarStyles() {
     }
 
     .jh-header-controls button {
-      width: 28px;
       height: 28px;
       border: none;
       background: #E0E7FF;
@@ -1930,6 +1935,23 @@ function getSidebarStyles() {
       align-items: center;
       justify-content: center;
       transition: all 0.15s ease;
+    }
+
+    .jh-header-controls .jh-btn-sidepanel {
+      width: auto;
+      gap: 6px;
+      padding: 0 10px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .jh-header-controls .jh-btn-sidepanel .jh-btn-icon {
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .jh-header-controls .jh-btn-sidepanel .jh-btn-label {
+      letter-spacing: 0.2px;
     }
 
     .jh-header-controls button:hover {
