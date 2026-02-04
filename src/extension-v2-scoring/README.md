@@ -8,13 +8,15 @@ A Chrome extension that captures job listings from LinkedIn and Indeed, sending 
 - **Auto-Extraction**: Automatically extracts job title, company, location, salary, and full description
 - **Airtable Integration**: Creates records in your Jobs Pipeline with Status = "Captured"
 - **Error Handling**: Automatic retry on network failures with clear error messages
+- **Feature Flags**: Gate new capabilities from the popup
+- **Side Panel (MV3)**: Optional side panel scaffold for expanded workflows
 
 ## Installation
 
 1. Open Chrome and navigate to `chrome://extensions/`
 2. Enable **Developer mode** (toggle in top-right corner)
 3. Click **Load unpacked**
-4. Select the `/src/extension/` folder from this repository
+4. Select the `/src/extension-v2-scoring/` folder from this repository
 5. The extension icon should appear in your Chrome toolbar
 
 ## Configuration
@@ -38,6 +40,7 @@ Before using the extension, you need to configure your Airtable credentials:
 2. Look for the blue **"Send to Job Filter"** button in the bottom-right corner
 3. Click the button to capture the job
 4. A success message appears when the job is saved to Airtable
+5. Optional: Open the side panel from Chrome’s side panel menu if enabled in flags
 
 ## Supported Sites
 
@@ -61,6 +64,12 @@ The extension captures and sends these fields to Airtable:
 | Source | "LinkedIn" or "Indeed" | Yes |
 | Job Description | Full job posting text | Yes |
 | Status | Always set to "Captured" | Yes |
+| lane | Optional lane tracking (feature-flagged) | No |
+| last_touch_date | Optional stale tracking (feature-flagged) | No |
+| stale_status | Optional stale tracking (feature-flagged) | No |
+
+When **Application Events** is enabled, the extension writes events to the
+`Application Tracking` table.
 
 ## Troubleshooting
 
@@ -96,13 +105,17 @@ The extension captures and sends these fields to Airtable:
 ### File Structure
 
 ```
-src/extension/
+src/extension-v2-scoring/
 ├── manifest.json    # Extension configuration (Manifest V3)
 ├── popup.html       # Settings popup UI
 ├── popup.js         # Settings logic (save/load/test)
 ├── popup.css        # Popup styling
 ├── content.js       # Job page detection & data extraction
 ├── background.js    # Airtable API communication
+├── feature-flags.js # Feature flag storage helpers
+├── sidepanel.html   # MV3 side panel scaffold
+├── sidepanel.js     # Side panel logic
+├── sidepanel.css    # Side panel styles
 └── README.md        # This file
 ```
 

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Job Filter Side Panel</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div class="panel">
+    <header class="panel-header">
+      <div class="brand">Job Filter</div>
+      <div class="subtitle">Side Panel</div>
+    </header>
+
+    <section class="card">
+      <h2>Feature Status</h2>
+      <p id="flag-status" class="status">Checking flags...</p>
+      <p id="flag-help" class="help"></p>
+    </section>
+
+    <section class="card">
+      <h2>Quick Notes</h2>
+      <ul class="notes">
+        <li>Manual actions only, no auto-submit.</li>
+        <li>Use the popup to toggle feature flags.</li>
+        <li>Events log is written to Application Tracking when enabled.</li>
+      </ul>
+    </section>
+  </div>
+
+  <script src="feature-flags.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>

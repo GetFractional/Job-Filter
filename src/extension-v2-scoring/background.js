@@ -9,6 +9,9 @@
  * - Returns success/failure response to content script
  */
 
+// Feature flags (loaded into service worker scope)
+importScripts('feature-flags.js');
+
 // Storage keys (must match popup.js)
 const STORAGE_KEYS = {
   BASE_ID: 'jh_airtable_base_id',
@@ -23,8 +26,20 @@ const TABLES = {
   JOBS_PIPELINE: 'Jobs%20Pipeline',
   COMPANIES: 'Companies',
   CONTACTS: 'Contacts',
-  OUTREACH_LOG: 'Outreach%20Log'
+  OUTREACH_LOG: 'Outreach%20Log',
+  APPLICATION_TRACKING: 'Application%20Tracking'
 };
+
+async function getFeatureFlags() {
+  if (!self.JobFilterFlags) {
+    return {
+      enableSidePanel: false,
+      enableApplicationEvents: false,
+      enableJobMetadataFields: false
+    };
+  }
+  return self.JobFilterFlags.getFlags();
+}
 
 // ===========================
 // AIRTABLE DATA SANITIZATION
@@ -332,6 +347,8 @@ async function handleCreateTripleRecord(jobData, scoreData = null) {
     console.log('[Job Filter BG] Including score data:', scoreData.overall_score, scoreData.overall_label);
   }
 
+  const flags = await getFeatureFlags();
+
   // Get credentials from storage
   const credentials = await getCredentials();
 
@@ -378,8 +395,10 @@ async function handleCreateTripleRecord(jobData, scoreData = null) {
     }
 
     // STEP C: Create Job record with links to Company and Contact
-    const jobRecordId = await createJob(credentials, jobData, scoreData, companyRecordId, contactRecordId);
+    const jobRecordId = await createJob(credentials, jobData, scoreData, companyRecordId, contactRecordId, flags);
     console.log('[Job Filter BG] ✓ Job record created:', jobRecordId);
+
+    await logCaptureEvents(credentials, flags, jobRecordId, jobData, scoreData);
 
     return {
       success: true,
@@ -738,7 +757,7 @@ async function upsertContact(credentials, jobData, companyRecordId) {
  * @param {string|null} contactRecordId - ID of linked Contact record (optional)
  * @returns {Promise<string>} Job record ID
  */
-async function createJob(credentials, jobData, scoreData, companyRecordId, contactRecordId) {
+async function createJob(credentials, jobData, scoreData, companyRecordId, contactRecordId, flags = {}) {
   // Build the Airtable record payload (all strings sanitized)
   // Field names must match exactly what's defined in Airtable
   const jobFields = {
@@ -751,6 +770,18 @@ async function createJob(credentials, jobData, scoreData, companyRecordId, conta
     'Job Description': sanitizeString(jobData.descriptionText || ''),
     'Status': 'Captured'
   };
+
+  if (flags.enableJobMetadataFields) {
+    const today = new Date().toISOString().split('T')[0];
+    jobFields['last_touch_date'] = today;
+    jobFields['stale_status'] = 'fresh';
+    if (jobData.nextFollowupDate) {
+      jobFields['next_followup_date'] = jobData.nextFollowupDate;
+    }
+    if (jobData.lane) {
+      jobFields['lane'] = jobData.lane;
+    }
+  }
 
   // Link to Contact record if available (OPTIONAL - job can exist without contact)
   if (contactRecordId) {
@@ -944,6 +975,96 @@ async function createJob(credentials, jobData, scoreData, companyRecordId, conta
   return createData.id;
 }
 
+async function logCaptureEvents(credentials, flags, jobRecordId, jobData, scoreData) {
+  if (!flags.enableApplicationEvents) {
+    return;
+  }
+
+  const basePayload = {
+    jobTitle: jobData.jobTitle,
+    companyName: jobData.companyName,
+    jobUrl: jobData.jobUrl,
+    source: jobData.source || 'LinkedIn'
+  };
+
+  await createApplicationEvent(credentials, jobRecordId, {
+    eventType: 'Job Captured',
+    eventSource: 'Extension',
+    details: 'Job captured via extension',
+    eventKey: `job_capture:${jobRecordId}`,
+    payload: basePayload,
+    statusSnapshot: 'Captured',
+    laneSnapshot: jobData.lane
+  });
+
+  if (scoreData) {
+    await createApplicationEvent(credentials, jobRecordId, {
+      eventType: 'Score Calculated',
+      eventSource: 'Extension',
+      details: 'Job scored during capture',
+      eventKey: `score:${jobRecordId}`,
+      payload: {
+        overall_score: scoreData.overall_score,
+        overall_label: scoreData.overall_label,
+        preference_fit: scoreData.job_to_user_fit?.score,
+        role_fit: scoreData.user_to_job_fit?.score
+      },
+      statusSnapshot: 'Captured',
+      laneSnapshot: jobData.lane
+    });
+  }
+}
+
+async function createApplicationEvent(credentials, jobRecordId, {
+  eventType,
+  eventSource,
+  details,
+  eventKey,
+  payload,
+  statusSnapshot,
+  laneSnapshot,
+  rejectionReasonSnapshot
+}) {
+  try {
+    const fields = {
+      'Job': [jobRecordId],
+      'Event Type': eventType,
+      'Event Date': new Date().toISOString(),
+      'Details': details ? sanitizeString(details) : undefined,
+      'event_source': eventSource,
+      'event_payload': payload ? JSON.stringify(payload) : undefined,
+      'event_key': eventKey,
+      'status_snapshot': statusSnapshot,
+      'lane_snapshot': laneSnapshot,
+      'rejection_reason_snapshot': rejectionReasonSnapshot
+    };
+
+    const cleanFields = Object.fromEntries(
+      Object.entries(fields).filter(([, value]) => value !== undefined && value !== null && value !== '')
+    );
+
+    const createUrl = `${AIRTABLE_API_BASE}/${credentials.baseId}/${TABLES.APPLICATION_TRACKING}`;
+    const response = await fetchWithRetry(createUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${credentials.pat}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ fields: cleanFields })
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}));
+      console.error('[Job Filter BG] Application event create failed:', {
+        status: response.status,
+        error: errorBody.error?.message || errorBody.error || response.statusText
+      });
+    }
+  } catch (error) {
+    console.error('[Job Filter BG] Application event error:', error);
+  }
+}
+
 /**
  * Fetch an Outreach Log record by ID
  * Used in Outreach Mode to display outreach message
@@ -999,6 +1120,7 @@ async function handleFetchOutreachRecord(recordId) {
  */
 async function handleMarkOutreachSent(outreachRecordId, contactRecordId) {
   const credentials = await getCredentials();
+  const flags = await getFeatureFlags();
 
   if (!credentials.baseId || !credentials.pat) {
     return { success: false, error: 'Airtable credentials not configured' };
@@ -1051,6 +1173,8 @@ async function handleMarkOutreachSent(outreachRecordId, contactRecordId) {
       }
     }
 
+    await logOutreachSentEvent(credentials, flags, outreachRecordId);
+
     return {
       success: true,
       message: 'Outreach marked as sent'
@@ -1062,6 +1186,55 @@ async function handleMarkOutreachSent(outreachRecordId, contactRecordId) {
       success: false,
       error: error.message
     };
+  }
+}
+
+async function logOutreachSentEvent(credentials, flags, outreachRecordId) {
+  if (!flags.enableApplicationEvents) {
+    return;
+  }
+
+  try {
+    const outreachUrl = `${AIRTABLE_API_BASE}/${credentials.baseId}/${TABLES.OUTREACH_LOG}/${outreachRecordId}`;
+    const response = await fetchWithRetry(outreachUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${credentials.pat}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      console.warn('[Job Filter BG] Outreach fetch failed for event logging:', response.status);
+      return;
+    }
+
+    const record = await response.json();
+    const fields = record.fields || {};
+    const jobFieldCandidates = ['Job', 'Jobs Pipeline', 'Jobs', 'Job Listings', 'Job Listing'];
+    const jobRecordId = jobFieldCandidates
+      .map(name => fields[name])
+      .find(value => Array.isArray(value) && value.length > 0)?.[0];
+
+    if (!jobRecordId) {
+      console.warn('[Job Filter BG] No linked job found for outreach event logging');
+      return;
+    }
+
+    await createApplicationEvent(credentials, jobRecordId, {
+      eventType: 'Outreach Sent',
+      eventSource: 'Extension',
+      details: 'Outreach marked as sent',
+      eventKey: `outreach_sent:${outreachRecordId}`,
+      payload: {
+        outreachRecordId,
+        contactId: (fields['Contact'] || [])[0] || null,
+        outreachStatus: fields['Outreach Status'] || null
+      },
+      statusSnapshot: fields['Outreach Status'] || undefined
+    });
+  } catch (error) {
+    console.error('[Job Filter BG] Outreach event logging error:', error);
   }
 }
 

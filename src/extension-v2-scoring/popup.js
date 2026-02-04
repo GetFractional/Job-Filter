@@ -43,7 +43,14 @@ document.addEventListener('DOMContentLoaded', () => {
     profileSkills: document.getElementById('profile-skills'),
     profileUpdated: document.getElementById('profile-updated'),
     setupProfileBtn: document.getElementById('setup-profile-btn'),
-    editProfileBtn: document.getElementById('edit-profile-btn')
+    editProfileBtn: document.getElementById('edit-profile-btn'),
+    // Feature flags elements
+    flagSidePanel: document.getElementById('flag-sidepanel'),
+    flagEvents: document.getElementById('flag-events'),
+    flagMetadata: document.getElementById('flag-metadata'),
+    flagsSaveBtn: document.getElementById('flags-save'),
+    flagsResetBtn: document.getElementById('flags-reset'),
+    flagsStatus: document.getElementById('flags-status')
   };
 
   // Set up tab navigation
@@ -55,6 +62,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load profile status
   loadProfileStatus();
 
+  // Load feature flags
+  loadFeatureFlags();
+
   // Attach event listeners
   elements.form.addEventListener('submit', handleSave);
   elements.testBtn.addEventListener('click', handleTestConnection);
@@ -65,6 +75,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (elements.editProfileBtn) {
     elements.editProfileBtn.addEventListener('click', openProfileSetup);
+  }
+
+  if (elements.flagsSaveBtn) {
+    elements.flagsSaveBtn.addEventListener('click', handleSaveFlags);
+  }
+  if (elements.flagsResetBtn) {
+    elements.flagsResetBtn.addEventListener('click', handleResetFlags);
   }
 });
 
@@ -200,6 +217,77 @@ function formatWorkplaceType(type) {
     'on_site': 'On-site'
   };
   return formats[type] || type;
+}
+
+// ============================================================================
+// FEATURE FLAGS
+// ============================================================================
+
+async function loadFeatureFlags() {
+  if (!elements.flagSidePanel || !window.JobFilterFlags) {
+    return;
+  }
+
+  try {
+    const flags = await window.JobFilterFlags.getFlags();
+    elements.flagSidePanel.checked = !!flags.enableSidePanel;
+    elements.flagEvents.checked = !!flags.enableApplicationEvents;
+    elements.flagMetadata.checked = !!flags.enableJobMetadataFields;
+  } catch (error) {
+    console.error('Error loading feature flags:', error);
+    showFlagStatus('Failed to load feature flags', 'error');
+  }
+}
+
+async function handleSaveFlags() {
+  if (!window.JobFilterFlags) {
+    showFlagStatus('Feature flags unavailable', 'error');
+    return;
+  }
+
+  setButtonLoading(elements.flagsSaveBtn, true);
+  showFlagStatus('Saving flags...', 'info');
+
+  try {
+    await window.JobFilterFlags.setFlags({
+      enableSidePanel: !!elements.flagSidePanel.checked,
+      enableApplicationEvents: !!elements.flagEvents.checked,
+      enableJobMetadataFields: !!elements.flagMetadata.checked
+    });
+    showFlagStatus('Flags saved', 'success');
+  } catch (error) {
+    console.error('Error saving flags:', error);
+    showFlagStatus('Failed to save flags', 'error');
+  } finally {
+    setButtonLoading(elements.flagsSaveBtn, false);
+  }
+}
+
+async function handleResetFlags() {
+  if (!window.JobFilterFlags) {
+    showFlagStatus('Feature flags unavailable', 'error');
+    return;
+  }
+
+  setButtonLoading(elements.flagsResetBtn, true);
+  showFlagStatus('Resetting to defaults...', 'info');
+
+  try {
+    await window.JobFilterFlags.setFlags(window.JobFilterFlags.DEFAULT_FLAGS);
+    await loadFeatureFlags();
+    showFlagStatus('Flags reset', 'success');
+  } catch (error) {
+    console.error('Error resetting flags:', error);
+    showFlagStatus('Failed to reset flags', 'error');
+  } finally {
+    setButtonLoading(elements.flagsResetBtn, false);
+  }
+}
+
+function showFlagStatus(message, type) {
+  if (!elements.flagsStatus) return;
+  elements.flagsStatus.textContent = message;
+  elements.flagsStatus.className = `status-message ${type}`;
 }
 
 /**

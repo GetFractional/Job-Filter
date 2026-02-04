@@ -17,6 +17,7 @@
     <nav class="popup-tabs">
       <button type="button" class="popup-tab active" data-tab="airtable">Airtable</button>
       <button type="button" class="popup-tab" data-tab="profile">Profile</button>
+      <button type="button" class="popup-tab" data-tab="flags">Flags</button>
     </nav>
 
     <!-- Tab: Airtable Settings -->
@@ -109,11 +110,64 @@
       </div>
     </div>
 
+    <!-- Tab: Feature Flags -->
+    <div id="tab-flags" class="tab-panel">
+      <div class="flags-card">
+        <h2>Feature Flags</h2>
+        <p class="flags-hint">Defaults are off for safety. Enable only what you need.</p>
+
+        <div class="flag-row">
+          <label class="switch">
+            <input type="checkbox" id="flag-sidepanel">
+            <span class="slider"></span>
+          </label>
+          <div class="flag-text">
+            <span class="flag-title">Side Panel (MV3)</span>
+            <span class="flag-desc">Enable the new side panel scaffold.</span>
+          </div>
+        </div>
+
+        <div class="flag-row">
+          <label class="switch">
+            <input type="checkbox" id="flag-events">
+            <span class="slider"></span>
+          </label>
+          <div class="flag-text">
+            <span class="flag-title">Application Events</span>
+            <span class="flag-desc">Write events to Application Tracking.</span>
+          </div>
+        </div>
+
+        <div class="flag-row">
+          <label class="switch">
+            <input type="checkbox" id="flag-metadata">
+            <span class="slider"></span>
+          </label>
+          <div class="flag-text">
+            <span class="flag-title">Job Metadata Fields</span>
+            <span class="flag-desc">Populate lane and stale tracking fields.</span>
+          </div>
+        </div>
+
+        <div id="flags-status" class="status-message hidden"></div>
+
+        <div class="button-group">
+          <button type="button" id="flags-save" class="btn btn-primary">
+            Save Flags
+          </button>
+          <button type="button" id="flags-reset" class="btn btn-secondary">
+            Reset Defaults
+          </button>
+        </div>
+      </div>
+    </div>
+
     <footer>
-      <p>v1.1.0 &bull; <a href="https://github.com/GetFractional/Job-Hunter" target="_blank">Documentation</a></p>
+      <p>v1.2.0 &bull; <a href="https://github.com/GetFractional/Job-Hunter" target="_blank">Documentation</a></p>
     </footer>
   </div>
 
+  <script src="feature-flags.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
